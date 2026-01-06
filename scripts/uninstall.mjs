@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * CCMO Uninstall Script - Full cleanup
+ * CC Orchestrator Uninstall Script - Full cleanup
  */
 
 import * as readline from 'readline';
@@ -45,15 +45,15 @@ function deleteFile(filePath) {
 }
 
 async function main() {
-  console.log('\n=== CCMO Uninstall Wizard ===\n');
+  console.log('\n=== CC Orchestrator Uninstall Wizard ===\n');
 
-  console.log('This script will remove CCMO components.\n');
+  console.log('This script will remove CC Orchestrator components.\n');
   console.log('Components:');
   console.log('  1. Local: .env, dist/, node_modules/');
-  console.log('  2. Hooks: ~/.claude/hooks/ (CCMO files)');
+  console.log('  2. Hooks: ~/.claude/hooks/ (CC Orchestrator files)');
   console.log('  3. Skills: ~/.claude/skills/orchestrate/');
-  console.log('  4. Settings: ~/.claude/settings.json (CCMO hooks)');
-  console.log('  5. Desktop Config: ccmo entry\n');
+  console.log('  4. Settings: ~/.claude/settings.json (CC Orchestrator hooks)');
+  console.log('  5. Desktop Config: cc-orchestrator entry\n');
 
   console.log('Options:');
   console.log('  1. Full uninstall (all components)');
@@ -89,33 +89,33 @@ async function main() {
   }
 
   if (removeClaudeConfig) {
-    // Remove hooks (keep folder, remove CCMO files)
-    const ccmoHooks = [
+    // Remove hooks (keep folder, remove CC Orchestrator files)
+    const ccoHooks = [
       'api_key_loader.py', 'collect_project_context.py', 'completion_orchestrator.py',
       'config.json', 'debate_orchestrator.py', 'intent_extractor.py', 'quota_monitor.py',
       'review_completion_wrapper.py', 'review_orchestrator.py', 'review_test_wrapper.py',
       'security.py', 'state_manager.py', 'todo_state_detector.py'
     ];
-    for (const file of ccmoHooks) {
+    for (const file of ccoHooks) {
       deleteFile(path.join(claudeHooksDir, file));
     }
     deleteFolderRecursive(path.join(claudeHooksDir, 'adapters'));
     deleteFolderRecursive(path.join(claudeHooksDir, 'prompts'));
-    console.log('  Removed: CCMO hooks');
+    console.log('  Removed: CC Orchestrator hooks');
 
     // Remove orchestrate skill
     if (deleteFolderRecursive(path.join(claudeSkillsDir, 'orchestrate'))) {
       console.log('  Removed: orchestrate skill');
     }
 
-    // Remove ccmo from desktop config
+    // Remove cc-orchestrator from desktop config
     try {
       if (fs.existsSync(claudeDesktopConfigPath)) {
         const cfg = JSON.parse(fs.readFileSync(claudeDesktopConfigPath, 'utf8'));
-        if (cfg.mcpServers && cfg.mcpServers.ccmo) {
-          delete cfg.mcpServers.ccmo;
+        if (cfg.mcpServers && cfg.mcpServers['cc-orchestrator']) {
+          delete cfg.mcpServers['cc-orchestrator'];
           fs.writeFileSync(claudeDesktopConfigPath, JSON.stringify(cfg, null, 2));
-          console.log('  Removed: ccmo from desktop config');
+          console.log('  Removed: cc-orchestrator from desktop config');
         }
       }
     } catch (e) {
@@ -123,7 +123,7 @@ async function main() {
     }
 
     // Note about settings.json (manual cleanup recommended)
-    console.log('\n  Note: Check ~/.claude/settings.json for CCMO hooks manually');
+    console.log('\n  Note: Check ~/.claude/settings.json for CC Orchestrator hooks manually');
   }
 
   console.log('\n=== Uninstall Complete ===');

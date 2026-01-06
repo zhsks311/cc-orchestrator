@@ -2,7 +2,7 @@
  * Custom Error Classes
  */
 
-export abstract class CCMOError extends Error {
+export abstract class CCOError extends Error {
   constructor(
     message: string,
     public code: string,
@@ -26,25 +26,25 @@ export abstract class CCMOError extends Error {
 }
 
 // Client Errors (4xx)
-export class ValidationError extends CCMOError {
+export class ValidationError extends CCOError {
   constructor(message: string) {
     super(message, 'VALIDATION_ERROR', false, 400);
   }
 }
 
-export class AgentNotFoundError extends CCMOError {
+export class AgentNotFoundError extends CCOError {
   constructor(agentId: string) {
     super(`Agent ${agentId} not found`, 'AGENT_NOT_FOUND', false, 404);
   }
 }
 
-export class ContextNotFoundError extends CCMOError {
+export class ContextNotFoundError extends CCOError {
   constructor(key: string) {
     super(`Context ${key} not found`, 'CONTEXT_NOT_FOUND', false, 404);
   }
 }
 
-export class OrchestrationNotFoundError extends CCMOError {
+export class OrchestrationNotFoundError extends CCOError {
   constructor(orchestrationId: string) {
     super(
       `Orchestration ${orchestrationId} not found`,
@@ -55,14 +55,14 @@ export class OrchestrationNotFoundError extends CCMOError {
   }
 }
 
-export class InvalidRoleError extends CCMOError {
+export class InvalidRoleError extends CCOError {
   constructor(role: string) {
     super(`Invalid agent role: ${role}`, 'INVALID_ROLE', false, 400);
   }
 }
 
 // Server Errors (5xx - retryable)
-export class ModelAPIError extends CCMOError {
+export class ModelAPIError extends CCOError {
   constructor(
     message: string,
     public provider: string
@@ -71,7 +71,7 @@ export class ModelAPIError extends CCMOError {
   }
 }
 
-export class TimeoutError extends CCMOError {
+export class TimeoutError extends CCOError {
   constructor(operation: string, timeoutMs: number) {
     super(
       `Operation ${operation} timed out after ${timeoutMs}ms`,
@@ -82,13 +82,13 @@ export class TimeoutError extends CCMOError {
   }
 }
 
-export class ResourceExhaustedError extends CCMOError {
+export class ResourceExhaustedError extends CCOError {
   constructor(message: string) {
     super(message, 'RESOURCE_EXHAUSTED', true, 503);
   }
 }
 
-export class CircuitBreakerOpenError extends CCMOError {
+export class CircuitBreakerOpenError extends CCOError {
   constructor(provider: string) {
     super(
       `Circuit breaker is open for provider: ${provider}`,
@@ -99,7 +99,7 @@ export class CircuitBreakerOpenError extends CCMOError {
   }
 }
 
-export class RateLimitError extends CCMOError {
+export class RateLimitError extends CCOError {
   constructor(
     operation: string,
     public retryAfter: Date
@@ -113,7 +113,7 @@ export class RateLimitError extends CCMOError {
   }
 }
 
-export class ConfigurationError extends CCMOError {
+export class ConfigurationError extends CCOError {
   constructor(message: string) {
     super(message, 'CONFIGURATION_ERROR', false, 500);
   }

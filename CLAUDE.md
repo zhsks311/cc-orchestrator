@@ -1,7 +1,7 @@
-# CCMO Project Instructions
+# CC Orchestrator Project Instructions
 
 ## 프로젝트 개요
-Claude Code Multi-Model Orchestrator (CCMO) - MCP 서버로 GPT, Gemini, Claude를 병렬 활용
+Claude Code Multi-Model Orchestrator (CC Orchestrator) - MCP 서버로 GPT, Gemini, Claude를 병렬 활용
 
 ## Compact 후 자동 복구 지침
 
@@ -50,7 +50,7 @@ Claude Code Multi-Model Orchestrator (CCMO) - MCP 서버로 GPT, Gemini, Claude�
 - TypeScript ES Module (.js 확장자 import)
 - Zod 스키마 검증
 - 구조화된 JSON 로깅 (stderr)
-- 에러는 CCMOError 상속
+- 에러는 CC OrchestratorError 상속
 
 ## 현재 상태
 
@@ -65,7 +65,7 @@ Claude Code Multi-Model Orchestrator (CCMO) - MCP 서버로 GPT, Gemini, Claude�
 
 ### 타입 검사
 ```bash
-cd F:\Dev_Project\oh-my-claudecode
+cd F:\Dev_Project\cc-orchestrator
 npx tsc --noEmit
 ```
 

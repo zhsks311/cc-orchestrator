@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * CCMO MCP Server - Entry Point
+ * CC Orchestrator MCP Server - Entry Point
  * Claude Code Multi-Model Orchestrator
  */
 
@@ -23,7 +23,7 @@ async function main(): Promise<void> {
 
   // Create and start server
   const server = new MCPServer({
-    name: 'ccmo-mcp-server',
+    name: 'cc-orchestrator-mcp-server',
     version: '1.0.0',
   });
 

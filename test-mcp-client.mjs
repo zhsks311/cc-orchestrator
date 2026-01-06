@@ -1,6 +1,6 @@
 /**
  * MCP Server Test Client
- * Tests the CCMO MCP server functionality
+ * Tests the CC Orchestrator MCP server functionality
  */
 
 import { spawn } from 'child_process';

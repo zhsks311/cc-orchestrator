@@ -1,5 +1,5 @@
 /**
- * MCP Server - Main server class for CCMO
+ * MCP Server - Main server class for CC Orchestrator
  */
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
@@ -50,7 +50,7 @@ export class MCPServer {
     // Initialize MCP server
     this.server = new Server(
       {
-        name: config.name ?? 'ccmo-mcp-server',
+        name: config.name ?? 'cc-orchestrator-mcp-server',
         version: config.version ?? '1.0.0',
       },
       {
@@ -125,7 +125,7 @@ export class MCPServer {
     const transport = new StdioServerTransport();
     await this.server.connect(transport);
 
-    this.logger.info('CCMO MCP Server started', {
+    this.logger.info('CC Orchestrator MCP Server started', {
       sessionId: this.sessionId,
       tools: getToolDefinitions().map((t) => t.name),
     });

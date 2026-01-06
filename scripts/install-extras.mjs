@@ -51,7 +51,7 @@ function mergeSettings(existing, template, hooksPath) {
 }
 
 console.log('');
-console.log('=== CCMO Extra Installation ===');
+console.log('=== CC Orchestrator Extra Installation ===');
 console.log('');
 
 console.log('1. Installing Hooks...');
@@ -108,7 +108,7 @@ try {
     fs.copyFileSync(claudeDesktopConfigPath, claudeDesktopConfigPath + '.backup');
   }
   cfg.mcpServers = cfg.mcpServers || {};
-  cfg.mcpServers.ccmo = {
+  cfg.mcpServers['cc-orchestrator'] = {
     command: 'node',
     args: [path.join(rootDir, 'dist', 'index.js')],
     env: {

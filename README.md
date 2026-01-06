@@ -1,4 +1,4 @@
-# CCMO - Claude Code Multi-Model Orchestrator
+# CC Orchestrator - Claude Code Multi-Model Orchestrator
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -35,8 +35,8 @@ Claude Code에서 GPT-5.2, Gemini 3 Pro, Claude Sonnet 4.5 등 다양한 LLM을 
 ### 1. 설치
 
 ```bash
-git clone https://github.com/your-repo/oh-my-claudecode.git
-cd oh-my-claudecode
+git clone https://github.com/your-repo/cc-orchestrator.git
+cd cc-orchestrator
 npm run setup
 ```
 
@@ -145,7 +145,7 @@ Hooks가 외부 모델을 호출하려면 `~/.claude/hooks/api_keys.json` 파일
 ## 프로젝트 구조
 
 ```
-oh-my-claudecode/
+cc-orchestrator/
 ├── src/                         # TypeScript 소스
 ├── hooks/                       # Python Hooks (→ ~/.claude/hooks/)
 ├── skills/                      # Skills (→ ~/.claude/skills/)

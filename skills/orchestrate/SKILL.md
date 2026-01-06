@@ -2,7 +2,7 @@
 name: orchestrate
 description: Multi-Model Orchestration - 멀티모델 오케스트레이션 가이드
 version: 2.0.0
-author: CCMO
+author: CC Orchestrator
 tags: [orchestration, multi-model, parallel, workflow]
 ---
 

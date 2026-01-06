@@ -1,7 +1,7 @@
 {
-  "name": "ccmo-mcp-server",
+  "name": "cc-orchestrator",
   "version": "1.0.0",
-  "description": "Claude Code Multi-Model Orchestrator - MCP Server for multi-model agent orchestration",
+  "description": "CC Orchestrator - MCP Server for multi-model agent orchestration in Claude Code",
   "main": "dist/index.js",
   "type": "module",
   "scripts": {

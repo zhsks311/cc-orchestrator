@@ -1,9 +1,9 @@
-# CCMO 프로젝트 진행 상황 레포트
+# CC Orchestrator 프로젝트 진행 상황 레포트
 
 > **Compact 후 이 파일을 먼저 읽고 작업을 재개하세요**
 
 ## 프로젝트 개요
-- **프로젝트명**: Claude Code Multi-Model Orchestrator (CCMO)
+- **프로젝트명**: Claude Code Multi-Model Orchestrator (CC Orchestrator)
 - **목표**: Claude Code에서 GPT, Gemini, Claude 등 다양한 LLM을 병렬로 활용하는 MCP 서버
 - **기반**: oh-my-opencode 프로젝트 컨셉 참조
 
@@ -47,7 +47,7 @@
 
 **대상 (프로젝트):**
 ```
-oh-my-claudecode/
+cc-orchestrator/
 ├── hooks/                  ← ~/.claude/hooks/ 복사
 │   ├── adapters/
 │   ├── prompts/
@@ -98,7 +98,7 @@ oh-my-claudecode/
 
 ### 빌드 테스트
 ```bash
-cd F:\Dev_Project\oh-my-claudecode
+cd F:\Dev_Project\cc-orchestrator
 npm run build
 ```
 

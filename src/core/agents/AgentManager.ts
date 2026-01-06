@@ -41,7 +41,7 @@ export class AgentManager implements IAgentManager {
     this.modelRouter = modelRouter ?? new ModelRouter();
     this.logger = new Logger('AgentManager');
     this.maxConcurrentAgents = parseInt(
-      process.env.CCMO_MAX_PARALLEL_AGENTS ?? '5',
+      process.env.CCO_MAX_PARALLEL_AGENTS ?? '5',
       10
     );
   }

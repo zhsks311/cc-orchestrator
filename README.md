@@ -35,7 +35,7 @@ Claude Code에서 GPT-5.2, Gemini 3 Pro, Claude Sonnet 4.5 등 다양한 LLM을 
 ### 1. 설치
 
 ```bash
-git clone https://github.com/your-repo/cc-orchestrator.git
+git clone https://github.com/zhsks311/cc-orchestrator.git
 cd cc-orchestrator
 npm run setup
 ```

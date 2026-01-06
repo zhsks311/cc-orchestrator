@@ -1,0 +1,37 @@
+{
+  "alwaysThinkingEnabled": true,
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python {{HOOKS_PATH}}/collect_project_context.py \"$CWD\""
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "TodoWrite",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python {{HOOKS_PATH}}/review_completion_wrapper.py",
+            "timeout": 180
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python {{HOOKS_PATH}}/review_test_wrapper.py"
+          }
+        ]
+      }
+    ]
+  }
+}

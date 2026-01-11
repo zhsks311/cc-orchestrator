@@ -8,14 +8,40 @@
           {
             "type": "command",
             "command": "python {{HOOKS_PATH}}/collect_project_context.py \"$CWD\""
+          },
+          {
+            "type": "command",
+            "command": "python {{HOOKS_PATH}}/recovery_wrapper.py"
           }
         ]
       }
     ],
     "PostToolUse": [
       {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python {{HOOKS_PATH}}/context_saver_wrapper.py"
+          }
+        ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python {{HOOKS_PATH}}/context_saver_wrapper.py"
+          }
+        ]
+      },
+      {
         "matcher": "TodoWrite",
         "hooks": [
+          {
+            "type": "command",
+            "command": "python {{HOOKS_PATH}}/context_saver_wrapper.py"
+          },
           {
             "type": "command",
             "command": "python {{HOOKS_PATH}}/review_completion_wrapper.py",

@@ -5,9 +5,7 @@
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
-    "setup": "node scripts/setup.mjs && node scripts/install-extras.mjs",
-    "setup:mcp-only": "node scripts/setup.mjs",
-    "install-extras": "node scripts/install-extras.mjs",
+    "setup": "node scripts/setup.mjs",
     "uninstall": "node scripts/uninstall.mjs",
     "build": "tsc",
     "start": "node dist/index.js",

@@ -1,6 +1,11 @@
 #!/usr/bin/env node
 /**
  * CC Orchestrator Uninstall Script - Full cleanup
+ *
+ * Usage:
+ *   npm run uninstall              # Interactive mode
+ *   npm run uninstall -- --force   # Non-interactive, full uninstall
+ *   npm run uninstall -- --force --claude-only  # Non-interactive, Claude config only
  */
 
 import * as readline from 'readline';
@@ -23,7 +28,17 @@ const claudeDesktopConfigPath = isWindows
   ? path.join(process.env.APPDATA || '', 'Claude', 'claude_desktop_config.json')
   : path.join(homeDir, 'Library', 'Application Support', 'Claude', 'claude_desktop_config.json');
 
-const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+// Parse command line arguments
+const args = process.argv.slice(2);
+const forceMode = args.includes('--force') || args.includes('-f');
+const claudeOnly = args.includes('--claude-only') || args.includes('-c');
+const localOnly = args.includes('--local-only') || args.includes('-l');
+
+let rl;
+if (!forceMode) {
+  rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+}
+
 function question(prompt) {
   return new Promise(resolve => rl.question(prompt, answer => resolve(answer.trim())));
 }
@@ -44,92 +59,209 @@ function deleteFile(filePath) {
   return false;
 }
 
-async function main() {
-  console.log('\n=== CC Orchestrator Uninstall Wizard ===\n');
+// Normalize path for cross-platform compatibility
+function normalizePath(p) {
+  return p.split(path.sep).join('/');
+}
 
-  console.log('This script will remove CC Orchestrator components.\n');
-  console.log('Components:');
-  console.log('  1. Local: .env, dist/, node_modules/');
-  console.log('  2. Hooks: ~/.claude/hooks/ (CC Orchestrator files)');
-  console.log('  3. Skills: ~/.claude/skills/orchestrate/');
-  console.log('  4. Settings: ~/.claude/settings.json (CC Orchestrator hooks)');
-  console.log('  5. Desktop Config: cc-orchestrator entry\n');
-
-  console.log('Options:');
-  console.log('  1. Full uninstall (all components)');
-  console.log('  2. Local only (.env + dist + node_modules)');
-  console.log('  3. Claude config only (hooks, skills, settings)');
-  console.log('  4. Cancel\n');
-
-  const choice = await question('Select (1-4): ');
-
-  let removeLocal = false;
-  let removeClaudeConfig = false;
-
-  switch (choice) {
-    case '1': removeLocal = true; removeClaudeConfig = true; break;
-    case '2': removeLocal = true; break;
-    case '3': removeClaudeConfig = true; break;
-    default: console.log('\nCancelled.\n'); rl.close(); return;
+// Clean CC Orchestrator hooks from settings.json
+function cleanSettingsJson() {
+  if (!fs.existsSync(claudeSettingsPath)) {
+    return false;
   }
 
-  const confirm = await question('\nProceed? (yes/no): ');
-  if (confirm.toLowerCase() !== 'yes' && confirm.toLowerCase() !== 'y') {
-    console.log('\nCancelled.\n');
-    rl.close();
-    return;
-  }
+  try {
+    const settings = JSON.parse(fs.readFileSync(claudeSettingsPath, 'utf8'));
 
-  console.log('\nRemoving...\n');
-
-  if (removeLocal) {
-    if (deleteFile(path.join(rootDir, '.env'))) console.log('  Removed: .env');
-    if (deleteFolderRecursive(path.join(rootDir, 'dist'))) console.log('  Removed: dist/');
-    if (deleteFolderRecursive(path.join(rootDir, 'node_modules'))) console.log('  Removed: node_modules/');
-  }
-
-  if (removeClaudeConfig) {
-    // Remove hooks (keep folder, remove CC Orchestrator files)
-    const ccoHooks = [
-      'api_key_loader.py', 'collect_project_context.py', 'completion_orchestrator.py',
-      'config.json', 'debate_orchestrator.py', 'intent_extractor.py', 'quota_monitor.py',
-      'review_completion_wrapper.py', 'review_orchestrator.py', 'review_test_wrapper.py',
-      'security.py', 'state_manager.py', 'todo_state_detector.py'
-    ];
-    for (const file of ccoHooks) {
-      deleteFile(path.join(claudeHooksDir, file));
-    }
-    deleteFolderRecursive(path.join(claudeHooksDir, 'adapters'));
-    deleteFolderRecursive(path.join(claudeHooksDir, 'prompts'));
-    console.log('  Removed: CC Orchestrator hooks');
-
-    // Remove orchestrate skill
-    if (deleteFolderRecursive(path.join(claudeSkillsDir, 'orchestrate'))) {
-      console.log('  Removed: orchestrate skill');
+    if (!settings.hooks) {
+      return false;
     }
 
-    // Remove cc-orchestrator from desktop config
-    try {
-      if (fs.existsSync(claudeDesktopConfigPath)) {
-        const cfg = JSON.parse(fs.readFileSync(claudeDesktopConfigPath, 'utf8'));
-        if (cfg.mcpServers && cfg.mcpServers['cc-orchestrator']) {
-          delete cfg.mcpServers['cc-orchestrator'];
-          fs.writeFileSync(claudeDesktopConfigPath, JSON.stringify(cfg, null, 2));
-          console.log('  Removed: cc-orchestrator from desktop config');
+    let modified = false;
+    const hooksDir = normalizePath(claudeHooksDir);
+
+    // Filter out CC Orchestrator hooks from each event
+    for (const event of Object.keys(settings.hooks)) {
+      if (Array.isArray(settings.hooks[event])) {
+        const originalLength = settings.hooks[event].length;
+        settings.hooks[event] = settings.hooks[event].filter(hookEntry => {
+          // Check if any hook command references our hooks directory
+          if (hookEntry.hooks && Array.isArray(hookEntry.hooks)) {
+            const hasCCOHook = hookEntry.hooks.some(h => {
+              const cmd = h.command || '';
+              const normalizedCmd = normalizePath(cmd);
+              return normalizedCmd.includes(hooksDir) ||
+                     normalizedCmd.includes('.claude/hooks/');
+            });
+            return !hasCCOHook;
+          }
+          return true;
+        });
+        if (settings.hooks[event].length !== originalLength) {
+          modified = true;
+        }
+        // Remove empty arrays
+        if (settings.hooks[event].length === 0) {
+          delete settings.hooks[event];
         }
       }
-    } catch (e) {
-      console.log('  Warning: Could not update desktop config');
     }
 
-    // Note about settings.json (manual cleanup recommended)
-    console.log('\n  Note: Check ~/.claude/settings.json for CC Orchestrator hooks manually');
+    // Remove empty hooks object
+    if (Object.keys(settings.hooks).length === 0) {
+      delete settings.hooks;
+    }
+
+    if (modified) {
+      // Backup original
+      fs.copyFileSync(claudeSettingsPath, claudeSettingsPath + '.backup');
+      fs.writeFileSync(claudeSettingsPath, JSON.stringify(settings, null, 2));
+      return true;
+    }
+  } catch (e) {
+    console.log('  Warning: Could not clean settings.json:', e.message);
+  }
+  return false;
+}
+
+function removeLocalFiles() {
+  console.log('\n[Local Files]');
+  if (deleteFile(path.join(rootDir, '.env'))) console.log('  Removed: .env');
+  if (deleteFolderRecursive(path.join(rootDir, 'dist'))) console.log('  Removed: dist/');
+  if (deleteFolderRecursive(path.join(rootDir, 'node_modules'))) console.log('  Removed: node_modules/');
+}
+
+function removeClaudeConfig() {
+  // IMPORTANT: Clean settings.json FIRST to prevent hook errors
+  console.log('\n[Settings] Cleaning hooks from settings.json...');
+  if (cleanSettingsJson()) {
+    console.log('  Removed: CC Orchestrator hooks from settings.json');
+    console.log('  Backup: settings.json.backup');
+  } else {
+    console.log('  No CC Orchestrator hooks found in settings.json');
+  }
+
+  // THEN remove hook files
+  console.log('\n[Hooks] Removing hook files...');
+  const ccoHooks = [
+    'api_key_loader.py', 'collect_project_context.py', 'completion_orchestrator.py',
+    'config.json', 'debate_orchestrator.py', 'intent_extractor.py', 'quota_monitor.py',
+    'review_completion_wrapper.py', 'review_orchestrator.py', 'review_test_wrapper.py',
+    'security.py', 'state_manager.py', 'todo_state_detector.py'
+  ];
+  let removedCount = 0;
+  for (const file of ccoHooks) {
+    if (deleteFile(path.join(claudeHooksDir, file))) removedCount++;
+  }
+  if (deleteFolderRecursive(path.join(claudeHooksDir, 'adapters'))) removedCount++;
+  if (deleteFolderRecursive(path.join(claudeHooksDir, 'prompts'))) removedCount++;
+  console.log(`  Removed: ${removedCount} hook files/folders`);
+
+  // Remove orchestrate skill
+  console.log('\n[Skills] Removing orchestrate skill...');
+  if (deleteFolderRecursive(path.join(claudeSkillsDir, 'orchestrate'))) {
+    console.log('  Removed: orchestrate skill');
+  } else {
+    console.log('  Not found: orchestrate skill');
+  }
+
+  // Remove cc-orchestrator from desktop config
+  console.log('\n[Desktop Config] Removing MCP server entry...');
+  try {
+    if (fs.existsSync(claudeDesktopConfigPath)) {
+      const content = fs.readFileSync(claudeDesktopConfigPath, 'utf8');
+      const cfg = JSON.parse(content);
+      let removed = false;
+      if (cfg.mcpServers) {
+        if (cfg.mcpServers['cc-orchestrator']) {
+          delete cfg.mcpServers['cc-orchestrator'];
+          removed = true;
+        }
+        if (cfg.mcpServers['ccmo']) {
+          delete cfg.mcpServers['ccmo'];
+          removed = true;
+        }
+      }
+      if (removed) {
+        fs.writeFileSync(claudeDesktopConfigPath, JSON.stringify(cfg, null, 2));
+        console.log('  Removed: cc-orchestrator/ccmo from desktop config');
+      } else {
+        console.log('  Not found: cc-orchestrator in desktop config');
+      }
+    }
+  } catch (e) {
+    console.log('  Warning: Could not update desktop config:', e.message);
+  }
+}
+
+async function main() {
+  console.log('\n=== CC Orchestrator Uninstall ===\n');
+
+  let removeLocal = false;
+  let removeClaudeConfigFlag = false;
+
+  if (forceMode) {
+    // Non-interactive mode
+    console.log('Running in non-interactive mode (--force)\n');
+    if (localOnly) {
+      removeLocal = true;
+      console.log('Mode: Local only');
+    } else if (claudeOnly) {
+      removeClaudeConfigFlag = true;
+      console.log('Mode: Claude config only');
+    } else {
+      removeLocal = true;
+      removeClaudeConfigFlag = true;
+      console.log('Mode: Full uninstall');
+    }
+  } else {
+    // Interactive mode
+    console.log('Components:');
+    console.log('  1. Local: .env, dist/, node_modules/');
+    console.log('  2. Hooks: ~/.claude/hooks/ (CC Orchestrator files)');
+    console.log('  3. Skills: ~/.claude/skills/orchestrate/');
+    console.log('  4. Settings: ~/.claude/settings.json (CC Orchestrator hooks)');
+    console.log('  5. Desktop Config: cc-orchestrator entry\n');
+
+    console.log('Options:');
+    console.log('  1. Full uninstall (all components)');
+    console.log('  2. Local only (.env + dist + node_modules)');
+    console.log('  3. Claude config only (hooks, skills, settings)');
+    console.log('  4. Cancel\n');
+
+    const choice = await question('Select (1-4): ');
+
+    switch (choice) {
+      case '1': removeLocal = true; removeClaudeConfigFlag = true; break;
+      case '2': removeLocal = true; break;
+      case '3': removeClaudeConfigFlag = true; break;
+      default: console.log('\nCancelled.\n'); rl.close(); return;
+    }
+
+    const confirm = await question('\nProceed? (yes/no): ');
+    if (confirm.toLowerCase() !== 'yes' && confirm.toLowerCase() !== 'y') {
+      console.log('\nCancelled.\n');
+      rl.close();
+      return;
+    }
+  }
+
+  console.log('\nRemoving...');
+
+  // IMPORTANT: Remove Claude config FIRST (settings before hooks)
+  // This prevents hook errors during uninstall
+  if (removeClaudeConfigFlag) {
+    removeClaudeConfig();
+  }
+
+  if (removeLocal) {
+    removeLocalFiles();
   }
 
   console.log('\n=== Uninstall Complete ===');
   console.log('Restart Claude Code to apply changes.\n');
 
-  rl.close();
+  if (rl) rl.close();
 }
 
-main().catch(e => { console.error(e); rl.close(); process.exit(1); });
+main().catch(e => { console.error(e); if (rl) rl.close(); process.exit(1); });

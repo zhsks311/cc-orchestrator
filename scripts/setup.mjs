@@ -53,26 +53,24 @@ function normalizePath(p) {
   return p.split(path.sep).join('/');
 }
 
-// Read API keys from .env file
-function loadEnvFile() {
-  const envPath = path.join(rootDir, '.env');
+// Read API keys from Claude Desktop config
+function loadExistingKeys() {
   const keys = {
     OPENAI_API_KEY: '',
     GOOGLE_API_KEY: '',
     ANTHROPIC_API_KEY: ''
   };
 
-  if (fs.existsSync(envPath)) {
-    const content = fs.readFileSync(envPath, 'utf8');
-    for (const line of content.split('\n')) {
-      const trimmed = line.trim();
-      if (trimmed && !trimmed.startsWith('#')) {
-        const match = trimmed.match(/^([A-Z_]+)=(.*)$/);
-        if (match && keys.hasOwnProperty(match[1])) {
-          keys[match[1]] = match[2];
-        }
+  if (fs.existsSync(claudeDesktopConfigPath)) {
+    try {
+      const cfg = JSON.parse(fs.readFileSync(claudeDesktopConfigPath, 'utf8'));
+      const mcpEnv = cfg.mcpServers?.['cc-orchestrator']?.env;
+      if (mcpEnv) {
+        if (mcpEnv.OPENAI_API_KEY) keys.OPENAI_API_KEY = mcpEnv.OPENAI_API_KEY;
+        if (mcpEnv.GOOGLE_API_KEY) keys.GOOGLE_API_KEY = mcpEnv.GOOGLE_API_KEY;
+        if (mcpEnv.ANTHROPIC_API_KEY) keys.ANTHROPIC_API_KEY = mcpEnv.ANTHROPIC_API_KEY;
       }
-    }
+    } catch (e) { }
   }
 
   return keys;
@@ -266,7 +264,6 @@ function copyDirRecursive(src, dest, exclude = []) {
 // Check installation status
 function checkStatus() {
   const status = {
-    env: fs.existsSync(path.join(rootDir, '.env')),
     nodeModules: fs.existsSync(path.join(rootDir, 'node_modules')),
     dist: fs.existsSync(path.join(rootDir, 'dist', 'index.js')),
     hooks: fs.existsSync(path.join(claudeHooksDir, 'review_orchestrator.py')),
@@ -293,12 +290,11 @@ async function main() {
 
   // Check current status
   const status = checkStatus();
-  const allInstalled = status.env && status.nodeModules && status.dist &&
+  const allInstalled = status.nodeModules && status.dist &&
                        status.hooks && status.skills && status.desktopConfig &&
                        status.ccoConfig;
 
   console.log('현재 설치 상태:');
-  console.log(`  .env 파일:        ${status.env ? '✓' : '✗'}`);
   console.log(`  node_modules:     ${status.nodeModules ? '✓' : '✗'}`);
   console.log(`  빌드 (dist):      ${status.dist ? '✓' : '✗'}`);
   console.log(`  Hooks:            ${status.hooks ? '✓' : '✗'}`);
@@ -314,35 +310,31 @@ async function main() {
     return;
   }
 
-  // API Keys
-  let openaiKey = '', googleKey = '', anthropicKey = '';
+  // API Keys - load from existing desktop config
+  const existingKeys = loadExistingKeys();
+  let openaiKey = existingKeys.OPENAI_API_KEY;
+  let googleKey = existingKeys.GOOGLE_API_KEY;
+  let anthropicKey = existingKeys.ANTHROPIC_API_KEY;
 
-  if (!status.env || forceMode) {
+  if (!status.desktopConfig || forceMode) {
     console.log('─'.repeat(60));
     console.log('\nAPI 키 설정 (Enter로 건너뛰기 가능)\n');
 
-    // Load existing keys if available
-    const existingKeys = loadEnvFile();
+    const inputOpenai = await question(`OpenAI API Key${openaiKey ? ' [기존 유지]' : ''}: `);
+    const inputGoogle = await question(`Google API Key${googleKey ? ' [기존 유지]' : ''}: `);
+    const inputAnthropic = await question(`Anthropic API Key${anthropicKey ? ' [기존 유지]' : ''}: `);
 
-    openaiKey = await question(`OpenAI API Key${existingKeys.OPENAI_API_KEY ? ' [기존 유지]' : ''}: `);
-    googleKey = await question(`Google API Key${existingKeys.GOOGLE_API_KEY ? ' [기존 유지]' : ''}: `);
-    anthropicKey = await question(`Anthropic API Key${existingKeys.ANTHROPIC_API_KEY ? ' [기존 유지]' : ''}: `);
-
-    // Use existing keys if not provided
-    if (!openaiKey && existingKeys.OPENAI_API_KEY) openaiKey = existingKeys.OPENAI_API_KEY;
-    if (!googleKey && existingKeys.GOOGLE_API_KEY) googleKey = existingKeys.GOOGLE_API_KEY;
-    if (!anthropicKey && existingKeys.ANTHROPIC_API_KEY) anthropicKey = existingKeys.ANTHROPIC_API_KEY;
+    // Use new keys if provided, otherwise keep existing
+    if (inputOpenai) openaiKey = inputOpenai;
+    if (inputGoogle) googleKey = inputGoogle;
+    if (inputAnthropic) anthropicKey = inputAnthropic;
 
     console.log('\n입력된 API 키:');
     console.log(`  OpenAI:    ${openaiKey ? '✓ 설정됨' : '✗ 없음'}`);
     console.log(`  Google:    ${googleKey ? '✓ 설정됨' : '✗ 없음'}`);
     console.log(`  Anthropic: ${anthropicKey ? '✓ 설정됨' : '✗ 없음'}`);
   } else {
-    const existingKeys = loadEnvFile();
-    openaiKey = existingKeys.OPENAI_API_KEY;
-    googleKey = existingKeys.GOOGLE_API_KEY;
-    anthropicKey = existingKeys.ANTHROPIC_API_KEY;
-    console.log('API 키: 기존 .env 파일 사용');
+    console.log('API 키: 기존 설정 사용');
   }
 
   // Show agent availability based on current keys
@@ -363,27 +355,9 @@ async function main() {
   console.log('\n' + '═'.repeat(60));
   console.log('설치 시작...\n');
 
-  // 1. Create .env
-  if (!status.env || forceMode) {
-    console.log('[1/7] .env 파일 생성...');
-    const envContent = `# CC Orchestrator API Keys
-OPENAI_API_KEY=${openaiKey}
-GOOGLE_API_KEY=${googleKey}
-ANTHROPIC_API_KEY=${anthropicKey}
-
-# Server Configuration
-LOG_LEVEL=info
-NODE_ENV=production
-`;
-    fs.writeFileSync(path.join(rootDir, '.env'), envContent);
-    console.log('      ✓ 완료');
-  } else {
-    console.log('[1/7] .env 파일: 이미 존재 (건너뜀)');
-  }
-
-  // 2. npm install
+  // 1. npm install
   if (!status.nodeModules || forceMode) {
-    console.log('[2/7] 의존성 설치 (npm install)...');
+    console.log('[1/6] 의존성 설치 (npm install)...');
     try {
       execSync('npm install', { cwd: rootDir, stdio: 'inherit' });
       console.log('      ✓ 완료');
@@ -393,12 +367,12 @@ NODE_ENV=production
       process.exit(1);
     }
   } else {
-    console.log('[2/7] node_modules: 이미 존재 (건너뜀)');
+    console.log('[1/6] node_modules: 이미 존재 (건너뜀)');
   }
 
-  // 3. Build
+  // 2. Build
   if (!status.dist || forceMode) {
-    console.log('[3/7] 빌드 (npm run build)...');
+    console.log('[2/6] 빌드 (npm run build)...');
     try {
       execSync('npm run build', { cwd: rootDir, stdio: 'inherit' });
       console.log('      ✓ 완료');
@@ -408,12 +382,12 @@ NODE_ENV=production
       process.exit(1);
     }
   } else {
-    console.log('[3/7] 빌드: 이미 완료 (건너뜀)');
+    console.log('[2/6] 빌드: 이미 완료 (건너뜀)');
   }
 
-  // 4. Install Hooks
+  // 3. Install Hooks
   if (!status.hooks || forceMode) {
-    console.log('[4/7] Hooks 설치...');
+    console.log('[3/6] Hooks 설치...');
     const srcHooksDir = path.join(rootDir, 'hooks');
     if (fs.existsSync(srcHooksDir)) {
       copyDirRecursive(srcHooksDir, claudeHooksDir, ['__pycache__', 'api_keys.json', 'logs', 'state', '.example']);
@@ -433,23 +407,23 @@ NODE_ENV=production
       console.log('      ✓ 완료: ' + claudeHooksDir);
     }
   } else {
-    console.log('[4/7] Hooks: 이미 설치됨 (건너뜀)');
+    console.log('[3/6] Hooks: 이미 설치됨 (건너뜀)');
   }
 
-  // 5. Install Skills
+  // 4. Install Skills
   if (!status.skills || forceMode) {
-    console.log('[5/7] Skills 설치...');
+    console.log('[4/6] Skills 설치...');
     const srcSkillsDir = path.join(rootDir, 'skills');
     if (fs.existsSync(srcSkillsDir)) {
       copyDirRecursive(srcSkillsDir, claudeSkillsDir);
       console.log('      ✓ 완료: ' + claudeSkillsDir);
     }
   } else {
-    console.log('[5/7] Skills: 이미 설치됨 (건너뜀)');
+    console.log('[4/6] Skills: 이미 설치됨 (건너뜀)');
   }
 
-  // 6. Update settings.json and desktop config
-  console.log('[6/7] Claude 설정 업데이트...');
+  // 5. Update settings.json and desktop config
+  console.log('[5/6] Claude 설정 업데이트...');
 
   // Update settings.json
   const templatePath = path.join(rootDir, 'templates', 'settings.template.json');
@@ -523,8 +497,8 @@ NODE_ENV=production
     console.log('      ⚠ desktop config 업데이트 실패: ' + e.message);
   }
 
-  // 7. Generate CCO config file
-  console.log('[7/7] CCO 설정 파일 생성...');
+  // 6. Generate CCO config file
+  console.log('[6/6] CCO 설정 파일 생성...');
   const ccoConfig = generateConfig(currentKeys);
   if (ccoConfig && saveConfig(ccoConfig)) {
     console.log('      ✓ 완료: ' + ccoConfigPath);

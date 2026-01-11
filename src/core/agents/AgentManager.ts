@@ -220,6 +220,7 @@ export class AgentManager implements IAgentManager {
         result: response.content,
         modelUsed: response.model,
         tokensUsed: response.tokensUsed,
+        fallbackInfo: response.fallbackInfo,
       });
 
       this.logger.info('Agent execution completed', {
@@ -264,6 +265,7 @@ export class AgentManager implements IAgentManager {
       error: agent.error,
       executionTimeMs: agent.executionTimeMs ?? 0,
       tokensUsed: agent.tokensUsed,
+      fallbackInfo: agent.fallbackInfo,
     };
   }
 

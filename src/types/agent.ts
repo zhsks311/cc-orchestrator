@@ -2,6 +2,8 @@
  * Agent Domain Types
  */
 
+import { FallbackInfo } from './model.js';
+
 export enum AgentRole {
   ORACLE = 'oracle',
   FRONTEND_ENGINEER = 'frontend-engineer',
@@ -55,6 +57,8 @@ export interface Agent {
   tokensUsed?: TokenUsage;
   sessionId: string;
   priority: Priority;
+  /** Present if a provider fallback occurred */
+  fallbackInfo?: FallbackInfo;
 }
 
 export interface CreateAgentParams {
@@ -79,4 +83,6 @@ export interface AgentResult {
   error?: AgentError;
   executionTimeMs: number;
   tokensUsed?: TokenUsage;
+  /** Present if a provider fallback occurred */
+  fallbackInfo?: FallbackInfo;
 }

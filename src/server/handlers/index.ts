@@ -124,6 +124,14 @@ export class ToolHandlers {
         result.result = agent.result;
         result.execution_time_ms = agent.executionTimeMs;
         result.tokens_used = agent.tokensUsed;
+        if (agent.fallbackInfo) {
+          result.fallback_info = {
+            original_provider: agent.fallbackInfo.originalProvider,
+            used_provider: agent.fallbackInfo.usedProvider,
+            reason: agent.fallbackInfo.reason,
+            message: agent.fallbackInfo.message,
+          };
+        }
       } else if (agent.status === AgentStatus.FAILED) {
         result.error = agent.error?.message;
       } else if (agent.status === AgentStatus.TIMEOUT) {
@@ -141,14 +149,25 @@ export class ToolHandlers {
       input.timeout_ms
     );
 
-    return this.formatResult({
+    const response: Record<string, unknown> = {
       task_id: agentResult.agentId,
       status: agentResult.status,
       result: agentResult.result,
       error: agentResult.error?.message,
       execution_time_ms: agentResult.executionTimeMs,
       tokens_used: agentResult.tokensUsed,
-    });
+    };
+
+    if (agentResult.fallbackInfo) {
+      response.fallback_info = {
+        original_provider: agentResult.fallbackInfo.originalProvider,
+        used_provider: agentResult.fallbackInfo.usedProvider,
+        reason: agentResult.fallbackInfo.reason,
+        message: agentResult.fallbackInfo.message,
+      };
+    }
+
+    return this.formatResult(response);
   }
 
   private async handleBackgroundCancel(args: unknown): Promise<ToolResult> {

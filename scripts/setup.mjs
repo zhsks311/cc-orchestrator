@@ -22,6 +22,8 @@ const rootDir = path.resolve(__dirname, '..');
 const isWindows = process.platform === 'win32';
 const homeDir = os.homedir();
 const claudeDir = path.join(homeDir, '.claude');
+const ccoDir = path.join(homeDir, '.cco');
+const ccoConfigPath = path.join(ccoDir, 'config.json');
 const claudeHooksDir = path.join(claudeDir, 'hooks');
 const claudeSkillsDir = path.join(claudeDir, 'skills');
 const claudeSettingsPath = path.join(claudeDir, 'settings.json');
@@ -76,6 +78,180 @@ function loadEnvFile() {
   return keys;
 }
 
+// Agent role to provider mapping (matching src/types/model.ts)
+const AGENT_PROVIDERS = {
+  'oracle': {
+    primary: 'openai',
+    fallbacks: ['anthropic', 'google'],
+    description: '아키텍처 설계, 전략적 의사결정, 코드 리뷰'
+  },
+  'librarian': {
+    primary: 'anthropic',
+    fallbacks: ['google', 'openai'],
+    description: '문서 검색, 코드베이스 분석'
+  },
+  'frontend-engineer': {
+    primary: 'google',
+    fallbacks: ['anthropic', 'openai'],
+    description: 'UI/UX 디자인, 프론트엔드 구현'
+  },
+  'document-writer': {
+    primary: 'google',
+    fallbacks: ['anthropic', 'openai'],
+    description: '기술 문서 작성, README, API 문서'
+  },
+  'multimodal-analyzer': {
+    primary: 'google',
+    fallbacks: ['anthropic', 'openai'],
+    description: '이미지, PDF 분석'
+  },
+  'explore': {
+    primary: 'anthropic',
+    fallbacks: [],
+    description: '코드베이스 탐색 (무료, Claude Sonnet)'
+  }
+};
+
+const PROVIDER_KEYS = {
+  'openai': 'OPENAI_API_KEY',
+  'anthropic': 'ANTHROPIC_API_KEY',
+  'google': 'GOOGLE_API_KEY'
+};
+
+// Check which API keys are available
+function checkApiKeys(keys) {
+  return {
+    openai: !!keys.OPENAI_API_KEY,
+    anthropic: !!keys.ANTHROPIC_API_KEY,
+    google: !!keys.GOOGLE_API_KEY
+  };
+}
+
+// Get available providers list (ordered by preference)
+function getAvailableProviders(keys) {
+  const available = checkApiKeys(keys);
+  const priority = [];
+
+  // Default priority order: openai > anthropic > google
+  if (available.openai) priority.push('openai');
+  if (available.anthropic) priority.push('anthropic');
+  if (available.google) priority.push('google');
+
+  return priority;
+}
+
+// Show agent availability based on API keys
+function showAgentAvailability(keys) {
+  const available = checkApiKeys(keys);
+  const results = [];
+
+  console.log('\n에이전트 가용성:\n');
+
+  for (const [role, config] of Object.entries(AGENT_PROVIDERS)) {
+    const primaryAvailable = available[config.primary];
+    const fallbackProviders = config.fallbacks.filter(p => available[p]);
+
+    let status, provider;
+    if (primaryAvailable) {
+      status = '✓';
+      provider = config.primary;
+    } else if (fallbackProviders.length > 0) {
+      status = '⚠';
+      provider = fallbackProviders[0];
+    } else {
+      status = '✗';
+      provider = null;
+    }
+
+    const providerInfo = provider ? `(${provider})` : '(사용 불가)';
+    const statusIcon = status === '✓' ? '✓' : status === '⚠' ? '⚠ fallback' : '✗';
+
+    console.log(`  ${role.padEnd(20)} ${statusIcon.padEnd(12)} ${providerInfo.padEnd(12)} - ${config.description}`);
+
+    results.push({
+      role,
+      available: status !== '✗',
+      useFallback: status === '⚠',
+      provider,
+      primary: config.primary
+    });
+  }
+
+  // Summary
+  const totalAgents = Object.keys(AGENT_PROVIDERS).length;
+  const availableCount = results.filter(r => r.available).length;
+  const fallbackCount = results.filter(r => r.useFallback).length;
+
+  console.log('\n  ' + '─'.repeat(56));
+  console.log(`  총 ${totalAgents}개 에이전트 중 ${availableCount}개 사용 가능`);
+  if (fallbackCount > 0) {
+    console.log(`  (${fallbackCount}개 에이전트가 대체 제공자 사용)`);
+  }
+
+  return results;
+}
+
+// Generate ~/.cco/config.json based on available keys
+function generateConfig(keys) {
+  const availableProviders = getAvailableProviders(keys);
+
+  if (availableProviders.length === 0) {
+    console.log('\n⚠ 사용 가능한 API 키가 없어 설정 파일을 생성할 수 없습니다.');
+    return null;
+  }
+
+  const config = {
+    providers: {
+      priority: availableProviders
+    },
+    roles: {}
+  };
+
+  // Set up role-specific provider priority based on original primary
+  for (const [role, roleConfig] of Object.entries(AGENT_PROVIDERS)) {
+    // Skip explore (always uses anthropic/free)
+    if (role === 'explore') continue;
+
+    // Build provider list: primary first if available, then fallbacks
+    const available = checkApiKeys(keys);
+    const roleProviders = [];
+
+    if (available[roleConfig.primary]) {
+      roleProviders.push(roleConfig.primary);
+    }
+
+    for (const fallback of roleConfig.fallbacks) {
+      if (available[fallback] && !roleProviders.includes(fallback)) {
+        roleProviders.push(fallback);
+      }
+    }
+
+    if (roleProviders.length > 0 &&
+        (roleProviders[0] !== availableProviders[0] || roleProviders.length !== availableProviders.length)) {
+      config.roles[role] = { providers: roleProviders };
+    }
+  }
+
+  return config;
+}
+
+// Save config file
+function saveConfig(config) {
+  if (!config) return false;
+
+  try {
+    if (!fs.existsSync(ccoDir)) {
+      fs.mkdirSync(ccoDir, { recursive: true });
+    }
+
+    fs.writeFileSync(ccoConfigPath, JSON.stringify(config, null, 2));
+    return true;
+  } catch (error) {
+    console.error('설정 파일 저장 실패:', error.message);
+    return false;
+  }
+}
+
 function copyDirRecursive(src, dest, exclude = []) {
   if (!fs.existsSync(dest)) fs.mkdirSync(dest, { recursive: true });
   for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
@@ -95,7 +271,8 @@ function checkStatus() {
     dist: fs.existsSync(path.join(rootDir, 'dist', 'index.js')),
     hooks: fs.existsSync(path.join(claudeHooksDir, 'review_orchestrator.py')),
     skills: fs.existsSync(path.join(claudeSkillsDir, 'orchestrate', 'SKILL.md')),
-    desktopConfig: false
+    desktopConfig: false,
+    ccoConfig: fs.existsSync(ccoConfigPath)
   };
 
   // Check desktop config
@@ -117,7 +294,8 @@ async function main() {
   // Check current status
   const status = checkStatus();
   const allInstalled = status.env && status.nodeModules && status.dist &&
-                       status.hooks && status.skills && status.desktopConfig;
+                       status.hooks && status.skills && status.desktopConfig &&
+                       status.ccoConfig;
 
   console.log('현재 설치 상태:');
   console.log(`  .env 파일:        ${status.env ? '✓' : '✗'}`);
@@ -126,6 +304,7 @@ async function main() {
   console.log(`  Hooks:            ${status.hooks ? '✓' : '✗'}`);
   console.log(`  Skills:           ${status.skills ? '✓' : '✗'}`);
   console.log(`  Desktop Config:   ${status.desktopConfig ? '✓' : '✗'}`);
+  console.log(`  CCO Config:       ${status.ccoConfig ? '✓' : '✗'}`);
   console.log('');
 
   if (allInstalled && !forceMode) {
@@ -166,6 +345,14 @@ async function main() {
     console.log('API 키: 기존 .env 파일 사용');
   }
 
+  // Show agent availability based on current keys
+  const currentKeys = {
+    OPENAI_API_KEY: openaiKey,
+    GOOGLE_API_KEY: googleKey,
+    ANTHROPIC_API_KEY: anthropicKey
+  };
+  showAgentAvailability(currentKeys);
+
   const confirm = await question('\n설치를 진행하시겠습니까? (Y/n): ');
   if (confirm.toLowerCase() === 'n') {
     console.log('\n설치가 취소되었습니다.\n');
@@ -178,7 +365,7 @@ async function main() {
 
   // 1. Create .env
   if (!status.env || forceMode) {
-    console.log('[1/6] .env 파일 생성...');
+    console.log('[1/7] .env 파일 생성...');
     const envContent = `# CC Orchestrator API Keys
 OPENAI_API_KEY=${openaiKey}
 GOOGLE_API_KEY=${googleKey}
@@ -191,12 +378,12 @@ NODE_ENV=production
     fs.writeFileSync(path.join(rootDir, '.env'), envContent);
     console.log('      ✓ 완료');
   } else {
-    console.log('[1/6] .env 파일: 이미 존재 (건너뜀)');
+    console.log('[1/7] .env 파일: 이미 존재 (건너뜀)');
   }
 
   // 2. npm install
   if (!status.nodeModules || forceMode) {
-    console.log('[2/6] 의존성 설치 (npm install)...');
+    console.log('[2/7] 의존성 설치 (npm install)...');
     try {
       execSync('npm install', { cwd: rootDir, stdio: 'inherit' });
       console.log('      ✓ 완료');
@@ -206,12 +393,12 @@ NODE_ENV=production
       process.exit(1);
     }
   } else {
-    console.log('[2/6] node_modules: 이미 존재 (건너뜀)');
+    console.log('[2/7] node_modules: 이미 존재 (건너뜀)');
   }
 
   // 3. Build
   if (!status.dist || forceMode) {
-    console.log('[3/6] 빌드 (npm run build)...');
+    console.log('[3/7] 빌드 (npm run build)...');
     try {
       execSync('npm run build', { cwd: rootDir, stdio: 'inherit' });
       console.log('      ✓ 완료');
@@ -221,12 +408,12 @@ NODE_ENV=production
       process.exit(1);
     }
   } else {
-    console.log('[3/6] 빌드: 이미 완료 (건너뜀)');
+    console.log('[3/7] 빌드: 이미 완료 (건너뜀)');
   }
 
   // 4. Install Hooks
   if (!status.hooks || forceMode) {
-    console.log('[4/6] Hooks 설치...');
+    console.log('[4/7] Hooks 설치...');
     const srcHooksDir = path.join(rootDir, 'hooks');
     if (fs.existsSync(srcHooksDir)) {
       copyDirRecursive(srcHooksDir, claudeHooksDir, ['__pycache__', 'api_keys.json', 'logs', 'state', '.example']);
@@ -246,23 +433,23 @@ NODE_ENV=production
       console.log('      ✓ 완료: ' + claudeHooksDir);
     }
   } else {
-    console.log('[4/6] Hooks: 이미 설치됨 (건너뜀)');
+    console.log('[4/7] Hooks: 이미 설치됨 (건너뜀)');
   }
 
   // 5. Install Skills
   if (!status.skills || forceMode) {
-    console.log('[5/6] Skills 설치...');
+    console.log('[5/7] Skills 설치...');
     const srcSkillsDir = path.join(rootDir, 'skills');
     if (fs.existsSync(srcSkillsDir)) {
       copyDirRecursive(srcSkillsDir, claudeSkillsDir);
       console.log('      ✓ 완료: ' + claudeSkillsDir);
     }
   } else {
-    console.log('[5/6] Skills: 이미 설치됨 (건너뜀)');
+    console.log('[5/7] Skills: 이미 설치됨 (건너뜀)');
   }
 
   // 6. Update settings.json and desktop config
-  console.log('[6/6] Claude 설정 업데이트...');
+  console.log('[6/7] Claude 설정 업데이트...');
 
   // Update settings.json
   const templatePath = path.join(rootDir, 'templates', 'settings.template.json');
@@ -334,6 +521,19 @@ NODE_ENV=production
     console.log('      ✓ claude_desktop_config.json 업데이트');
   } catch (e) {
     console.log('      ⚠ desktop config 업데이트 실패: ' + e.message);
+  }
+
+  // 7. Generate CCO config file
+  console.log('[7/7] CCO 설정 파일 생성...');
+  const ccoConfig = generateConfig(currentKeys);
+  if (ccoConfig && saveConfig(ccoConfig)) {
+    console.log('      ✓ 완료: ' + ccoConfigPath);
+    console.log('      Provider 우선순위: ' + ccoConfig.providers.priority.join(' > '));
+    if (Object.keys(ccoConfig.roles).length > 0) {
+      console.log('      Role별 설정: ' + Object.keys(ccoConfig.roles).join(', '));
+    }
+  } else if (!ccoConfig) {
+    console.log('      ⚠ API 키가 없어 설정 파일을 생성하지 않음');
   }
 
   // Done

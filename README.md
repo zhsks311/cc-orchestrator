@@ -56,14 +56,11 @@ npm run setup
 ### 설치 옵션
 
 ```bash
-# 전체 설치 (MCP 서버 + Hooks + Skills) - 권장
+# 설치 (미설치 항목만 자동 설치)
 npm run setup
 
-# MCP 서버만 설치
-npm run setup:mcp-only
-
-# Hooks/Skills만 추가 설치 (기존 MCP 서버 사용자용)
-npm run install-extras
+# 모든 항목 재설치
+npm run setup -- --force
 ```
 
 ---

@@ -28,6 +28,26 @@ Claude Code에서 GPT-5.2, Gemini 3 Pro, Claude Sonnet 4.5 등 다양한 LLM을 
 | **document-writer** | Gemini 3 Pro | Gemini 2.5 Flash | 기술 문서 작성, README, API 문서 |
 | **multimodal-analyzer** | Gemini 2.5 Flash | Gemini 2.0 Flash | 이미지, PDF, 스크린샷 분석 |
 
+### Cross-Provider Fallback
+
+API 키가 없거나 제공자 장애 시 **다른 제공자로 자동 전환**됩니다:
+
+```
+oracle: OpenAI → Anthropic → Google
+librarian: Anthropic → Google → OpenAI
+frontend-engineer: Google → Anthropic → OpenAI
+document-writer: Google → Anthropic → OpenAI
+multimodal-analyzer: Google → Anthropic → OpenAI
+explore: Anthropic (무료, Claude Sonnet)
+```
+
+**예시:** OpenAI API 키만 있는 경우
+- `oracle` → OpenAI 사용 ✓
+- `librarian` → Anthropic 없음 → OpenAI로 fallback ⚠
+- `frontend-engineer` → Google 없음 → OpenAI로 fallback ⚠
+
+설치 시 에이전트 가용성을 자동으로 표시합니다.
+
 ---
 
 ## 빠른 시작
@@ -61,6 +81,36 @@ npm run setup
 
 # 모든 항목 재설치
 npm run setup -- --force
+```
+
+### Provider 우선순위 설정
+
+`~/.cco/config.json` 파일로 제공자 우선순위를 커스터마이징할 수 있습니다:
+
+```json
+{
+  "providers": {
+    "priority": ["anthropic", "google", "openai"]
+  },
+  "roles": {
+    "oracle": {
+      "providers": ["anthropic", "openai"]
+    },
+    "librarian": {
+      "providers": ["google", "anthropic"]
+    }
+  }
+}
+```
+
+환경 변수로도 설정 가능:
+
+```bash
+# 전역 우선순위
+export CCO_PROVIDER_PRIORITY=anthropic,google,openai
+
+# 역할별 우선순위
+export CCO_ORACLE_PROVIDERS=anthropic,openai
 ```
 
 ---

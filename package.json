@@ -1,11 +1,15 @@
 {
   "name": "cc-orchestrator",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "CC Orchestrator - MCP Server for multi-model agent orchestration in Claude Code",
   "main": "dist/index.js",
+  "bin": {
+    "cc-orchestrator": "./cli.mjs"
+  },
   "type": "module",
   "scripts": {
     "setup": "node scripts/setup.mjs",
+    "update": "node scripts/update.mjs",
     "uninstall": "node scripts/uninstall.mjs",
     "build": "tsc",
     "start": "node dist/index.js",
@@ -22,8 +26,13 @@
     "llm",
     "agent"
   ],
-  "author": "",
+  "author": "zhsks311",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zhsks311/cc-orchestrator.git"
+  },
+  "homepage": "https://github.com/zhsks311/cc-orchestrator#readme",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
     "@google/generative-ai": "^0.21.0",

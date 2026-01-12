@@ -275,9 +275,9 @@ export class ToolHandlers {
 
   private handleSuggestAgent(args: unknown): ToolResult {
     const input = SuggestAgentInputSchema.parse(args);
-    
+
     const suggestedAgent = findBestAgent(input.query);
-    
+
     if (suggestedAgent) {
       const metadata = AGENT_METADATA[suggestedAgent];
       return this.formatResult({
@@ -292,7 +292,7 @@ export class ToolHandlers {
         recommendation: `Use background_task(agent="${suggestedAgent}", prompt="...") to execute this task.`,
       });
     }
-    
+
     // No specific agent matched - return all options
     return this.formatResult({
       suggested_agent: null,

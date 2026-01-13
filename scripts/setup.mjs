@@ -31,9 +31,18 @@ const claudeDesktopConfigPath = isWindows
   ? path.join(process.env.APPDATA || '', 'Claude', 'claude_desktop_config.json')
   : path.join(homeDir, 'Library', 'Application Support', 'Claude', 'claude_desktop_config.json');
 
+// Manifest file paths for version tracking
+const hooksManifestPath = path.join(claudeHooksDir, '.cco-manifest.json');
+const skillsManifestPath = path.join(claudeSkillsDir, '.cco-manifest.json');
+
+// Get current version from package.json
+const packageJsonPath = path.join(rootDir, 'package.json');
+const CURRENT_VERSION = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8')).version;
+
 // Parse args
 const args = process.argv.slice(2);
 const forceMode = args.includes('--force') || args.includes('-f');
+const yesMode = args.includes('--yes') || args.includes('-y');
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -252,22 +261,229 @@ function saveConfig(config) {
 
 function copyDirRecursive(src, dest, exclude = []) {
   if (!fs.existsSync(dest)) fs.mkdirSync(dest, { recursive: true });
+  const copiedFiles = [];
   for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
     if (exclude.some(ex => entry.name === ex || entry.name.startsWith(ex))) continue;
     const srcPath = path.join(src, entry.name);
     const destPath = path.join(dest, entry.name);
-    if (entry.isDirectory()) copyDirRecursive(srcPath, destPath, exclude);
-    else fs.copyFileSync(srcPath, destPath);
+    if (entry.isDirectory()) {
+      const subFiles = copyDirRecursive(srcPath, destPath, exclude);
+      copiedFiles.push(...subFiles.map(f => path.join(entry.name, f)));
+    } else {
+      fs.copyFileSync(srcPath, destPath);
+      copiedFiles.push(entry.name);
+    }
+  }
+  return copiedFiles;
+}
+
+// ============================================================
+// Manifest functions for version tracking
+// ============================================================
+
+function createManifest(files) {
+  return {
+    name: 'cc-orchestrator',
+    version: CURRENT_VERSION,
+    installedAt: new Date().toISOString(),
+    files: files
+  };
+}
+
+function readManifest(manifestPath) {
+  if (!fs.existsSync(manifestPath)) return null;
+  try {
+    return JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+  } catch {
+    return null;
   }
 }
 
-// Check installation status
+function isOurInstallation(manifestPath) {
+  const manifest = readManifest(manifestPath);
+  return manifest?.name === 'cc-orchestrator';
+}
+
+function needsUpdate(manifestPath) {
+  const manifest = readManifest(manifestPath);
+  if (!manifest) return true;
+  return manifest.version !== CURRENT_VERSION;
+}
+
+function writeManifest(manifestPath, files) {
+  const manifest = createManifest(files);
+  fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+  return manifest;
+}
+
+// ============================================================
+// Installation mode detection
+// ============================================================
+
+function detectInstallMode() {
+  const hooksManifest = readManifest(hooksManifestPath);
+  const skillsManifest = readManifest(skillsManifestPath);
+
+  const hooksExist = fs.existsSync(claudeHooksDir) &&
+    fs.readdirSync(claudeHooksDir).some(f => f.endsWith('.py'));
+  const skillsExist = fs.existsSync(claudeSkillsDir) &&
+    fs.readdirSync(claudeSkillsDir).length > 0;
+
+  // 1. cc-orchestrator가 설치되어 있고 버전이 다름 → upgrade
+  if (hooksManifest?.name === 'cc-orchestrator' && hooksManifest.version !== CURRENT_VERSION) {
+    return {
+      mode: 'upgrade',
+      fromVersion: hooksManifest.version,
+      toVersion: CURRENT_VERSION
+    };
+  }
+
+  // 2. cc-orchestrator가 설치되어 있고 버전이 같음 → current
+  if (hooksManifest?.name === 'cc-orchestrator' && hooksManifest.version === CURRENT_VERSION) {
+    return {
+      mode: 'current',
+      version: CURRENT_VERSION
+    };
+  }
+
+  // 3. 다른 프로젝트 파일이 있음 (manifest 없음) → conflict
+  if ((hooksExist && !hooksManifest) || (skillsExist && !skillsManifest)) {
+    return {
+      mode: 'conflict',
+      hasHooks: hooksExist && !hooksManifest,
+      hasSkills: skillsExist && !skillsManifest
+    };
+  }
+
+  // 4. 완전히 새로운 설치 → fresh
+  return { mode: 'fresh' };
+}
+
+// ============================================================
+// Installation verification
+// ============================================================
+
+function verifyInstallation() {
+  const results = {
+    mcp: { ok: false, message: '' },
+    hooks: { ok: false, message: '', count: 0 },
+    skills: { ok: false, message: '', count: 0 },
+    config: { ok: false, message: '' }
+  };
+
+  // MCP 서버
+  const distPath = path.join(rootDir, 'dist', 'index.js');
+  if (fs.existsSync(distPath)) {
+    results.mcp = { ok: true, message: normalizePath(distPath) };
+  } else {
+    results.mcp = { ok: false, message: 'dist/index.js 없음' };
+  }
+
+  // Hooks
+  const hooksManifest = readManifest(hooksManifestPath);
+  if (hooksManifest?.name === 'cc-orchestrator') {
+    const missing = hooksManifest.files.filter(f =>
+      !fs.existsSync(path.join(claudeHooksDir, f))
+    );
+    if (missing.length === 0) {
+      results.hooks = {
+        ok: true,
+        message: `v${hooksManifest.version}`,
+        count: hooksManifest.files.length
+      };
+    } else {
+      results.hooks = {
+        ok: false,
+        message: `누락: ${missing.slice(0, 3).join(', ')}${missing.length > 3 ? '...' : ''}`,
+        count: hooksManifest.files.length - missing.length
+      };
+    }
+  } else {
+    results.hooks = { ok: false, message: '미설치 또는 다른 프로젝트', count: 0 };
+  }
+
+  // Skills
+  const skillsManifest = readManifest(skillsManifestPath);
+  if (skillsManifest?.name === 'cc-orchestrator') {
+    const missing = skillsManifest.files.filter(f =>
+      !fs.existsSync(path.join(claudeSkillsDir, f))
+    );
+    if (missing.length === 0) {
+      results.skills = {
+        ok: true,
+        message: `v${skillsManifest.version}`,
+        count: skillsManifest.files.length
+      };
+    } else {
+      results.skills = {
+        ok: false,
+        message: `누락: ${missing.join(', ')}`,
+        count: skillsManifest.files.length - missing.length
+      };
+    }
+  } else {
+    results.skills = { ok: false, message: '미설치 또는 다른 프로젝트', count: 0 };
+  }
+
+  // Desktop config
+  if (fs.existsSync(claudeDesktopConfigPath)) {
+    try {
+      const cfg = JSON.parse(fs.readFileSync(claudeDesktopConfigPath, 'utf8'));
+      if (cfg.mcpServers?.['cc-orchestrator']) {
+        results.config = { ok: true, message: '등록됨' };
+      } else {
+        results.config = { ok: false, message: 'MCP 서버 미등록' };
+      }
+    } catch {
+      results.config = { ok: false, message: '설정 파일 읽기 실패' };
+    }
+  } else {
+    results.config = { ok: false, message: '설정 파일 없음' };
+  }
+
+  return results;
+}
+
+function printVerificationResults(results) {
+  console.log('\n[검증] 설치 상태 확인 중...');
+
+  const icon = (ok) => ok ? '✓' : '✗';
+
+  console.log(`      MCP 서버:     ${icon(results.mcp.ok)} ${results.mcp.message}`);
+  console.log(`      Hooks:        ${icon(results.hooks.ok)} ${results.hooks.message}${results.hooks.count ? ` (${results.hooks.count}개 파일)` : ''}`);
+  console.log(`      Skills:       ${icon(results.skills.ok)} ${results.skills.message}${results.skills.count ? ` (${results.skills.count}개 파일)` : ''}`);
+  console.log(`      Desktop 설정: ${icon(results.config.ok)} ${results.config.message}`);
+
+  const allOk = results.mcp.ok && results.hooks.ok && results.skills.ok && results.config.ok;
+
+  if (allOk) {
+    console.log('\n✅ 모든 컴포넌트 정상 설치됨!');
+  } else {
+    console.log('\n⚠️  일부 컴포넌트에 문제가 있습니다.');
+    console.log('   해결: npx create-cc-orchestrator --force');
+  }
+
+  return allOk;
+}
+
+// Check installation status (manifest-based)
 function checkStatus() {
+  const hooksManifest = readManifest(hooksManifestPath);
+  const skillsManifest = readManifest(skillsManifestPath);
+
   const status = {
     nodeModules: fs.existsSync(path.join(rootDir, 'node_modules')),
     dist: fs.existsSync(path.join(rootDir, 'dist', 'index.js')),
-    hooks: fs.existsSync(path.join(claudeHooksDir, 'review_orchestrator.py')),
-    skills: fs.existsSync(path.join(claudeSkillsDir, 'orchestrate', 'SKILL.md')),
+    hooks: {
+      installed: hooksManifest?.name === 'cc-orchestrator',
+      version: hooksManifest?.version || null,
+      needsUpdate: needsUpdate(hooksManifestPath)
+    },
+    skills: {
+      installed: skillsManifest?.name === 'cc-orchestrator',
+      version: skillsManifest?.version || null,
+      needsUpdate: needsUpdate(skillsManifestPath)
+    },
     desktopConfig: false,
     ccoConfig: fs.existsSync(ccoConfigPath)
   };
@@ -286,22 +502,85 @@ function checkStatus() {
 async function main() {
   console.log('\n╔════════════════════════════════════════════════════════════╗');
   console.log('║       CC Orchestrator - Setup Wizard                       ║');
+  console.log(`║       Version: ${CURRENT_VERSION.padEnd(43)}║`);
   console.log('╚════════════════════════════════════════════════════════════╝\n');
 
-  // Check current status
+  // Detect installation mode
+  const installMode = detectInstallMode();
   const status = checkStatus();
-  const allInstalled = status.nodeModules && status.dist &&
-                       status.hooks && status.skills && status.desktopConfig &&
-                       status.ccoConfig;
 
+  // Display status based on mode
   console.log('현재 설치 상태:');
   console.log(`  node_modules:     ${status.nodeModules ? '✓' : '✗'}`);
   console.log(`  빌드 (dist):      ${status.dist ? '✓' : '✗'}`);
-  console.log(`  Hooks:            ${status.hooks ? '✓' : '✗'}`);
-  console.log(`  Skills:           ${status.skills ? '✓' : '✗'}`);
+
+  // Hooks status with version info
+  if (status.hooks.installed) {
+    const hooksStatus = status.hooks.needsUpdate
+      ? `✓ v${status.hooks.version} → v${CURRENT_VERSION} 업데이트 가능`
+      : `✓ v${status.hooks.version} (최신)`;
+    console.log(`  Hooks:            ${hooksStatus}`);
+  } else {
+    console.log(`  Hooks:            ✗ 미설치`);
+  }
+
+  // Skills status with version info
+  if (status.skills.installed) {
+    const skillsStatus = status.skills.needsUpdate
+      ? `✓ v${status.skills.version} → v${CURRENT_VERSION} 업데이트 가능`
+      : `✓ v${status.skills.version} (최신)`;
+    console.log(`  Skills:           ${skillsStatus}`);
+  } else {
+    console.log(`  Skills:           ✗ 미설치`);
+  }
+
   console.log(`  Desktop Config:   ${status.desktopConfig ? '✓' : '✗'}`);
   console.log(`  CCO Config:       ${status.ccoConfig ? '✓' : '✗'}`);
   console.log('');
+
+  // Handle different installation modes
+  let shouldProceed = true;
+
+  if (installMode.mode === 'current' && !forceMode) {
+    console.log(`✅ CC Orchestrator v${CURRENT_VERSION} 이미 최신 버전입니다.`);
+    console.log('   재설치하려면: npm run setup -- --force\n');
+    rl.close();
+    return;
+  }
+
+  if (installMode.mode === 'upgrade') {
+    console.log(`📦 업그레이드 감지: v${installMode.fromVersion} → v${installMode.toVersion}`);
+  }
+
+  if (installMode.mode === 'conflict') {
+    console.log('⚠️  ~/.claude/ 에 다른 프로젝트 파일이 발견되었습니다.');
+    if (installMode.hasHooks) console.log('   - hooks/ 폴더에 cc-orchestrator가 아닌 파일 존재');
+    if (installMode.hasSkills) console.log('   - skills/ 폴더에 cc-orchestrator가 아닌 파일 존재');
+    console.log('');
+
+    if (yesMode) {
+      console.log('--yes 모드: 병합으로 진행합니다.\n');
+    } else {
+      const conflictChoice = await question('어떻게 진행할까요?\n  1) 병합 (cc-orchestrator 파일만 추가)\n  2) 취소\n\n선택 (1/2): ');
+
+      if (conflictChoice !== '1') {
+        console.log('\n설치가 취소되었습니다.\n');
+        rl.close();
+        return;
+      }
+      console.log('');
+    }
+  }
+
+  if (installMode.mode === 'fresh') {
+    console.log('🆕 신규 설치를 진행합니다.');
+  }
+
+  // Check if all components need installation
+  const allInstalled = status.nodeModules && status.dist &&
+                       status.hooks.installed && !status.hooks.needsUpdate &&
+                       status.skills.installed && !status.skills.needsUpdate &&
+                       status.desktopConfig && status.ccoConfig;
 
   if (allInstalled && !forceMode) {
     console.log('✅ 모든 항목이 이미 설치되어 있습니다.');
@@ -316,7 +595,7 @@ async function main() {
   let googleKey = existingKeys.GOOGLE_API_KEY;
   let anthropicKey = existingKeys.ANTHROPIC_API_KEY;
 
-  if (!status.desktopConfig || forceMode) {
+  if (!yesMode && (!status.desktopConfig || forceMode)) {
     console.log('─'.repeat(60));
     console.log('\nAPI 키 설정 (Enter로 건너뛰기 가능)\n');
 
@@ -345,11 +624,13 @@ async function main() {
   };
   showAgentAvailability(currentKeys);
 
-  const confirm = await question('\n설치를 진행하시겠습니까? (Y/n): ');
-  if (confirm.toLowerCase() === 'n') {
-    console.log('\n설치가 취소되었습니다.\n');
-    rl.close();
-    return;
+  if (!yesMode) {
+    const confirm = await question('\n설치를 진행하시겠습니까? (Y/n): ');
+    if (confirm.toLowerCase() === 'n') {
+      console.log('\n설치가 취소되었습니다.\n');
+      rl.close();
+      return;
+    }
   }
 
   console.log('\n' + '═'.repeat(60));
@@ -357,7 +638,7 @@ async function main() {
 
   // 1. npm install
   if (!status.nodeModules || forceMode) {
-    console.log('[1/6] 의존성 설치 (npm install)...');
+    console.log('[1/7] 의존성 설치 (npm install)...');
     try {
       execSync('npm install', { cwd: rootDir, stdio: 'inherit' });
       console.log('      ✓ 완료');
@@ -367,12 +648,12 @@ async function main() {
       process.exit(1);
     }
   } else {
-    console.log('[1/6] node_modules: 이미 존재 (건너뜀)');
+    console.log('[1/7] node_modules: 이미 존재 (건너뜀)');
   }
 
   // 2. Build
   if (!status.dist || forceMode) {
-    console.log('[2/6] 빌드 (npm run build)...');
+    console.log('[2/7] 빌드 (npm run build)...');
     try {
       execSync('npm run build', { cwd: rootDir, stdio: 'inherit' });
       console.log('      ✓ 완료');
@@ -382,15 +663,16 @@ async function main() {
       process.exit(1);
     }
   } else {
-    console.log('[2/6] 빌드: 이미 완료 (건너뜀)');
+    console.log('[2/7] 빌드: 이미 완료 (건너뜀)');
   }
 
   // 3. Install Hooks
-  if (!status.hooks || forceMode) {
-    console.log('[3/6] Hooks 설치...');
+  const shouldInstallHooks = !status.hooks.installed || status.hooks.needsUpdate || forceMode;
+  if (shouldInstallHooks) {
+    console.log('[3/7] Hooks 설치...');
     const srcHooksDir = path.join(rootDir, 'hooks');
     if (fs.existsSync(srcHooksDir)) {
-      copyDirRecursive(srcHooksDir, claudeHooksDir, ['__pycache__', 'api_keys.json', 'logs', 'state', '.example']);
+      const copiedFiles = copyDirRecursive(srcHooksDir, claudeHooksDir, ['__pycache__', 'api_keys.json', 'logs', 'state', '.example', '.cco-manifest.json']);
 
       // Set up api_keys.json
       const apiKeysPath = path.join(claudeHooksDir, 'api_keys.json');
@@ -404,26 +686,33 @@ async function main() {
       fs.writeFileSync(apiKeysPath, JSON.stringify(hooksApiKeys, null, 2));
       fs.mkdirSync(path.join(claudeHooksDir, 'logs'), { recursive: true });
       fs.mkdirSync(path.join(claudeHooksDir, 'state'), { recursive: true });
-      console.log('      ✓ 완료: ' + claudeHooksDir);
+
+      // Write manifest
+      writeManifest(hooksManifestPath, copiedFiles);
+      console.log(`      ✓ 완료: ${claudeHooksDir} (${copiedFiles.length}개 파일)`);
     }
   } else {
-    console.log('[3/6] Hooks: 이미 설치됨 (건너뜀)');
+    console.log(`[3/7] Hooks: v${status.hooks.version} 최신 (건너뜀)`);
   }
 
   // 4. Install Skills
-  if (!status.skills || forceMode) {
-    console.log('[4/6] Skills 설치...');
+  const shouldInstallSkills = !status.skills.installed || status.skills.needsUpdate || forceMode;
+  if (shouldInstallSkills) {
+    console.log('[4/7] Skills 설치...');
     const srcSkillsDir = path.join(rootDir, 'skills');
     if (fs.existsSync(srcSkillsDir)) {
-      copyDirRecursive(srcSkillsDir, claudeSkillsDir);
-      console.log('      ✓ 완료: ' + claudeSkillsDir);
+      const copiedFiles = copyDirRecursive(srcSkillsDir, claudeSkillsDir, ['.cco-manifest.json']);
+
+      // Write manifest
+      writeManifest(skillsManifestPath, copiedFiles);
+      console.log(`      ✓ 완료: ${claudeSkillsDir} (${copiedFiles.length}개 파일)`);
     }
   } else {
-    console.log('[4/6] Skills: 이미 설치됨 (건너뜀)');
+    console.log(`[4/7] Skills: v${status.skills.version} 최신 (건너뜀)`);
   }
 
   // 5. Update settings.json and desktop config
-  console.log('[5/6] Claude 설정 업데이트...');
+  console.log('[5/7] Claude 설정 업데이트...');
 
   // Update settings.json
   const templatePath = path.join(rootDir, 'templates', 'settings.template.json');
@@ -498,7 +787,7 @@ async function main() {
   }
 
   // 6. Generate CCO config file
-  console.log('[6/6] CCO 설정 파일 생성...');
+  console.log('[6/7] CCO 설정 파일 생성...');
   const ccoConfig = generateConfig(currentKeys);
   if (ccoConfig && saveConfig(ccoConfig)) {
     console.log('      ✓ 완료: ' + ccoConfigPath);
@@ -510,10 +799,23 @@ async function main() {
     console.log('      ⚠ API 키가 없어 설정 파일을 생성하지 않음');
   }
 
+  // 7. Verify installation
+  console.log('[7/7] 설치 검증...');
+  const verifyResults = verifyInstallation();
+  const allOk = printVerificationResults(verifyResults);
+
   // Done
   console.log('\n' + '═'.repeat(60));
-  console.log('\n✅ CC Orchestrator 설치가 완료되었습니다!');
-  console.log('\n⚠️  Claude Code를 재시작하세요.\n');
+
+  if (allOk) {
+    console.log('\n✅ CC Orchestrator v' + CURRENT_VERSION + ' 설치가 완료되었습니다!');
+  } else {
+    console.log('\n⚠️  CC Orchestrator 설치가 완료되었지만 일부 문제가 있습니다.');
+  }
+
+  console.log('\n다음 단계:');
+  console.log('  1. Claude Code를 재시작하세요');
+  console.log('  2. "oracle한테 이 프로젝트 리뷰해달라고 해" 로 테스트\n');
 
   rl.close();
 }

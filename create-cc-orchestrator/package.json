@@ -1,0 +1,31 @@
+{
+  "name": "create-cc-orchestrator",
+  "version": "1.0.0",
+  "description": "CLI to install CC Orchestrator - Multi-model orchestration for Claude Code",
+  "bin": {
+    "create-cc-orchestrator": "./index.js"
+  },
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "node index.js --help"
+  },
+  "keywords": [
+    "cc-orchestrator",
+    "claude-code",
+    "mcp",
+    "multi-model",
+    "orchestration",
+    "llm",
+    "create"
+  ],
+  "author": "zhsks311",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zhsks311/cc-orchestrator.git"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

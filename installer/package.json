@@ -1,9 +1,9 @@
 {
-  "name": "create-cc-orchestrator",
+  "name": "cc-orch",
   "version": "1.0.0",
   "description": "CLI to install CC Orchestrator - Multi-model orchestration for Claude Code",
   "bin": {
-    "create-cc-orchestrator": "./index.js"
+    "cc-orch": "./index.js"
   },
   "main": "index.js",
   "type": "module",

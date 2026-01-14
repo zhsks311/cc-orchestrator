@@ -55,7 +55,7 @@ explore: Anthropic (무료, Claude Sonnet)
 ### 1. 설치 (원라인)
 
 ```bash
-npx create-cc-orchestrator
+npx cc-orch
 ```
 
 또는 수동 설치:
@@ -83,7 +83,7 @@ npm run setup
 
 ```bash
 # 원라인 설치
-npx create-cc-orchestrator
+npx cc-orch
 
 # 수동 설치 (미설치 항목만)
 npm run setup
@@ -98,7 +98,7 @@ npm run update
 npm run update -- --check
 
 # npx로 업데이트
-npx create-cc-orchestrator --upgrade
+npx cc-orch --upgrade
 ```
 
 ### Provider 우선순위 설정

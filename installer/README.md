@@ -1,11 +1,11 @@
-# create-cc-orchestrator
+# cc-orch
 
 One-line installer for [CC Orchestrator](https://github.com/zhsks311/cc-orchestrator) - Multi-model orchestration for Claude Code.
 
 ## Quick Start
 
 ```bash
-npx create-cc-orchestrator
+npx cc-orch
 ```
 
 That's it! The installer will:
@@ -18,16 +18,16 @@ That's it! The installer will:
 
 ```bash
 # Install to default location (~/.cc-orchestrator)
-npx create-cc-orchestrator
+npx cc-orch
 
 # Install to custom directory
-npx create-cc-orchestrator ./my-cco
+npx cc-orch ./my-cco
 
 # Update existing installation
-npx create-cc-orchestrator --upgrade
+npx cc-orch --upgrade
 
 # Force reinstall all components
-npx create-cc-orchestrator --force
+npx cc-orch --force
 ```
 
 ## After Installation
@@ -41,7 +41,7 @@ npx create-cc-orchestrator --force
 
 ```bash
 # Option 1: Use npx
-npx create-cc-orchestrator --upgrade
+npx cc-orch --upgrade
 
 # Option 2: Use npm script
 cd ~/.cc-orchestrator

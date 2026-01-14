@@ -460,7 +460,7 @@ function printVerificationResults(results) {
     console.log('\n✅ 모든 컴포넌트 정상 설치됨!');
   } else {
     console.log('\n⚠️  일부 컴포넌트에 문제가 있습니다.');
-    console.log('   해결: npx create-cc-orchestrator --force');
+    console.log('   해결: npx cc-orch --force');
   }
 
   return allOk;

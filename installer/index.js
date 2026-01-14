@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 /**
- * create-cc-orchestrator
+ * cc-orch
  *
  * One-line installer for CC Orchestrator
  *
  * Usage:
- *   npx create-cc-orchestrator              # Install
- *   npx create-cc-orchestrator --upgrade    # Update existing installation
- *   npx create-cc-orchestrator --help       # Show help
+ *   npx cc-orch              # Install
+ *   npx cc-orch --upgrade    # Update existing installation
+ *   npx cc-orch --help       # Show help
  */
 
 import * as fs from 'fs';
@@ -42,7 +42,7 @@ function printBanner() {
 function printHelp() {
   printBanner();
   console.log(`Usage:
-  npx create-cc-orchestrator [directory] [options]
+  npx cc-orch [directory] [options]
 
 Options:
   --upgrade, -u    Update existing installation
@@ -50,10 +50,10 @@ Options:
   --help, -h       Show this help message
 
 Examples:
-  npx create-cc-orchestrator                    # Install to ~/.cc-orchestrator
-  npx create-cc-orchestrator ./my-cco           # Install to custom directory
-  npx create-cc-orchestrator --upgrade          # Update existing installation
-  npx create-cc-orchestrator --force            # Force reinstall
+  npx cc-orch                    # Install to ~/.cc-orchestrator
+  npx cc-orch ./my-cco           # Install to custom directory
+  npx cc-orch --upgrade          # Update existing installation
+  npx cc-orch --force            # Force reinstall
 
 After installation:
   1. Restart Claude Code
@@ -110,7 +110,7 @@ async function install(installDir) {
       const answer = await question('⚠️  이미 설치되어 있습니다. 덮어쓰시겠습니까? (y/N): ');
       if (answer.toLowerCase() !== 'y') {
         console.log('\n설치가 취소되었습니다.');
-        console.log('업그레이드하려면: npx create-cc-orchestrator --upgrade\n');
+        console.log('업그레이드하려면: npx cc-orch --upgrade\n');
         process.exit(0);
       }
     }
@@ -156,7 +156,7 @@ async function install(installDir) {
 ║     npm run update                                         ║
 ║                                                            ║
 ║  또는:                                                      ║
-║     npx create-cc-orchestrator --upgrade                   ║
+║     npx cc-orch --upgrade                                  ║
 ║                                                            ║
 ╚════════════════════════════════════════════════════════════╝
 `);

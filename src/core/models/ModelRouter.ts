@@ -38,6 +38,7 @@ export interface IModelRouter {
   getModelForRole(role: AgentRole): ModelConfig;
   executeWithFallback(params: ExecuteTaskParams): Promise<ModelResponse>;
   executeWithTools(params: ExecuteWithToolsParams): Promise<ToolUseResponse>;
+  hasAvailableProvider(role: AgentRole): boolean;
 }
 
 export class ModelRouter implements IModelRouter {
@@ -105,6 +106,15 @@ export class ModelRouter implements IModelRouter {
       default:
         return false;
     }
+  }
+
+  /**
+   * 특정 역할에 사용 가능한 프로바이더가 있는지 확인
+   * API 키가 설정된 프로바이더가 하나라도 있으면 true
+   */
+  hasAvailableProvider(role: AgentRole): boolean {
+    const config = this.findAvailableProviderConfig(role, false);
+    return config !== null;
   }
 
   /**

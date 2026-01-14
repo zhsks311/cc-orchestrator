@@ -5,7 +5,9 @@
 
 import { IAgentManager } from '../../core/agents/AgentManager.js';
 import { IContextStore } from '../../core/context/ContextStore.js';
+import { IModelRouter } from '../../core/models/ModelRouter.js';
 import {
+  AgentRole,
   AgentStatus,
   ContextScope,
 } from '../../types/index.js';
@@ -25,6 +27,7 @@ import { getRoleDescription, findBestAgent, AGENT_METADATA } from '../../core/ag
 export interface ToolHandlerDependencies {
   agentManager: IAgentManager;
   contextStore: IContextStore;
+  modelRouter: IModelRouter;
   sessionId: string;
 }
 
@@ -37,12 +40,14 @@ export interface ToolResult {
 export class ToolHandlers {
   private agentManager: IAgentManager;
   private contextStore: IContextStore;
+  private modelRouter: IModelRouter;
   private sessionId: string;
   private logger: Logger;
 
   constructor(deps: ToolHandlerDependencies) {
     this.agentManager = deps.agentManager;
     this.contextStore = deps.contextStore;
+    this.modelRouter = deps.modelRouter;
     this.sessionId = deps.sessionId;
     this.logger = new Logger('ToolHandlers');
   }
@@ -76,6 +81,14 @@ export class ToolHandlers {
   private async handleBackgroundTask(args: unknown): Promise<ToolResult> {
     const input = BackgroundTaskInputSchema.parse(args);
 
+    // API 키 확인 - 없으면 delegation 응답
+    if (!this.modelRouter.hasAvailableProvider(input.agent)) {
+      this.logger.info('No provider available, delegating to Claude Code', {
+        agent: input.agent,
+      });
+      return this.formatDelegationResponse(input.agent, input.prompt);
+    }
+
     const agent = await this.agentManager.createAgent({
       role: input.agent,
       task: input.prompt,
@@ -96,6 +109,35 @@ export class ToolHandlers {
       agent: agent.role,
       agent_description: getRoleDescription(agent.role),
       message: `백그라운드 작업이 시작되었습니다. background_output(task_id="${agent.id}")로 상태를 확인하세요.`,
+    });
+  }
+
+  /**
+   * API 키가 없을 때 Claude Code에게 위임하는 응답 생성
+   */
+  private formatDelegationResponse(agent: AgentRole, prompt: string): ToolResult {
+    const subagentMap: Record<AgentRole, string> = {
+      oracle: 'Plan',
+      librarian: 'Explore',
+      'frontend-engineer': 'general-purpose',
+      'document-writer': 'general-purpose',
+      'multimodal-analyzer': 'general-purpose',
+      explore: 'Explore',
+    };
+
+    const suggestedSubagent = subagentMap[agent] || 'general-purpose';
+
+    return this.formatResult({
+      delegation: true,
+      agent,
+      agent_description: getRoleDescription(agent),
+      prompt,
+      suggested_action: {
+        tool: 'Task',
+        subagent_type: suggestedSubagent,
+        prompt,
+      },
+      message: `API 키가 설정되지 않아 Claude Code가 직접 처리합니다. Task tool의 ${suggestedSubagent} 에이전트를 사용하세요.`,
     });
   }
 

@@ -15,6 +15,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import { AgentManager } from '../core/agents/AgentManager.js';
 import { ContextStore } from '../core/context/ContextStore.js';
+import { ModelRouter } from '../core/models/ModelRouter.js';
 import { ToolHandlers } from './handlers/index.js';
 import { getToolDefinitions } from './tools/definitions.js';
 import { Logger } from '../infrastructure/Logger.js';
@@ -28,6 +29,7 @@ export class MCPServer {
   private server: Server;
   private agentManager: AgentManager;
   private contextStore: ContextStore;
+  private modelRouter: ModelRouter;
   private sessionId: string;
   private toolHandlers: ToolHandlers;
   private logger: Logger;
@@ -39,11 +41,13 @@ export class MCPServer {
     // Initialize core components
     this.agentManager = new AgentManager();
     this.contextStore = new ContextStore();
+    this.modelRouter = new ModelRouter();
 
     // Initialize tool handlers
     this.toolHandlers = new ToolHandlers({
       agentManager: this.agentManager,
       contextStore: this.contextStore,
+      modelRouter: this.modelRouter,
       sessionId: this.sessionId,
     });
 

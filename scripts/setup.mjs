@@ -158,7 +158,7 @@ function showAgentAvailability(keys) {
     const primaryAvailable = available[config.primary];
     const fallbackProviders = config.fallbacks.filter(p => available[p]);
 
-    let status, provider;
+    let status, provider, delegated = false;
     if (primaryAvailable) {
       status = '✓';
       provider = config.primary;
@@ -166,19 +166,22 @@ function showAgentAvailability(keys) {
       status = '⚠';
       provider = fallbackProviders[0];
     } else {
-      status = '✗';
+      // API 키 없으면 Claude Code 위임 (항상 사용 가능)
+      status = '✓';
       provider = null;
+      delegated = true;
     }
 
-    const providerInfo = provider ? `(${provider})` : '(사용 불가)';
-    const statusIcon = status === '✓' ? '✓' : status === '⚠' ? '⚠ fallback' : '✗';
+    const providerInfo = delegated ? '(Claude Code 위임)' : `(${provider})`;
+    const statusIcon = status === '✓' ? '✓' : '⚠ fallback';
 
-    console.log(`  ${role.padEnd(20)} ${statusIcon.padEnd(12)} ${providerInfo.padEnd(12)} - ${config.description}`);
+    console.log(`  ${role.padEnd(20)} ${statusIcon.padEnd(12)} ${providerInfo.padEnd(18)} - ${config.description}`);
 
     results.push({
       role,
-      available: status !== '✗',
+      available: true,  // 항상 사용 가능 (delegation 지원)
       useFallback: status === '⚠',
+      delegated,
       provider,
       primary: config.primary
     });
@@ -186,11 +189,14 @@ function showAgentAvailability(keys) {
 
   // Summary
   const totalAgents = Object.keys(AGENT_PROVIDERS).length;
-  const availableCount = results.filter(r => r.available).length;
+  const delegatedCount = results.filter(r => r.delegated).length;
   const fallbackCount = results.filter(r => r.useFallback).length;
 
-  console.log('\n  ' + '─'.repeat(56));
-  console.log(`  총 ${totalAgents}개 에이전트 중 ${availableCount}개 사용 가능`);
+  console.log('\n  ' + '─'.repeat(62));
+  console.log(`  총 ${totalAgents}개 에이전트 모두 사용 가능`);
+  if (delegatedCount > 0) {
+    console.log(`  (${delegatedCount}개 에이전트가 Claude Code 위임 모드)`);
+  }
   if (fallbackCount > 0) {
     console.log(`  (${fallbackCount}개 에이전트가 대체 제공자 사용)`);
   }

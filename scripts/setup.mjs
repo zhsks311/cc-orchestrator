@@ -114,8 +114,8 @@ const AGENT_PROVIDERS = {
   },
   'explore': {
     primary: 'anthropic',
-    fallbacks: [],
-    description: '코드베이스 탐색 (무료, Claude Sonnet)'
+    fallbacks: ['google', 'openai'],
+    description: '코드베이스 탐색 (Claude Sonnet)'
   }
 };
 

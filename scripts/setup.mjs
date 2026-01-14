@@ -466,7 +466,7 @@ function printVerificationResults(results) {
   return allOk;
 }
 
-// Check installation status (manifest-based)
+// Check installation status (manifest-based + file verification)
 function checkStatus() {
   const hooksManifest = readManifest(hooksManifestPath);
   const skillsManifest = readManifest(skillsManifestPath);
@@ -477,16 +477,40 @@ function checkStatus() {
     hooks: {
       installed: hooksManifest?.name === 'cc-orchestrator',
       version: hooksManifest?.version || null,
-      needsUpdate: needsUpdate(hooksManifestPath)
+      needsUpdate: needsUpdate(hooksManifestPath),
+      corrupted: false
     },
     skills: {
       installed: skillsManifest?.name === 'cc-orchestrator',
       version: skillsManifest?.version || null,
-      needsUpdate: needsUpdate(skillsManifestPath)
+      needsUpdate: needsUpdate(skillsManifestPath),
+      corrupted: false
     },
     desktopConfig: false,
     ccoConfig: fs.existsSync(ccoConfigPath)
   };
+
+  // Verify actual hook files exist (not just manifest)
+  if (hooksManifest?.name === 'cc-orchestrator' && hooksManifest.files) {
+    const missing = hooksManifest.files.filter(f =>
+      !fs.existsSync(path.join(claudeHooksDir, f))
+    );
+    if (missing.length > 0) {
+      status.hooks.installed = false;
+      status.hooks.corrupted = true;
+    }
+  }
+
+  // Verify actual skill files exist (not just manifest)
+  if (skillsManifest?.name === 'cc-orchestrator' && skillsManifest.files) {
+    const missing = skillsManifest.files.filter(f =>
+      !fs.existsSync(path.join(claudeSkillsDir, f))
+    );
+    if (missing.length > 0) {
+      status.skills.installed = false;
+      status.skills.corrupted = true;
+    }
+  }
 
   // Check desktop config
   if (fs.existsSync(claudeDesktopConfigPath)) {
@@ -515,7 +539,9 @@ async function main() {
   console.log(`  빌드 (dist):      ${status.dist ? '✓' : '✗'}`);
 
   // Hooks status with version info
-  if (status.hooks.installed) {
+  if (status.hooks.corrupted) {
+    console.log(`  Hooks:            ✗ 파일 손상 (재설치 필요)`);
+  } else if (status.hooks.installed) {
     const hooksStatus = status.hooks.needsUpdate
       ? `✓ v${status.hooks.version} → v${CURRENT_VERSION} 업데이트 가능`
       : `✓ v${status.hooks.version} (최신)`;
@@ -525,7 +551,9 @@ async function main() {
   }
 
   // Skills status with version info
-  if (status.skills.installed) {
+  if (status.skills.corrupted) {
+    console.log(`  Skills:           ✗ 파일 손상 (재설치 필요)`);
+  } else if (status.skills.installed) {
     const skillsStatus = status.skills.needsUpdate
       ? `✓ v${status.skills.version} → v${CURRENT_VERSION} 업데이트 가능`
       : `✓ v${status.skills.version} (최신)`;
@@ -541,7 +569,9 @@ async function main() {
   // Handle different installation modes
   let shouldProceed = true;
 
-  if (installMode.mode === 'current' && !forceMode) {
+  // Skip if already up-to-date and no corruption
+  const hasCorruption = status.hooks.corrupted || status.skills.corrupted;
+  if (installMode.mode === 'current' && !forceMode && !hasCorruption) {
     console.log(`✅ CC Orchestrator v${CURRENT_VERSION} 이미 최신 버전입니다.`);
     console.log('   재설치하려면: npm run setup -- --force\n');
     rl.close();

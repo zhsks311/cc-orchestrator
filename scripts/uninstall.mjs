@@ -155,14 +155,32 @@ function removeClaudeConfig() {
   }
   if (deleteFolderRecursive(path.join(claudeHooksDir, 'adapters'))) removedCount++;
   if (deleteFolderRecursive(path.join(claudeHooksDir, 'prompts'))) removedCount++;
+  if (deleteFolderRecursive(path.join(claudeHooksDir, 'context_resilience'))) removedCount++;
+  // Remove hooks manifest
+  if (deleteFile(path.join(claudeHooksDir, '.cco-manifest.json'))) {
+    removedCount++;
+    console.log('  Removed: .cco-manifest.json');
+  }
   console.log(`  Removed: ${removedCount} hook files/folders`);
 
-  // Remove orchestrate skill
-  console.log('\n[Skills] Removing orchestrate skill...');
+  // Remove skills
+  console.log('\n[Skills] Removing CC Orchestrator skills...');
+  let skillsRemoved = 0;
   if (deleteFolderRecursive(path.join(claudeSkillsDir, 'orchestrate'))) {
     console.log('  Removed: orchestrate skill');
-  } else {
-    console.log('  Not found: orchestrate skill');
+    skillsRemoved++;
+  }
+  if (deleteFolderRecursive(path.join(claudeSkillsDir, 'checkpoint'))) {
+    console.log('  Removed: checkpoint skill');
+    skillsRemoved++;
+  }
+  // Remove skills manifest
+  if (deleteFile(path.join(claudeSkillsDir, '.cco-manifest.json'))) {
+    console.log('  Removed: skills .cco-manifest.json');
+    skillsRemoved++;
+  }
+  if (skillsRemoved === 0) {
+    console.log('  Not found: CC Orchestrator skills');
   }
 
   // Remove cc-orchestrator from desktop config

@@ -8,7 +8,7 @@ import { AgentRole, AgentStatus, Priority, ContextScope } from '../../types/inde
 
 // background_task (was spawn_agent)
 export const BackgroundTaskInputSchema = z.object({
-  agent: z.nativeEnum(AgentRole).describe('실행할 에이전트 (oracle, librarian, frontend-engineer, document-writer, multimodal-analyzer)'),
+  agent: z.nativeEnum(AgentRole).describe('실행할 에이전트 (arch, index, canvas, quill, lens, scout)'),
   prompt: z.string().min(1).max(10000).describe('에이전트에게 전달할 작업 프롬프트'),
   description: z.string().min(1).max(200).optional().describe('작업에 대한 짧은 설명 (추적용)'),
   priority: z.nativeEnum(Priority).optional().default(Priority.MEDIUM).describe('작업 우선순위'),

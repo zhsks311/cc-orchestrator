@@ -78,7 +78,7 @@ export interface ModelResponse {
  * Based on Oh My OpenCode / PRD specifications
  */
 export const ROLE_MODEL_MAPPING: Record<AgentRole, ModelConfig> = {
-  [AgentRole.ORACLE]: {
+  [AgentRole.ARCH]: {
     provider: ModelProvider.OPENAI,
     model: 'gpt-5.2',
     fallbackModel: 'gpt-5-mini',
@@ -90,7 +90,7 @@ export const ROLE_MODEL_MAPPING: Record<AgentRole, ModelConfig> = {
     temperature: 0.7,
     rateLimitPerMinute: 60,
   },
-  [AgentRole.FRONTEND_ENGINEER]: {
+  [AgentRole.CANVAS]: {
     provider: ModelProvider.GOOGLE,
     model: 'gemini-3-pro-preview',
     fallbackModel: 'gemini-3-flash-preview',
@@ -102,7 +102,7 @@ export const ROLE_MODEL_MAPPING: Record<AgentRole, ModelConfig> = {
     temperature: 0.5,
     rateLimitPerMinute: 100,
   },
-  [AgentRole.LIBRARIAN]: {
+  [AgentRole.INDEX]: {
     provider: ModelProvider.ANTHROPIC,
     model: 'claude-sonnet-4-5-20250929',
     fallbackModel: 'claude-sonnet-4-20250514',
@@ -114,7 +114,7 @@ export const ROLE_MODEL_MAPPING: Record<AgentRole, ModelConfig> = {
     temperature: 0.3,
     rateLimitPerMinute: 80,
   },
-  [AgentRole.DOCUMENT_WRITER]: {
+  [AgentRole.QUILL]: {
     provider: ModelProvider.GOOGLE,
     model: 'gemini-3-pro-preview',
     fallbackModel: 'gemini-3-flash-preview',
@@ -126,7 +126,7 @@ export const ROLE_MODEL_MAPPING: Record<AgentRole, ModelConfig> = {
     temperature: 0.6,
     rateLimitPerMinute: 100,
   },
-  [AgentRole.MULTIMODAL_ANALYZER]: {
+  [AgentRole.LENS]: {
     provider: ModelProvider.GOOGLE,
     model: 'gemini-3-flash-preview',
     fallbackModel: 'gemini-3-pro-image-preview',
@@ -138,7 +138,7 @@ export const ROLE_MODEL_MAPPING: Record<AgentRole, ModelConfig> = {
     temperature: 0.4,
     rateLimitPerMinute: 150,
   },
-  [AgentRole.EXPLORE]: {
+  [AgentRole.SCOUT]: {
     provider: ModelProvider.ANTHROPIC,
     model: 'claude-3-5-sonnet-latest',
     fallbackModel: 'claude-3-haiku-latest',

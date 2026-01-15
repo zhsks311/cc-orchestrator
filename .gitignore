@@ -38,3 +38,6 @@ hooks/__pycache__/
 # Temp files
 nul
 *.backup
+
+# Git worktrees
+.worktrees/

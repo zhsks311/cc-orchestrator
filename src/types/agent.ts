@@ -5,12 +5,12 @@
 import { FallbackInfo } from './model.js';
 
 export enum AgentRole {
-  ORACLE = 'oracle',
-  FRONTEND_ENGINEER = 'frontend-engineer',
-  LIBRARIAN = 'librarian',
-  DOCUMENT_WRITER = 'document-writer',
-  MULTIMODAL_ANALYZER = 'multimodal-analyzer',
-  EXPLORE = 'explore',
+  ARCH = 'arch',
+  CANVAS = 'canvas',
+  INDEX = 'index',
+  QUILL = 'quill',
+  LENS = 'lens',
+  SCOUT = 'scout',
 }
 
 export enum AgentStatus {

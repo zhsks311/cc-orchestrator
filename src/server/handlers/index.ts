@@ -113,16 +113,26 @@ export class ToolHandlers {
   }
 
   /**
+   * Claude Code Task tool subagent types
+   */
+  private static readonly SubagentType = {
+    PLAN: 'Plan',
+    EXPLORE: 'Explore',
+    GENERAL: 'general-purpose',
+  } as const;
+
+  /**
    * API 키가 없을 때 Claude Code에게 위임하는 응답 생성
    */
   private formatDelegationResponse(agent: AgentRole, prompt: string): ToolResult {
+    const { SubagentType } = ToolHandlers;
     const subagentMap: Record<AgentRole, string> = {
-      oracle: 'Plan',
-      librarian: 'Explore',
-      'frontend-engineer': 'general-purpose',
-      'document-writer': 'general-purpose',
-      'multimodal-analyzer': 'general-purpose',
-      explore: 'Explore',
+      [AgentRole.ARCH]: SubagentType.PLAN,
+      [AgentRole.INDEX]: SubagentType.EXPLORE,
+      [AgentRole.CANVAS]: SubagentType.GENERAL,
+      [AgentRole.QUILL]: SubagentType.GENERAL,
+      [AgentRole.LENS]: SubagentType.GENERAL,
+      [AgentRole.SCOUT]: SubagentType.EXPLORE,
     };
 
     const suggestedSubagent = subagentMap[agent] || 'general-purpose';

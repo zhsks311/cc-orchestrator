@@ -335,11 +335,11 @@ export class OrchestrationEngine implements IOrchestrationEngine {
         priority: Priority.MEDIUM,
       }));
     } else {
-      // 기본: Oracle만 사용
+      // 기본: Arch만 사용
       stages = [{
         id: 'stage-1',
-        name: 'Oracle 분석',
-        role: AgentRole.ORACLE,
+        name: 'Arch 분석',
+        role: AgentRole.ARCH,
         task: goal,
         dependsOn: [],
         inputs: {},

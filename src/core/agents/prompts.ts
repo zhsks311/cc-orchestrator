@@ -301,67 +301,347 @@ export function getRoleDescription(role: AgentRole): string {
   }
 }
 
+export interface AgentExample {
+  input: string;
+  shouldUse: boolean;
+  reason: string;
+}
+
 export interface AgentMetadata {
   role: AgentRole;
+  name: string;
+  model: string;
   cost: 'FREE' | 'CHEAP' | 'MODERATE' | 'EXPENSIVE';
+
+  // LLM이 읽고 판단할 수 있는 풍부한 설명
+  description: string;
+  expertise: string[];
+
+  // 언제 사용/회피해야 하는지
   useWhen: string[];
   avoidWhen: string[];
-  keyTriggers: string[];
+
+  // 패턴 학습용 예시
+  examples: AgentExample[];
+
+  // 명시적 호출용 별칭 (@ 멘션)
+  aliases: string[];
 }
 
 export const AGENT_METADATA: Record<AgentRole, AgentMetadata> = {
   [AgentRole.ARCH]: {
     role: AgentRole.ARCH,
+    name: 'Arch',
+    model: 'GPT-5.2',
     cost: 'EXPENSIVE',
-    useWhen: ['복잡한 아키텍처 설계', '주요 작업 완료 후 검토', '수정 2회 이상 실패', '보안/성능 우려'],
-    avoidWhen: ['간단한 파일 작업', '읽은 코드에서 답변 가능', '사소한 결정'],
-    keyTriggers: ['아키텍처', '설계', '리뷰', '검토', '트레이드오프', '성능', '보안'],
+    description: `전략적 사고와 아키텍처 설계 전문가.
+복잡한 시스템의 트레이드오프를 분석하고, 장기적 관점에서 최적의 설계를 제안합니다.
+기술 부채, 확장성, 보안, 성능 등 시스템 전반의 품질을 고려한 의사결정을 돕습니다.`,
+    expertise: [
+      '시스템 아키텍처 설계',
+      '기술적 의사결정 및 트레이드오프 분석',
+      '코드 리뷰 및 품질 개선',
+      '보안 취약점 분석',
+      '성능 최적화 전략',
+      '리팩토링 로드맵 수립',
+    ],
+    useWhen: [
+      '시스템 아키텍처 설계가 필요할 때',
+      '보안/성능/확장성 관련 의사결정',
+      '여러 접근법 중 하나를 선택해야 할 때',
+      '코드 리뷰에서 구조적 문제를 찾을 때',
+      '기술 부채 분석 및 리팩토링 전략 수립',
+      '복잡한 버그가 2회 이상 수정 실패했을 때',
+    ],
+    avoidWhen: [
+      '단순 파일 읽기/쓰기 작업',
+      '이미 답을 알고 있는 간단한 질문',
+      'UI/UX 디자인 작업',
+      '문서 검색만 필요한 경우',
+      '변수명, 포맷팅 같은 사소한 결정',
+    ],
+    examples: [
+      { input: 'JWT vs 세션 인증 뭐가 나아?', shouldUse: true, reason: '기술적 트레이드오프 분석 필요' },
+      { input: '이 아키텍처 보안 취약점 있어?', shouldUse: true, reason: '보안 분석 전문성 필요' },
+      { input: '마이크로서비스로 전환해야 할까?', shouldUse: true, reason: '아키텍처 의사결정' },
+      { input: '이 코드 성능 문제 있는 것 같은데', shouldUse: true, reason: '성능 분석 필요' },
+      { input: '버튼 색상 바꿔줘', shouldUse: false, reason: 'UI 작업은 Canvas' },
+      { input: 'React 설치 방법', shouldUse: false, reason: '문서 검색은 Index' },
+      { input: '이 파일 어디 있어?', shouldUse: false, reason: '탐색은 Scout' },
+    ],
+    aliases: ['arch', '아키텍트', '건축가', 'oracle', '오라클'],
   },
+
   [AgentRole.INDEX]: {
     role: AgentRole.INDEX,
+    name: 'Index',
+    model: 'Claude Sonnet 4.5',
     cost: 'CHEAP',
-    useWhen: ['라이브러리 사용법 질문', '프레임워크 모범 사례', '외부 의존성 동작', '구현 예제 찾기'],
-    avoidWhen: ['내부 코드 분석', '직접 구현 가능한 경우'],
-    keyTriggers: ['라이브러리', 'API', '문서', '예제', '사용법', '모범 사례'],
+    description: `라이브러리와 프레임워크 전문 연구원.
+공식 문서, GitHub 코드, 구현 예제를 검색하고 분석합니다.
+모든 주장에 출처를 제시하며, 최신 모범 사례를 안내합니다.`,
+    expertise: [
+      '라이브러리/프레임워크 사용법',
+      '공식 문서 검색 및 해석',
+      '구현 예제 및 패턴 조사',
+      'API 레퍼런스 분석',
+      '의존성 및 호환성 확인',
+      '모범 사례 및 안티패턴 조사',
+    ],
+    useWhen: [
+      '라이브러리 사용법을 모를 때',
+      '프레임워크 모범 사례가 궁금할 때',
+      '외부 API 동작 방식을 알고 싶을 때',
+      '구현 예제를 찾고 싶을 때',
+      '최신 버전 변경사항을 확인할 때',
+    ],
+    avoidWhen: [
+      '내부 프로젝트 코드 분석',
+      '이미 알고 있는 내용',
+      '문서가 아닌 실제 구현이 필요할 때',
+    ],
+    examples: [
+      { input: 'React useEffect 사용법', shouldUse: true, reason: '라이브러리 사용법 질문' },
+      { input: 'Express 미들웨어 순서가 중요해?', shouldUse: true, reason: '프레임워크 동작 원리' },
+      { input: 'Prisma에서 트랜잭션 어떻게 해?', shouldUse: true, reason: 'ORM 사용법' },
+      { input: 'zod vs yup 뭐가 좋아?', shouldUse: true, reason: '라이브러리 비교 분석' },
+      { input: '우리 프로젝트 구조 설명해줘', shouldUse: false, reason: '내부 코드는 Scout' },
+      { input: '이 아키텍처 괜찮아?', shouldUse: false, reason: '설계 판단은 Arch' },
+    ],
+    aliases: ['index', '인덱스', '연구원', '리서처', 'librarian', '라이브러리안', '사서'],
   },
+
   [AgentRole.CANVAS]: {
     role: AgentRole.CANVAS,
+    name: 'Canvas',
+    model: 'Gemini 3 Pro',
     cost: 'MODERATE',
-    useWhen: ['시각/UI/UX 변경', '색상, 간격, 레이아웃', '타이포그래피, 애니메이션'],
-    avoidWhen: ['순수 로직', '상태 관리', '타입 정의'],
-    keyTriggers: ['UI', 'UX', '디자인', '스타일', 'CSS', '애니메이션', '레이아웃', '색상'],
+    description: `디자인 감각을 가진 프론트엔드 개발자.
+모크업 없이도 아름다운 UI/UX를 창작하며, 픽셀 퍼펙트한 구현과 부드러운 애니메이션을 제공합니다.
+시각적 요소, 색상, 타이포그래피, 레이아웃에 강점이 있습니다.`,
+    expertise: [
+      'UI/UX 디자인 및 구현',
+      'CSS/스타일링/애니메이션',
+      '컴포넌트 디자인',
+      '반응형 레이아웃',
+      '색상/타이포그래피',
+      '사용자 인터랙션',
+    ],
+    useWhen: [
+      'UI/UX 변경이 필요할 때',
+      '새로운 컴포넌트를 만들 때',
+      '색상, 간격, 레이아웃 조정',
+      '애니메이션이나 전환 효과 추가',
+      '디자인 시스템 구축',
+    ],
+    avoidWhen: [
+      '순수 비즈니스 로직 구현',
+      '백엔드 API 개발',
+      '상태 관리 로직 (복잡한 경우)',
+      '타입 정의만 필요한 경우',
+    ],
+    examples: [
+      { input: '로그인 페이지 예쁘게 만들어줘', shouldUse: true, reason: 'UI 디자인 및 구현' },
+      { input: '버튼 호버 애니메이션 추가해줘', shouldUse: true, reason: '인터랙션 디자인' },
+      { input: '다크모드 토글 만들어줘', shouldUse: true, reason: 'UI 컴포넌트 + 스타일링' },
+      { input: '카드 레이아웃 그리드로 바꿔줘', shouldUse: true, reason: '레이아웃 변경' },
+      { input: 'API 엔드포인트 만들어줘', shouldUse: false, reason: '백엔드 작업' },
+      { input: '이 알고리즘 최적화해줘', shouldUse: false, reason: '순수 로직' },
+    ],
+    aliases: ['canvas', '캔버스', 'frontend', '프론트', 'ui', 'ux', '디자이너'],
   },
+
   [AgentRole.QUILL]: {
     role: AgentRole.QUILL,
+    name: 'Quill',
+    model: 'Gemini 3 Pro',
     cost: 'MODERATE',
-    useWhen: ['README 작성', 'API 문서 작성', '사용자 가이드', '아키텍처 문서'],
-    avoidWhen: ['코드 구현', '버그 수정'],
-    keyTriggers: ['문서', 'README', 'API 문서', '가이드', '설명서'],
+    description: `기술 문서 작성 전문가.
+복잡한 코드베이스를 명확한 문서로 변환합니다.
+README, API 문서, 아키텍처 문서, 사용자 가이드를 작성하며,
+모든 코드 예제는 검증 후 제공합니다.`,
+    expertise: [
+      'README 및 프로젝트 문서',
+      'API 레퍼런스 문서',
+      '아키텍처 설명 문서',
+      '사용자 가이드/튜토리얼',
+      '변경 로그 작성',
+      '기술 블로그 포스트',
+    ],
+    useWhen: [
+      'README 작성/업데이트',
+      'API 문서 작성',
+      '사용자 가이드 작성',
+      '아키텍처 문서화',
+      '코드 설명 문서 필요',
+    ],
+    avoidWhen: [
+      '실제 코드 구현',
+      '버그 수정',
+      'UI/UX 작업',
+    ],
+    examples: [
+      { input: 'README 작성해줘', shouldUse: true, reason: '문서 작성 전문' },
+      { input: '이 API 문서화해줘', shouldUse: true, reason: 'API 문서 작성' },
+      { input: '설치 가이드 만들어줘', shouldUse: true, reason: '사용자 가이드 작성' },
+      { input: '버그 수정해줘', shouldUse: false, reason: '코드 구현 필요' },
+      { input: '새 기능 개발해줘', shouldUse: false, reason: '구현 작업' },
+    ],
+    aliases: ['quill', '퀼', 'docs', '문서', '작가', 'writer'],
   },
+
   [AgentRole.LENS]: {
     role: AgentRole.LENS,
+    name: 'Lens',
+    model: 'Gemini 2.5 Flash',
     cost: 'CHEAP',
-    useWhen: ['PDF 분석', '이미지/스크린샷 분석', '다이어그램 해석'],
-    avoidWhen: ['소스 코드 읽기', '파일 편집', '단순 텍스트 읽기'],
-    keyTriggers: ['이미지', 'PDF', '스크린샷', '다이어그램', '분석'],
+    description: `이미지와 문서 분석 전문가.
+PDF, 이미지, 스크린샷, 다이어그램에서 정보를 추출하고 해석합니다.
+시각적 콘텐츠를 텍스트로 변환하여 설명합니다.`,
+    expertise: [
+      'PDF 문서 분석',
+      '이미지/스크린샷 해석',
+      '다이어그램 분석',
+      '시각적 정보 추출',
+      'OCR 및 텍스트 인식',
+    ],
+    useWhen: [
+      'PDF 문서 내용 분석',
+      '이미지나 스크린샷 분석',
+      '다이어그램/플로우차트 해석',
+      '시각적 자료에서 정보 추출',
+    ],
+    avoidWhen: [
+      '일반 소스 코드 읽기',
+      '파일 편집 작업',
+      '단순 텍스트 파일 읽기',
+    ],
+    examples: [
+      { input: '이 PDF 요약해줘', shouldUse: true, reason: 'PDF 분석' },
+      { input: '스크린샷에서 에러 메시지 읽어줘', shouldUse: true, reason: '이미지 분석' },
+      { input: '이 아키텍처 다이어그램 설명해줘', shouldUse: true, reason: '다이어그램 해석' },
+      { input: '이 코드 파일 읽어줘', shouldUse: false, reason: '텍스트는 직접 읽기' },
+    ],
+    aliases: ['lens', '렌즈', '이미지', 'pdf', '분석기'],
   },
+
   [AgentRole.SCOUT]: {
     role: AgentRole.SCOUT,
+    name: 'Scout',
+    model: 'Claude Code (무료)',
     cost: 'FREE',
-    useWhen: ['코드베이스 탐색', '파일/함수 위치 찾기', '프로젝트 구조 파악', '의존성 추적'],
-    avoidWhen: ['코드 수정/생성', '외부 문서 검색', '아키텍처 결정'],
-    keyTriggers: ['찾기', '어디', '위치', '구조', '탐색', '검색'],
+    description: `코드베이스 탐색 전문가.
+프로젝트 구조 파악, 파일/함수 위치 찾기, 의존성 추적을 빠르고 정확하게 수행합니다.
+무료로 사용 가능하며, 코드베이스 이해에 최적화되어 있습니다.`,
+    expertise: [
+      '프로젝트 구조 파악',
+      '파일/함수/클래스 위치 찾기',
+      '코드 흐름 추적',
+      '의존성 분석',
+      '빠른 코드 검색',
+    ],
+    useWhen: [
+      '파일이나 함수 위치를 찾을 때',
+      '프로젝트 구조를 파악할 때',
+      '코드 흐름을 추적할 때',
+      '의존성을 확인할 때',
+      '빠른 검색이 필요할 때',
+    ],
+    avoidWhen: [
+      '코드 수정이나 생성',
+      '외부 문서 검색',
+      '아키텍처 의사결정',
+    ],
+    examples: [
+      { input: '이 함수 어디 있어?', shouldUse: true, reason: '위치 찾기' },
+      { input: '프로젝트 구조 알려줘', shouldUse: true, reason: '구조 파악' },
+      { input: '이 클래스를 사용하는 곳 찾아줘', shouldUse: true, reason: '참조 추적' },
+      { input: '이 코드 수정해줘', shouldUse: false, reason: '수정은 불가' },
+      { input: 'React 사용법 알려줘', shouldUse: false, reason: '외부 문서는 Index' },
+    ],
+    aliases: ['scout', '스카웃', 'explore', '탐색', '찾기', '검색'],
   },
 };
 
-export function findBestAgent(query: string): AgentRole | null {
+/**
+ * @ 멘션으로 에이전트 파싱
+ * @returns 매칭된 에이전트 또는 null
+ */
+export function parseAgentMention(query: string): AgentRole | null {
   const lowerQuery = query.toLowerCase();
+
+  // @all, @team, @everyone 체크 (병렬 실행)
+  if (
+    lowerQuery.includes('@all') ||
+    lowerQuery.includes('@team') ||
+    lowerQuery.includes('@everyone') ||
+    lowerQuery.includes('@모두')
+  ) {
+    return null; // 특수 케이스: 모든 에이전트 병렬 실행
+  }
+
+  // 각 에이전트 별칭 체크
   for (const [role, metadata] of Object.entries(AGENT_METADATA)) {
-    for (const trigger of metadata.keyTriggers) {
-      if (lowerQuery.includes(trigger.toLowerCase())) {
+    for (const alias of metadata.aliases) {
+      if (lowerQuery.includes(`@${alias}`)) {
         return role as AgentRole;
       }
     }
   }
+
   return null;
+}
+
+/**
+ * 병렬 실행 요청인지 확인
+ */
+export function isParallelRequest(query: string): boolean {
+  const lowerQuery = query.toLowerCase();
+  const parallelTriggers = [
+    '@all',
+    '@team',
+    '@everyone',
+    '@모두',
+    '동시에',
+    '병렬로',
+    '함께',
+    'together',
+    'parallel',
+    'in parallel',
+  ];
+  return parallelTriggers.some((trigger) => lowerQuery.includes(trigger));
+}
+
+/**
+ * LLM 의도 분석을 위한 에이전트 설명 포맷팅
+ */
+export function formatAgentDescriptionsForLLM(): string {
+  const descriptions: string[] = [];
+
+  for (const [role, metadata] of Object.entries(AGENT_METADATA)) {
+    const examplesText = metadata.examples
+      .map((ex) => `  - "${ex.input}" → ${ex.shouldUse ? '사용' : '사용 안함'} (${ex.reason})`)
+      .join('\n');
+
+    descriptions.push(`
+## ${metadata.name} (${role})
+- 모델: ${metadata.model}
+- 비용: ${metadata.cost}
+- 설명: ${metadata.description}
+
+### 전문 분야
+${metadata.expertise.map((e) => `- ${e}`).join('\n')}
+
+### 사용해야 할 때
+${metadata.useWhen.map((u) => `- ${u}`).join('\n')}
+
+### 사용하지 말아야 할 때
+${metadata.avoidWhen.map((a) => `- ${a}`).join('\n')}
+
+### 예시
+${examplesText}
+`);
+  }
+
+  return descriptions.join('\n---\n');
 }

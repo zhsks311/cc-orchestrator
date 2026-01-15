@@ -69,27 +69,27 @@ export interface OrchestrationResult {
 export const ORCHESTRATION_TRIGGERS = {
   ultrawork: {
     description: '최대 병렬 모드',
-    roles: [AgentRole.ORACLE, AgentRole.FRONTEND_ENGINEER, AgentRole.LIBRARIAN],
+    roles: [AgentRole.ARCH, AgentRole.CANVAS, AgentRole.INDEX],
     parallel: true,
   },
   search: {
     description: '검색 집중 모드',
-    roles: [AgentRole.LIBRARIAN],
+    roles: [AgentRole.INDEX],
     parallel: true,
   },
   analyze: {
     description: '심층 분석 모드',
-    roles: [AgentRole.ORACLE, AgentRole.LIBRARIAN],
+    roles: [AgentRole.ARCH, AgentRole.INDEX],
     parallel: false,
   },
   design: {
     description: 'UI 중심 모드',
-    roles: [AgentRole.FRONTEND_ENGINEER],
+    roles: [AgentRole.CANVAS],
     parallel: false,
   },
   document: {
     description: '문서화 모드',
-    roles: [AgentRole.DOCUMENT_WRITER],
+    roles: [AgentRole.QUILL],
     parallel: false,
   },
 } as const;

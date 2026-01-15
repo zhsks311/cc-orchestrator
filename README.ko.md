@@ -59,30 +59,30 @@ CC Orchestrator는 Claude Code 환경에서 GPT-5.2, Gemini 3 Pro, Claude Sonnet
 
 | 역할 | 기본 모델 | Fallback | 용도 |
 |------|----------|----------|------|
-| **oracle** | GPT-5.2 | GPT-4o | 아키텍처 설계, 전략적 의사결정, 코드 리뷰 |
-| **frontend-engineer** | Gemini 3 Pro | Gemini 2.5 Flash | UI/UX 디자인, 프론트엔드 구현 |
-| **librarian** | Claude Sonnet 4.5 | Claude Sonnet 4 | 문서 검색, 코드베이스 분석, 구현 사례 조사 |
-| **document-writer** | Gemini 3 Pro | Gemini 2.5 Flash | 기술 문서 작성, README, API 문서 |
-| **multimodal-analyzer** | Gemini 2.5 Flash | Gemini 2.0 Flash | 이미지, PDF, 스크린샷 분석 |
-| **explore** | Claude Sonnet | - | 코드베이스 탐색 (무료) |
+| **arch** | GPT-5.2 | GPT-4o | 아키텍처 설계, 전략적 의사결정, 코드 리뷰 |
+| **canvas** | Gemini 3 Pro | Gemini 2.5 Flash | UI/UX 디자인, 프론트엔드 구현 |
+| **index** | Claude Sonnet 4.5 | Claude Sonnet 4 | 문서 검색, 코드베이스 분석, 구현 사례 조사 |
+| **quill** | Gemini 3 Pro | Gemini 2.5 Flash | 기술 문서 작성, README, API 문서 |
+| **lens** | Gemini 2.5 Flash | Gemini 2.0 Flash | 이미지, PDF, 스크린샷 분석 |
+| **scout** | Claude Sonnet | - | 코드베이스 탐색 (무료) |
 
 ### Cross-Provider Fallback
 
 API 키가 없거나 제공자 장애 시 **다른 제공자로 자동 전환**됩니다:
 
 ```
-oracle:             OpenAI → Anthropic → Google
-librarian:          Anthropic → Google → OpenAI
-frontend-engineer:  Google → Anthropic → OpenAI
-document-writer:    Google → Anthropic → OpenAI
-multimodal-analyzer: Google → Anthropic → OpenAI
-explore:            Anthropic (무료, Claude Sonnet)
+arch:   OpenAI → Anthropic → Google
+index:  Anthropic → Google → OpenAI
+canvas: Google → Anthropic → OpenAI
+quill:  Google → Anthropic → OpenAI
+lens:   Google → Anthropic → OpenAI
+scout:  Anthropic (무료, Claude Sonnet)
 ```
 
 **예시:** OpenAI API 키만 있는 경우
-- `oracle` → OpenAI 사용 ✓
-- `librarian` → Anthropic 없음 → OpenAI로 fallback ⚠
-- `frontend-engineer` → Google 없음 → OpenAI로 fallback ⚠
+- `arch` → OpenAI 사용 ✓
+- `index` → Anthropic 없음 → OpenAI로 fallback ⚠
+- `canvas` → Google 없음 → OpenAI로 fallback ⚠
 
 ---
 
@@ -146,9 +146,9 @@ npx cc-orch --upgrade
 자연어로 에이전트를 호출할 수 있습니다:
 
 ```
-"oracle한테 이 프로젝트 아키텍처 리뷰해달라고 해"
-"frontend-engineer한테 로그인 폼 컴포넌트 만들어줘"
-"librarian한테 React Query 사용법 찾아줘"
+"arch한테 이 프로젝트 아키텍처 리뷰해달라고 해"
+"canvas한테 로그인 폼 컴포넌트 만들어줘"
+"index한테 React Query 사용법 찾아줘"
 ```
 
 ### 자동 오케스트레이션 (키워드 트리거)
@@ -157,9 +157,9 @@ npx cc-orch --upgrade
 
 | 키워드 | 동작 | 실행 에이전트 |
 |--------|------|---------------|
-| `ultrawork` 또는 `ulw` | 최대 병렬 모드 | oracle + frontend + librarian 동시 |
-| `search` 또는 `찾아` | 검색 집중 모드 | librarian 단독 |
-| `analyze` 또는 `분석` | 심층 분석 모드 | oracle → librarian 순차 |
+| `ultrawork` 또는 `ulw` | 최대 병렬 모드 | arch + canvas + index 동시 |
+| `search` 또는 `찾아` | 검색 집중 모드 | index 단독 |
+| `analyze` 또는 `분석` | 심층 분석 모드 | arch → index 순차 |
 
 ### Orchestrate Skill
 
@@ -322,10 +322,10 @@ cc-orchestrator/
     "priority": ["anthropic", "google", "openai"]
   },
   "roles": {
-    "oracle": {
+    "arch": {
       "providers": ["anthropic", "openai"]
     },
-    "librarian": {
+    "index": {
       "providers": ["google", "anthropic"]
     }
   }
@@ -339,7 +339,7 @@ cc-orchestrator/
 export CCO_PROVIDER_PRIORITY=anthropic,google,openai
 
 # 역할별 우선순위
-export CCO_ORACLE_PROVIDERS=anthropic,openai
+export CCO_ARCH_PROVIDERS=anthropic,openai
 ```
 
 ### Context Resilience 설정
@@ -383,11 +383,11 @@ npm run uninstall
 
 | 에이전트 | 비용 | 권장 용도 |
 |----------|------|----------|
-| `explore` | 무료 | 개발 중 테스트, 코드베이스 탐색 |
-| `librarian` | 저렴 | 문서 검색, 구현 사례 조사 |
-| `oracle` | 비쌈 | 아키텍처 설계, 중요 의사결정 |
+| `scout` | 무료 | 개발 중 테스트, 코드베이스 탐색 |
+| `index` | 저렴 | 문서 검색, 구현 사례 조사 |
+| `arch` | 비쌈 | 아키텍처 설계, 중요 의사결정 |
 
-개발 중에는 `explore` 에이전트 사용을 권장합니다.
+개발 중에는 `scout` 에이전트 사용을 권장합니다.
 
 ---
 

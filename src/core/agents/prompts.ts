@@ -270,12 +270,12 @@ const EXPLORE_PROMPT = `당신은 코드베이스 탐색 및 이해 전문가입
 - 외부 리소스 검색 (코드베이스 내부만)`;
 
 const ROLE_PROMPTS: Record<AgentRole, string> = {
-  [AgentRole.ORACLE]: ORACLE_PROMPT,
-  [AgentRole.FRONTEND_ENGINEER]: FRONTEND_ENGINEER_PROMPT,
-  [AgentRole.LIBRARIAN]: LIBRARIAN_PROMPT,
-  [AgentRole.DOCUMENT_WRITER]: DOCUMENT_WRITER_PROMPT,
-  [AgentRole.MULTIMODAL_ANALYZER]: MULTIMODAL_ANALYZER_PROMPT,
-  [AgentRole.EXPLORE]: EXPLORE_PROMPT,
+  [AgentRole.ARCH]: ORACLE_PROMPT,
+  [AgentRole.CANVAS]: FRONTEND_ENGINEER_PROMPT,
+  [AgentRole.INDEX]: LIBRARIAN_PROMPT,
+  [AgentRole.QUILL]: DOCUMENT_WRITER_PROMPT,
+  [AgentRole.LENS]: MULTIMODAL_ANALYZER_PROMPT,
+  [AgentRole.SCOUT]: EXPLORE_PROMPT,
 };
 
 export function getSystemPromptForRole(role: AgentRole): string {
@@ -284,17 +284,17 @@ export function getSystemPromptForRole(role: AgentRole): string {
 
 export function getRoleDescription(role: AgentRole): string {
   switch (role) {
-    case AgentRole.ORACLE:
+    case AgentRole.ARCH:
       return '아키텍처 설계, 전략적 의사결정, 코드 리뷰';
-    case AgentRole.FRONTEND_ENGINEER:
+    case AgentRole.CANVAS:
       return 'UI/UX 디자인, 프론트엔드 구현';
-    case AgentRole.LIBRARIAN:
+    case AgentRole.INDEX:
       return '문서 검색, 코드베이스 분석, 구현 사례 조사';
-    case AgentRole.DOCUMENT_WRITER:
+    case AgentRole.QUILL:
       return '기술 문서 작성, README, API 문서';
-    case AgentRole.MULTIMODAL_ANALYZER:
+    case AgentRole.LENS:
       return '이미지, PDF 분석';
-    case AgentRole.EXPLORE:
+    case AgentRole.SCOUT:
       return '코드베이스 탐색, 파일/함수 검색, 구조 파악';
     default:
       return 'Unknown role';
@@ -310,43 +310,43 @@ export interface AgentMetadata {
 }
 
 export const AGENT_METADATA: Record<AgentRole, AgentMetadata> = {
-  [AgentRole.ORACLE]: {
-    role: AgentRole.ORACLE,
+  [AgentRole.ARCH]: {
+    role: AgentRole.ARCH,
     cost: 'EXPENSIVE',
     useWhen: ['복잡한 아키텍처 설계', '주요 작업 완료 후 검토', '수정 2회 이상 실패', '보안/성능 우려'],
     avoidWhen: ['간단한 파일 작업', '읽은 코드에서 답변 가능', '사소한 결정'],
     keyTriggers: ['아키텍처', '설계', '리뷰', '검토', '트레이드오프', '성능', '보안'],
   },
-  [AgentRole.LIBRARIAN]: {
-    role: AgentRole.LIBRARIAN,
+  [AgentRole.INDEX]: {
+    role: AgentRole.INDEX,
     cost: 'CHEAP',
     useWhen: ['라이브러리 사용법 질문', '프레임워크 모범 사례', '외부 의존성 동작', '구현 예제 찾기'],
     avoidWhen: ['내부 코드 분석', '직접 구현 가능한 경우'],
     keyTriggers: ['라이브러리', 'API', '문서', '예제', '사용법', '모범 사례'],
   },
-  [AgentRole.FRONTEND_ENGINEER]: {
-    role: AgentRole.FRONTEND_ENGINEER,
+  [AgentRole.CANVAS]: {
+    role: AgentRole.CANVAS,
     cost: 'MODERATE',
     useWhen: ['시각/UI/UX 변경', '색상, 간격, 레이아웃', '타이포그래피, 애니메이션'],
     avoidWhen: ['순수 로직', '상태 관리', '타입 정의'],
     keyTriggers: ['UI', 'UX', '디자인', '스타일', 'CSS', '애니메이션', '레이아웃', '색상'],
   },
-  [AgentRole.DOCUMENT_WRITER]: {
-    role: AgentRole.DOCUMENT_WRITER,
+  [AgentRole.QUILL]: {
+    role: AgentRole.QUILL,
     cost: 'MODERATE',
     useWhen: ['README 작성', 'API 문서 작성', '사용자 가이드', '아키텍처 문서'],
     avoidWhen: ['코드 구현', '버그 수정'],
     keyTriggers: ['문서', 'README', 'API 문서', '가이드', '설명서'],
   },
-  [AgentRole.MULTIMODAL_ANALYZER]: {
-    role: AgentRole.MULTIMODAL_ANALYZER,
+  [AgentRole.LENS]: {
+    role: AgentRole.LENS,
     cost: 'CHEAP',
     useWhen: ['PDF 분석', '이미지/스크린샷 분석', '다이어그램 해석'],
     avoidWhen: ['소스 코드 읽기', '파일 편집', '단순 텍스트 읽기'],
     keyTriggers: ['이미지', 'PDF', '스크린샷', '다이어그램', '분석'],
   },
-  [AgentRole.EXPLORE]: {
-    role: AgentRole.EXPLORE,
+  [AgentRole.SCOUT]: {
+    role: AgentRole.SCOUT,
     cost: 'FREE',
     useWhen: ['코드베이스 탐색', '파일/함수 위치 찾기', '프로젝트 구조 파악', '의존성 추적'],
     avoidWhen: ['코드 수정/생성', '외부 문서 검색', '아키텍처 결정'],

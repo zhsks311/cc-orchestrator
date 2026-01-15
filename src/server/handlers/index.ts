@@ -117,12 +117,12 @@ export class ToolHandlers {
    */
   private formatDelegationResponse(agent: AgentRole, prompt: string): ToolResult {
     const subagentMap: Record<AgentRole, string> = {
-      oracle: 'Plan',
-      librarian: 'Explore',
-      'frontend-engineer': 'general-purpose',
-      'document-writer': 'general-purpose',
-      'multimodal-analyzer': 'general-purpose',
-      explore: 'Explore',
+      [AgentRole.ARCH]: 'Plan',
+      [AgentRole.INDEX]: 'Explore',
+      [AgentRole.CANVAS]: 'general-purpose',
+      [AgentRole.QUILL]: 'general-purpose',
+      [AgentRole.LENS]: 'general-purpose',
+      [AgentRole.SCOUT]: 'Explore',
     };
 
     const suggestedSubagent = subagentMap[agent] || 'general-purpose';

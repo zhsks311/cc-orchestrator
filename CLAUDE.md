@@ -172,8 +172,8 @@ LOG_LEVEL=debug npm run dev
 
 ## 비용 참고
 
-- `explore`: 무료 (Claude 3.5 Sonnet)
-- `librarian`: 저렴 (Claude Sonnet 4.5)
-- `oracle`: 비쌈 (GPT-5.2)
+- `scout`: 무료 (Claude 3.5 Sonnet)
+- `index`: 저렴 (Claude Sonnet 4.5)
+- `arch`: 비쌈 (GPT-5.2)
 
-개발 중에는 `explore` 사용 권장.
+개발 중에는 `scout` 사용 권장.

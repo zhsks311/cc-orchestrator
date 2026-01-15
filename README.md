@@ -30,7 +30,7 @@ Traditionally, you'd ask one AI to do everything. But what if each task went to 
 │   You: "Build me a payment system"                          │
 │                                                             │
 │   ┌──────────┐   ┌──────────┐   ┌──────────┐               │
-│   │  Oracle  │   │ Frontend │   │ Librarian│               │
+│   │   Arch   │   │  Canvas  │   │  Index   │               │
 │   │ (GPT-5.2)│   │ (Gemini) │   │ (Claude) │               │
 │   └────┬─────┘   └────┬─────┘   └────┬─────┘               │
 │        │              │              │                      │
@@ -55,12 +55,12 @@ Each agent is optimized for what they do best:
 
 | Agent | Model | Superpower |
 |-------|-------|------------|
-| **Oracle** | GPT-5.2 | 🧠 The architect. Strategic decisions, code review, system design |
-| **Frontend Engineer** | Gemini 3 Pro | 🎨 The artist. Beautiful UIs, pixel-perfect components |
-| **Librarian** | Claude Sonnet 4.5 | 📚 The scholar. Documentation hunter, codebase analyst |
-| **Document Writer** | Gemini 3 Pro | ✍️ The writer. README, API docs, technical writing |
-| **Multimodal Analyzer** | Gemini 2.5 Flash | 👁️ The observer. Images, PDFs, screenshots |
-| **Explore** | Claude Sonnet | 🔍 The scout. Quick codebase exploration (FREE!) |
+| **Arch** | GPT-5.2 | 🧠 The architect. Strategic decisions, code review, system design |
+| **Canvas** | Gemini 3 Pro | 🎨 The artist. Beautiful UIs, pixel-perfect components |
+| **Index** | Claude Sonnet 4.5 | 📚 The scholar. Documentation hunter, codebase analyst |
+| **Quill** | Gemini 3 Pro | ✍️ The writer. README, API docs, technical writing |
+| **Lens** | Gemini 2.5 Flash | 👁️ The observer. Images, PDFs, screenshots |
+| **Scout** | Claude Sonnet | 🔍 The scout. Quick codebase exploration (FREE!) |
 
 ### ⚡ Parallel Execution
 
@@ -80,7 +80,7 @@ CC Orchestrator:  Task A ─┐
 API key missing? Provider down? No problem.
 
 ```
-Oracle needs GPT-5.2, but OpenAI is unavailable?
+Arch needs GPT-5.2, but OpenAI is unavailable?
   → Falls back to Anthropic
   → Still unavailable? Falls back to Google
   → Your work continues uninterrupted ✓
@@ -93,8 +93,8 @@ Just type naturally and let the magic happen:
 | Say this... | ...and get this |
 |-------------|-----------------|
 | `ultrawork` or `ulw` | 🔥 Maximum parallel mode — all agents fire at once |
-| `search` or `찾아` | 📖 Librarian deep-dives into documentation |
-| `analyze` or `분석` | 🔬 Oracle + Librarian work sequentially for deep analysis |
+| `search` or `찾아` | 📖 Index deep-dives into documentation |
+| `analyze` or `분석` | 🔬 Arch + Index work sequentially for deep analysis |
 
 ### 🧠 Context Resilience
 
@@ -192,11 +192,11 @@ cp -r skills/* ~/.claude/skills/
 Just ask naturally:
 
 ```
-"Hey Oracle, review this architecture for security issues"
+"Hey Arch, review this architecture for security issues"
 
-"Frontend Engineer, create a dark mode toggle component"
+"Canvas, create a dark mode toggle component"
 
-"Librarian, find me examples of rate limiting in Express"
+"Index, find me examples of rate limiting in Express"
 ```
 
 ### Use the Orchestrate Skill
@@ -218,7 +218,7 @@ For precise control:
 
 ```javascript
 // Spawn an agent in the background
-background_task({ agent: "oracle", prompt: "Review this code..." })
+background_task({ agent: "arch", prompt: "Review this code..." })
 
 // Check on progress
 background_output({ task_id: "abc123", block: false })
@@ -231,14 +231,14 @@ background_output({ task_id: "abc123", block: true })
 
 ## 💡 Pro Tips
 
-### 1. Start with Explore (It's Free!)
+### 1. Start with Scout (It's Free!)
 
-The `explore` agent uses your existing Claude quota — no extra API costs. Perfect for:
+The `scout` agent uses your existing Claude quota — no extra API costs. Perfect for:
 - Quick codebase navigation
 - Finding files and functions
 - Understanding project structure
 
-### 2. Use Oracle Wisely
+### 2. Use Arch Wisely
 
 GPT-5.2 is powerful but pricey. Save it for:
 - Critical architecture decisions
@@ -273,7 +273,7 @@ Customize which providers to prefer in `~/.cco/config.json`:
     "priority": ["anthropic", "google", "openai"]
   },
   "roles": {
-    "oracle": {
+    "arch": {
       "providers": ["openai", "anthropic"]
     }
   }
@@ -287,7 +287,7 @@ Customize which providers to prefer in `~/.cco/config.json`:
 export CCO_PROVIDER_PRIORITY=anthropic,google,openai
 
 # Role-specific priority
-export CCO_ORACLE_PROVIDERS=openai,anthropic
+export CCO_ARCH_PROVIDERS=openai,anthropic
 
 # Timeout (seconds)
 export CCO_TIMEOUT_SECONDS=300

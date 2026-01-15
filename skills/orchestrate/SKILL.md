@@ -22,10 +22,10 @@ tags: [orchestration, multi-model, parallel, workflow]
 [요청 유형 분류]
 ├─ Trivial        → 직접 도구만 사용 (에이전트 불필요)
 ├─ Explicit       → 지시대로 직접 실행
-├─ Exploratory    → explore/librarian 병렬 실행
+├─ Exploratory    → scout/index 병렬 실행
 ├─ Open-ended     → Phase 1로 (코드베이스 평가 필요)
-├─ Research       → librarian 우선 실행
-├─ Design/Review  → oracle 상담
+├─ Research       → index 우선 실행
+├─ Design/Review  → arch 상담
 └─ Ambiguous      → 명확화 질문 1개만
 ```
 
@@ -69,16 +69,16 @@ tags: [orchestration, multi-model, parallel, workflow]
 |--------|------|-----------|
 | Grep, Glob, Read | FREE | 범위 명확, 단순 검색 |
 | Task(Explore) | FREE | 코드베이스 내부 탐색 |
-| `librarian` | CHEAP | 외부 문서, API 레퍼런스 |
-| `frontend-engineer` | MODERATE | UI/UX, 스타일링 |
-| `oracle` | EXPENSIVE | 아키텍처, 코드 리뷰, 전략 |
+| `index` | CHEAP | 외부 문서, API 레퍼런스 |
+| `canvas` | MODERATE | UI/UX, 스타일링 |
+| `arch` | EXPENSIVE | 아키텍처, 코드 리뷰, 전략 |
 
 **병렬 실행 패턴:**
 
 ```
 # 올바른 방법: 항상 병렬로 실행
-background_task(agent="librarian", prompt="JWT 모범 사례 조사...")
-background_task(agent="oracle", prompt="인증 아키텍처 검토...")
+background_task(agent="index", prompt="JWT 모범 사례 조사...")
+background_task(agent="arch", prompt="인증 아키텍처 검토...")
 // 즉시 다음 작업 계속 - 대기하지 않음
 
 # 잘못된 방법: 순차 대기
@@ -110,7 +110,7 @@ result = wait_agent(...)  // 절대 금지 - 병렬성 손실
 1. 모든 편집 중단
 2. 마지막 정상 상태로 복원 (git checkout 등)
 3. 시도한 내용 문서화
-4. `oracle` 상담
+4. `arch` 상담
 5. 사용자에게 상황 설명
 
 ---
@@ -136,22 +136,22 @@ background_cancel(all=true)  // 모든 백그라운드 작업 취소
 
 | 에이전트 | 모델 | 용도 | 비용 | 트리거 |
 |----------|------|------|------|--------|
-| `oracle` | GPT-5.2 | 아키텍처, 전략, 코드 리뷰 | 높음 | 설계 결정, 복잡한 문제 |
-| `librarian` | Claude Sonnet | 문서 검색, 외부 API, 사례 조사 | 낮음 | 모르는 라이브러리, 외부 문서 |
-| `frontend-engineer` | Gemini Pro | UI/UX, 스타일링, 컴포넌트 | 중간 | Visual 변경, CSS, 애니메이션 |
-| `document-writer` | Gemini Pro | 기술 문서, README, API 문서 | 중간 | 문서화 요청 |
-| `multimodal-analyzer` | Gemini Flash | 이미지, PDF, 스크린샷 분석 | 낮음 | 시각 자료 분석 |
+| `arch` | GPT-5.2 | 아키텍처, 전략, 코드 리뷰 | 높음 | 설계 결정, 복잡한 문제 |
+| `index` | Claude Sonnet | 문서 검색, 외부 API, 사례 조사 | 낮음 | 모르는 라이브러리, 외부 문서 |
+| `canvas` | Gemini Pro | UI/UX, 스타일링, 컴포넌트 | 중간 | Visual 변경, CSS, 애니메이션 |
+| `quill` | Gemini Pro | 기술 문서, README, API 문서 | 중간 | 문서화 요청 |
+| `lens` | Gemini Flash | 이미지, PDF, 스크린샷 분석 | 낮음 | 시각 자료 분석 |
 
 ### 위임 테이블
 
 | 도메인 | 위임 대상 | 트리거 키워드 |
 |--------|-----------|---------------|
-| Frontend UI/UX | `frontend-engineer` | style, color, animation, layout, responsive |
-| 외부 리서치 | `librarian` | 라이브러리명, API, "어떻게 하는지", 모범 사례 |
-| 아키텍처 | `oracle` | 설계, 구조, 패턴 선택, 트레이드오프 |
-| 코드 리뷰 | `oracle` | 리뷰, 검토, 개선점 |
-| 문서화 | `document-writer` | README, 문서, 설명서, API docs |
-| 이미지/PDF | `multimodal-analyzer` | 스크린샷, 이미지, PDF, 다이어그램 |
+| Frontend UI/UX | `canvas` | style, color, animation, layout, responsive |
+| 외부 리서치 | `index` | 라이브러리명, API, "어떻게 하는지", 모범 사례 |
+| 아키텍처 | `arch` | 설계, 구조, 패턴 선택, 트레이드오프 |
+| 코드 리뷰 | `arch` | 리뷰, 검토, 개선점 |
+| 문서화 | `quill` | README, 문서, 설명서, API docs |
+| 이미지/PDF | `lens` | 스크린샷, 이미지, PDF, 다이어그램 |
 
 ### Frontend 위임 Gate (BLOCKING)
 
@@ -204,35 +204,35 @@ animation, transition, hover, responsive, CSS
 ### 패턴 A: 탐색 + 구현
 
 ```
-1. background_task(librarian, "레퍼런스 검색...")  // 병렬
+1. background_task(index, "레퍼런스 검색...")  // 병렬
 2. 동시에 기본 구현 시작
-3. librarian 결과로 구현 보강
+3. index 결과로 구현 보강
 ```
 
 ### 패턴 B: 설계 검토
 
 ```
 1. 초안 작성
-2. background_task(oracle, "아키텍처 검토...")
+2. background_task(arch, "아키텍처 검토...")
 3. 피드백 반영
 ```
 
 ### 패턴 C: 다중 관점 수집
 
 ```
-1. background_task(oracle, "아키텍처 관점...")     // 병렬
-2. background_task(librarian, "업계 사례...")     // 병렬
-3. background_task(frontend-engineer, "UX 관점...") // 병렬
+1. background_task(arch, "아키텍처 관점...")    // 병렬
+2. background_task(index, "업계 사례...")      // 병렬
+3. background_task(canvas, "UX 관점...")       // 병렬
 4. 세 결과 통합
 ```
 
 ### 패턴 D: 복잡한 구현
 
 ```
-1. oracle로 설계 방향 확정
-2. librarian으로 사례 조사 (병렬)
+1. arch로 설계 방향 확정
+2. index으로 사례 조사 (병렬)
 3. 구현 진행
-4. oracle로 코드 리뷰
+4. arch로 코드 리뷰
 ```
 
 ---
@@ -240,16 +240,16 @@ animation, transition, hover, responsive, CSS
 ## 비용 최적화
 
 ```
-├─ 간단한 조사         → librarian (저렴)
+├─ 간단한 조사         → index (저렴)
 ├─ 코드베이스 탐색     → Task(Explore) 또는 직접 도구 (무료)
-├─ 아키텍처 결정       → oracle (필요할 때만)
-├─ UI 작업            → frontend-engineer (필요할 때만)
+├─ 아키텍처 결정       → arch (필요할 때만)
+├─ UI 작업            → canvas (필요할 때만)
 └─ 단순 검색          → Grep, Glob (항상 무료 우선)
 ```
 
 **원칙:**
 1. 무료 도구로 해결 가능하면 에이전트 호출 안함
-2. 저렴한 에이전트(librarian)로 충분하면 비싼 에이전트 안씀
+2. 저렴한 에이전트(index)로 충분하면 비싼 에이전트 안씀
 3. 병렬 실행으로 시간 최적화
 
 ---
@@ -338,9 +338,9 @@ get_context(key, scope?)
 
 [Step 1: 분류]
 ├─ Trivial?      → 직접 처리
-├─ Research?     → librarian 실행
-├─ Design?       → oracle 상담
-├─ UI/Visual?    → frontend-engineer 위임
+├─ Research?     → index 실행
+├─ Design?       → arch 상담
+├─ UI/Visual?    → canvas 위임
 ├─ Complex?      → 다중 에이전트 병렬
 └─ Ambiguous?    → 질문 1개
 

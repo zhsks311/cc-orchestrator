@@ -132,7 +132,7 @@ describe('ModelRouter', () => {
       process.env.OPENAI_API_KEY = 'test-key';
       const router = new ModelRouter();
 
-      const result = router.findAvailableProviderConfig(AgentRole.ORACLE);
+      const result = router.findAvailableProviderConfig(AgentRole.ARCH);
 
       expect(result).not.toBeNull();
       expect(result!.config.provider).toBe(ModelProvider.OPENAI);
@@ -143,8 +143,8 @@ describe('ModelRouter', () => {
       process.env.ANTHROPIC_API_KEY = 'test-key';
       const router = new ModelRouter();
 
-      // ORACLE primary is OpenAI, fallback is Anthropic
-      const result = router.findAvailableProviderConfig(AgentRole.ORACLE);
+      // ARCH primary is OpenAI, fallback is Anthropic
+      const result = router.findAvailableProviderConfig(AgentRole.ARCH);
 
       expect(result).not.toBeNull();
       expect(result!.config.provider).toBe(ModelProvider.ANTHROPIC);
@@ -158,8 +158,8 @@ describe('ModelRouter', () => {
       process.env.GOOGLE_API_KEY = 'test-key';
       const router = new ModelRouter();
 
-      // ORACLE: primary=OpenAI, fallback1=Anthropic, fallback2=Google
-      const result = router.findAvailableProviderConfig(AgentRole.ORACLE);
+      // ARCH: primary=OpenAI, fallback1=Anthropic, fallback2=Google
+      const result = router.findAvailableProviderConfig(AgentRole.ARCH);
 
       expect(result).not.toBeNull();
       expect(result!.config.provider).toBe(ModelProvider.GOOGLE);
@@ -169,7 +169,7 @@ describe('ModelRouter', () => {
     it('should return null when no provider is available', () => {
       const router = new ModelRouter();
 
-      const result = router.findAvailableProviderConfig(AgentRole.ORACLE);
+      const result = router.findAvailableProviderConfig(AgentRole.ARCH);
 
       expect(result).toBeNull();
     });
@@ -181,7 +181,7 @@ describe('ModelRouter', () => {
       const router = new ModelRouter();
 
       const response = await router.executeWithFallback({
-        role: AgentRole.ORACLE,
+        role: AgentRole.ARCH,
         task: 'Test task',
       });
 
@@ -194,7 +194,7 @@ describe('ModelRouter', () => {
       const router = new ModelRouter();
 
       const response = await router.executeWithFallback({
-        role: AgentRole.ORACLE,
+        role: AgentRole.ARCH,
         task: 'Test task',
       });
 
@@ -208,41 +208,41 @@ describe('ModelRouter', () => {
       const router = new ModelRouter();
 
       await expect(router.executeWithFallback({
-        role: AgentRole.ORACLE,
+        role: AgentRole.ARCH,
         task: 'Test task',
       })).rejects.toThrow('No available provider');
     });
   });
 
   describe('Role-specific fallback chains', () => {
-    it('LIBRARIAN should fallback from Anthropic to OpenAI', () => {
+    it('INDEX should fallback from Anthropic to OpenAI', () => {
       process.env.OPENAI_API_KEY = 'test-key';
       const router = new ModelRouter();
 
-      // LIBRARIAN primary is Anthropic
-      const result = router.findAvailableProviderConfig(AgentRole.LIBRARIAN);
+      // INDEX primary is Anthropic
+      const result = router.findAvailableProviderConfig(AgentRole.INDEX);
 
       expect(result!.config.provider).toBe(ModelProvider.OPENAI);
       expect(result!.fallbackInfo!.originalProvider).toBe(ModelProvider.ANTHROPIC);
     });
 
-    it('FRONTEND_ENGINEER should fallback from Google to Anthropic', () => {
+    it('CANVAS should fallback from Google to Anthropic', () => {
       process.env.ANTHROPIC_API_KEY = 'test-key';
       const router = new ModelRouter();
 
-      // FRONTEND_ENGINEER primary is Google
-      const result = router.findAvailableProviderConfig(AgentRole.FRONTEND_ENGINEER);
+      // CANVAS primary is Google
+      const result = router.findAvailableProviderConfig(AgentRole.CANVAS);
 
       expect(result!.config.provider).toBe(ModelProvider.ANTHROPIC);
       expect(result!.fallbackInfo!.originalProvider).toBe(ModelProvider.GOOGLE);
     });
 
-    it('EXPLORE should fallback from Anthropic to Google', () => {
+    it('SCOUT should fallback from Anthropic to Google', () => {
       process.env.GOOGLE_API_KEY = 'test-key';
       const router = new ModelRouter();
 
-      // EXPLORE primary is Anthropic
-      const result = router.findAvailableProviderConfig(AgentRole.EXPLORE);
+      // SCOUT primary is Anthropic
+      const result = router.findAvailableProviderConfig(AgentRole.SCOUT);
 
       expect(result!.config.provider).toBe(ModelProvider.GOOGLE);
       expect(result!.fallbackInfo!.originalProvider).toBe(ModelProvider.ANTHROPIC);

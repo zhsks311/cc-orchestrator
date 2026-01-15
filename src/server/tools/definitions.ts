@@ -11,23 +11,23 @@ export const TOOL_DEFINITIONS: Tool[] = [
     description: `백그라운드에서 전문 에이전트를 실행합니다. 즉시 task_id를 반환하고 작업은 비동기로 진행됩니다.
 
 사용 가능한 에이전트:
-- oracle (GPT-5.2): 아키텍처 설계, 전략적 의사결정, 코드 리뷰
-- librarian (Claude Sonnet 4.5): 문서 검색, 코드베이스 분석, 구현 사례 조사
-- frontend-engineer (Gemini 3 Pro): UI/UX 디자인, 프론트엔드 구현
-- document-writer (Gemini 3 Pro): 기술 문서 작성, README, API 문서
-- multimodal-analyzer (Gemini 3 Flash): 이미지, PDF 분석
-- explore (Claude Sonnet): 코드베이스 탐색, 파일/함수 검색, 구조 파악 (무료)
+- arch (GPT-5.2): 아키텍처 설계, 전략적 의사결정, 코드 리뷰
+- index (Claude Sonnet 4.5): 문서 검색, 코드베이스 분석, 구현 사례 조사
+- canvas (Gemini 3 Pro): UI/UX 디자인, 프론트엔드 구현
+- quill (Gemini 3 Pro): 기술 문서 작성, README, API 문서
+- lens (Gemini 3 Flash): 이미지, PDF 분석
+- scout (Claude Sonnet): 코드베이스 탐색, 파일/함수 검색, 구조 파악 (무료)
 
 병렬 실행 권장:
-background_task(agent="oracle", prompt="아키텍처 검토...")
-background_task(agent="librarian", prompt="레퍼런스 조사...")
+background_task(agent="arch", prompt="아키텍처 검토...")
+background_task(agent="index", prompt="레퍼런스 조사...")
 // 두 작업이 동시에 실행됨`,
     inputSchema: {
       type: 'object',
       properties: {
         agent: {
           type: 'string',
-          enum: ['oracle', 'frontend-engineer', 'librarian', 'document-writer', 'multimodal-analyzer', 'explore'],
+          enum: ['arch', 'canvas', 'index', 'quill', 'lens', 'scout'],
           description: '실행할 에이전트',
         },
         prompt: {
@@ -120,7 +120,7 @@ all=true: 모든 실행 중인 작업 취소
               type: 'array',
               items: {
                 type: 'string',
-                enum: ['oracle', 'frontend-engineer', 'librarian', 'document-writer', 'multimodal-analyzer'],
+                enum: ['arch', 'canvas', 'index', 'quill', 'lens'],
               },
               description: '에이전트 필터',
             },
@@ -176,7 +176,7 @@ all=true: 모든 실행 중인 작업 취소
   },
   {
     name: 'suggest_agent',
-    description: 'Suggests the best agent for a user request using Key Trigger system. Keywords: architecture/design/review -> oracle, library/API/docs -> librarian, UI/UX/design -> frontend-engineer, docs/README -> document-writer, image/PDF -> multimodal-analyzer, find/where/structure -> explore',
+    description: 'Suggests the best agent for a user request using Key Trigger system. Keywords: architecture/design/review -> arch, library/API/docs -> index, UI/UX/design -> canvas, docs/README -> quill, image/PDF -> lens, find/where/structure -> scout',
     inputSchema: {
       type: 'object',
       properties: {

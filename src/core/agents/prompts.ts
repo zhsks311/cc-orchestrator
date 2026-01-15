@@ -5,7 +5,7 @@
 
 import { AgentRole } from '../../types/index.js';
 
-const ORACLE_PROMPT = `당신은 복잡한 아키텍처 설계와 기술 결정을 위한 전략적 기술 자문가입니다.
+const ARCH_PROMPT = `당신은 복잡한 아키텍처 설계와 기술 결정을 위한 전략적 기술 자문가입니다.
 
 ## 역할
 - 코드베이스 분석 및 아키텍처 설계
@@ -55,7 +55,7 @@ const ORACLE_PROMPT = `당신은 복잡한 아키텍처 설계와 기술 결정�
 - 사소한 결정 (변수명, 포맷팅) 금지
 - 추측 금지 - 코드를 읽고 답변`;
 
-const LIBRARIAN_PROMPT = `당신은 오픈소스 코드베이스 이해 및 분석 전문가입니다.
+const INDEX_PROMPT = `당신은 오픈소스 코드베이스 이해 및 분석 전문가입니다.
 
 ## 역할
 - 라이브러리 사용법, 구현 원리, 예제 검색
@@ -94,7 +94,7 @@ const LIBRARIAN_PROMPT = `당신은 오픈소스 코드베이스 이해 및 분�
 - 증거 없는 주장 금지
 - 오래된 정보 (2024 이전) 무비판적 사용 금지`;
 
-const FRONTEND_ENGINEER_PROMPT = `당신은 디자인을 이해하는 프론트엔드 개발자입니다.
+const CANVAS_PROMPT = `당신은 디자인을 이해하는 프론트엔드 개발자입니다.
 
 ## 역할
 - 순수 개발자가 놓치는 시각적 요소 포착
@@ -141,7 +141,7 @@ const FRONTEND_ENGINEER_PROMPT = `당신은 디자인을 이해하는 프론트�
 - 클리셰 색상 / 예측 가능한 레이아웃
 - 쿠키커터 디자인 / 접근성 무시`;
 
-const DOCUMENT_WRITER_PROMPT = `당신은 복잡한 코드베이스를 명확한 문서로 변환하는 기술 작가입니다.
+const QUILL_PROMPT = `당신은 복잡한 코드베이스를 명확한 문서로 변환하는 기술 작가입니다.
 
 ## 역할
 - README, API 문서, 아키텍처 문서, 사용자 가이드 작성
@@ -176,7 +176,7 @@ const DOCUMENT_WRITER_PROMPT = `당신은 복잡한 코드베이스를 명확한
 - 검증 없는 코드 예제
 - 한 번에 여러 작업`;
 
-const MULTIMODAL_ANALYZER_PROMPT = `당신은 미디어 파일 분석 전문가입니다.
+const LENS_PROMPT = `당신은 미디어 파일 분석 전문가입니다.
 
 ## 역할
 - PDF, 이미지, 다이어그램에서 정보 추출
@@ -205,7 +205,7 @@ const MULTIMODAL_ANALYZER_PROMPT = `당신은 미디어 파일 분석 전문가�
 - 편집이 필요한 파일
 - 서두 ("분석해드리겠습니다")`;
 
-const EXPLORE_PROMPT = `당신은 코드베이스 탐색 및 이해 전문가입니다.
+const SCOUT_PROMPT = `당신은 코드베이스 탐색 및 이해 전문가입니다.
 
 ## 역할
 - 프로젝트 구조 파악 및 설명
@@ -270,12 +270,12 @@ const EXPLORE_PROMPT = `당신은 코드베이스 탐색 및 이해 전문가입
 - 외부 리소스 검색 (코드베이스 내부만)`;
 
 const ROLE_PROMPTS: Record<AgentRole, string> = {
-  [AgentRole.ARCH]: ORACLE_PROMPT,
-  [AgentRole.CANVAS]: FRONTEND_ENGINEER_PROMPT,
-  [AgentRole.INDEX]: LIBRARIAN_PROMPT,
-  [AgentRole.QUILL]: DOCUMENT_WRITER_PROMPT,
-  [AgentRole.LENS]: MULTIMODAL_ANALYZER_PROMPT,
-  [AgentRole.SCOUT]: EXPLORE_PROMPT,
+  [AgentRole.ARCH]: ARCH_PROMPT,
+  [AgentRole.CANVAS]: CANVAS_PROMPT,
+  [AgentRole.INDEX]: INDEX_PROMPT,
+  [AgentRole.QUILL]: QUILL_PROMPT,
+  [AgentRole.LENS]: LENS_PROMPT,
+  [AgentRole.SCOUT]: SCOUT_PROMPT,
 };
 
 export function getSystemPromptForRole(role: AgentRole): string {

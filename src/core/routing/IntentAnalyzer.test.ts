@@ -99,6 +99,17 @@ describe('IntentAnalyzer', () => {
       const result = await analyzer.analyze('update the README file');
       expect(result.isFeedbackRequest).toBeFalsy();
     });
+
+    it('should NOT detect "다시 생각해" as retry (no request marker)', async () => {
+      // "다시" 포함하지만 실제 재시도 요청이 아님
+      const result = await analyzer.analyze('이 코드를 다시 생각해보면');
+      expect(result.isFeedbackRequest).toBeFalsy();
+    });
+
+    it('should NOT detect "modify" in technical context', async () => {
+      const result = await analyzer.analyze('modify the database schema');
+      expect(result.isFeedbackRequest).toBeFalsy();
+    });
   });
 
   describe('Heuristic analysis', () => {

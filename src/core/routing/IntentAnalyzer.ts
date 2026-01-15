@@ -1,7 +1,7 @@
 /**
  * Intent-based Agent Router
  *
- * LLM을 사용하여 사용자 요청의 의도를 분석하고 적절한 에이전트를 선택합니다.
+ * 휴리스틱 분석을 통해 사용자 요청의 의도를 분석하고 적절한 에이전트를 선택합니다.
  * Confidence 수준에 따라 자동 실행, 확인 요청, 또는 선택지 제공을 결정합니다.
  */
 
@@ -11,9 +11,46 @@ import {
   AGENT_METADATA,
   parseAgentMention,
   isParallelRequest,
-  formatAgentDescriptionsForLLM,
   getRoleDescription,
 } from '../agents/prompts.js';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 휴리스틱 점수 가중치 상수
+// ─────────────────────────────────────────────────────────────────────────────
+const SCORING_WEIGHTS = {
+  /** 에이전트 이름/별칭 언급 시 가중치 */
+  NAME_MENTION: 0.4,
+  /** 전문 분야 키워드 매칭 시 가중치 */
+  EXPERTISE_KEYWORD: 0.15,
+  /** 사용 사례(useWhen) 매칭 시 가중치 */
+  USE_CASE: 0.1,
+  /** 예시 패턴 매칭 시 가중치 */
+  EXAMPLE_MATCH: 0.2,
+  /** 회피 사례 매칭 시 감점 */
+  AVOID_CASE_PENALTY: -0.2,
+} as const;
+
+const CONFIDENCE_THRESHOLDS = {
+  /** high confidence 최소 점수 */
+  HIGH: 0.6,
+  /** medium confidence 최소 점수 */
+  MEDIUM: 0.3,
+  /** 1, 2위 점수 차이가 이 값 미만이면 medium으로 하향 */
+  SCORE_GAP_FOR_DOWNGRADE: 0.2,
+  /** 대안으로 제시할 최소 점수 */
+  MIN_ALTERNATIVE_SCORE: 0.1,
+  /** 키워드 최소 길이 (너무 짧은 키워드 제외) */
+  MIN_KEYWORD_LENGTH: 2,
+  /** 예시 패턴 매칭에 필요한 최소 단어 수 */
+  MIN_EXAMPLE_WORD_MATCHES: 2,
+} as const;
+
+/** 병렬 실행 시 기본 포함 에이전트 */
+const DEFAULT_PARALLEL_AGENTS: readonly AgentRole[] = [
+  AgentRole.ARCH,
+  AgentRole.CANVAS,
+  AgentRole.INDEX,
+] as const;
 
 export type ConfidenceLevel = 'high' | 'medium' | 'low';
 
@@ -98,11 +135,11 @@ export class IntentAnalyzer implements IIntentAnalyzer {
       return this.createParallelResult(query);
     }
 
-    // 3. LLM 기반 의도 분석
-    const llmDecision = await this.analyzeWithLLM(query);
+    // 3. 휴리스틱 기반 의도 분석
+    const heuristicDecision = await this.analyzeWithHeuristics(query);
 
     // 4. Confidence에 따른 결과 생성
-    return this.createResultFromDecision(llmDecision);
+    return this.createResultFromDecision(heuristicDecision);
   }
 
   /**
@@ -189,45 +226,11 @@ export class IntentAnalyzer implements IIntentAnalyzer {
   }
 
   /**
-   * LLM을 사용하여 의도 분석
-   * 실제로는 Claude Code의 판단을 활용 (MCP tool result로 반환)
+   * 휴리스틱 기반 의도 분석
+   *
+   * 향후 LLM 기반 분석으로 확장 가능하도록 async로 유지
    */
-  private async analyzeWithLLM(query: string): Promise<RoutingDecision> {
-    // LLM 분석을 위한 프롬프트 구성
-    const agentDescriptions = formatAgentDescriptionsForLLM();
-
-    const analysisPrompt = `
-사용자 요청을 분석하여 가장 적합한 에이전트를 선택하세요.
-
-## 사용자 요청
-"${query}"
-
-## 사용 가능한 에이전트
-${agentDescriptions}
-
-## 분석 기준
-1. 요청의 핵심 의도가 무엇인가?
-2. 어떤 에이전트의 전문성이 가장 잘 맞는가?
-3. 예시들과 비교했을 때 어떤 패턴과 유사한가?
-
-## 응답 형식 (JSON)
-{
-  "agent": "에이전트 role (oracle, librarian, frontend-engineer 등) 또는 null",
-  "confidence": "high | medium | low",
-  "reason": "선택 이유 (한 문장)",
-  "alternatives": [
-    { "agent": "대안 에이전트", "reason": "대안 이유" }
-  ]
-}
-
-confidence 기준:
-- high: 요청이 특정 에이전트의 전문 분야와 명확히 일치
-- medium: 여러 에이전트가 처리 가능하거나, 약간 애매함
-- low: 적합한 에이전트를 판단하기 어려움
-`;
-
-    // 여기서는 휴리스틱 기반 분석을 수행
-    // 실제 배포 시에는 LLM 호출로 대체 가능
+  private async analyzeWithHeuristics(query: string): Promise<RoutingDecision> {
     return this.heuristicAnalysis(query);
   }
 
@@ -250,9 +253,9 @@ confidence 기준:
         ...metadata.aliases.map((a) => a.toLowerCase()),
       ];
       for (const pattern of namePatterns) {
-        // @ 없이도 이름 언급 감지 (예: "oracle한테 물어봐")
+        // @ 없이도 이름 언급 감지 (예: "아키텍트한테 물어봐")
         if (lowerQuery.includes(pattern) && !lowerQuery.includes(`@${pattern}`)) {
-          score += 0.4;
+          score += SCORING_WEIGHTS.NAME_MENTION;
           reasons.push(`에이전트 이름 언급: ${pattern}`);
           break;
         }
@@ -262,8 +265,8 @@ confidence 기준:
       for (const expertise of metadata.expertise) {
         const keywords = expertise.toLowerCase().split(/[\/\s,]+/);
         for (const keyword of keywords) {
-          if (keyword.length > 2 && lowerQuery.includes(keyword)) {
-            score += 0.15;
+          if (keyword.length > CONFIDENCE_THRESHOLDS.MIN_KEYWORD_LENGTH && lowerQuery.includes(keyword)) {
+            score += SCORING_WEIGHTS.EXPERTISE_KEYWORD;
             reasons.push(`전문 분야 키워드: ${keyword}`);
           }
         }
@@ -273,8 +276,8 @@ confidence 기준:
       for (const useCase of metadata.useWhen) {
         const keywords = useCase.toLowerCase().split(/[\/\s,]+/);
         for (const keyword of keywords) {
-          if (keyword.length > 2 && lowerQuery.includes(keyword)) {
-            score += 0.1;
+          if (keyword.length > CONFIDENCE_THRESHOLDS.MIN_KEYWORD_LENGTH && lowerQuery.includes(keyword)) {
+            score += SCORING_WEIGHTS.USE_CASE;
             reasons.push(`사용 사례 매칭: ${keyword}`);
           }
         }
@@ -286,12 +289,12 @@ confidence 기준:
           const exampleWords = example.input.toLowerCase().split(/\s+/);
           let matchCount = 0;
           for (const word of exampleWords) {
-            if (word.length > 2 && lowerQuery.includes(word)) {
+            if (word.length > CONFIDENCE_THRESHOLDS.MIN_KEYWORD_LENGTH && lowerQuery.includes(word)) {
               matchCount++;
             }
           }
-          if (matchCount >= 2) {
-            score += 0.2;
+          if (matchCount >= CONFIDENCE_THRESHOLDS.MIN_EXAMPLE_WORD_MATCHES) {
+            score += SCORING_WEIGHTS.EXAMPLE_MATCH;
             reasons.push(`예시 패턴 매칭: ${example.input}`);
           }
         }
@@ -301,8 +304,8 @@ confidence 기준:
       for (const avoidCase of metadata.avoidWhen) {
         const keywords = avoidCase.toLowerCase().split(/[\/\s,]+/);
         for (const keyword of keywords) {
-          if (keyword.length > 2 && lowerQuery.includes(keyword)) {
-            score -= 0.2;
+          if (keyword.length > CONFIDENCE_THRESHOLDS.MIN_KEYWORD_LENGTH && lowerQuery.includes(keyword)) {
+            score += SCORING_WEIGHTS.AVOID_CASE_PENALTY;
             reasons.push(`회피 사례 매칭 (감점): ${keyword}`);
           }
         }
@@ -330,9 +333,9 @@ confidence 기준:
 
     // Confidence 결정
     let confidence: ConfidenceLevel;
-    if (topAgentData.score >= 0.6) {
+    if (topAgentData.score >= CONFIDENCE_THRESHOLDS.HIGH) {
       confidence = 'high';
-    } else if (topAgentData.score >= 0.3) {
+    } else if (topAgentData.score >= CONFIDENCE_THRESHOLDS.MEDIUM) {
       confidence = 'medium';
     } else {
       confidence = 'low';
@@ -342,7 +345,7 @@ confidence 기준:
     if (
       confidence === 'high' &&
       secondEntry &&
-      topAgentData.score - secondEntry[1].score < 0.2
+      topAgentData.score - secondEntry[1].score < CONFIDENCE_THRESHOLDS.SCORE_GAP_FOR_DOWNGRADE
     ) {
       confidence = 'medium';
     }
@@ -367,7 +370,7 @@ confidence 기준:
     };
 
     // 대안 추가 (medium/low인 경우)
-    if (confidence !== 'high' && secondEntry && secondEntry[1].score > 0.1) {
+    if (confidence !== 'high' && secondEntry && secondEntry[1].score > CONFIDENCE_THRESHOLDS.MIN_ALTERNATIVE_SCORE) {
       const secondReasons = secondEntry[1].reasons;
       const secondReason =
         secondReasons.length > 0 && secondReasons[0]
@@ -406,22 +409,15 @@ confidence 기준:
   /**
    * 병렬 실행 결과 생성
    */
-  private createParallelResult(query: string): IntentAnalysisResult {
-    // 병렬 실행 시 어떤 에이전트들을 포함할지 결정
-    // 기본적으로 주요 에이전트 3개 (Arch, Canvas, Index)
-    const parallelAgents = [
-      AgentRole.ARCH,
-      AgentRole.CANVAS,
-      AgentRole.INDEX,
-    ];
-
+  private createParallelResult(_query: string): IntentAnalysisResult {
+    // 병렬 실행 시 기본 에이전트 사용 (상단 상수로 정의)
     return {
       decision: {
         agent: null, // 병렬 실행이므로 단일 에이전트 아님
         confidence: 'high',
         reason: '병렬 실행 요청',
         isParallel: true,
-        alternatives: parallelAgents.map((agent) => ({
+        alternatives: DEFAULT_PARALLEL_AGENTS.map((agent) => ({
           agent,
           reason: getRoleDescription(agent),
         })),

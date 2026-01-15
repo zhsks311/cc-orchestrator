@@ -22,7 +22,13 @@ import {
   GetContextInputSchema,
   SuggestAgentInputSchema,
 } from '../tools/schemas.js';
-import { getRoleDescription, findBestAgent, AGENT_METADATA } from '../../core/agents/prompts.js';
+import {
+  getRoleDescription,
+  AGENT_METADATA,
+  parseAgentMention,
+  isParallelRequest,
+} from '../../core/agents/prompts.js';
+import { IntentAnalyzer } from '../../core/routing/IntentAnalyzer.js';
 
 export interface ToolHandlerDependencies {
   agentManager: IAgentManager;
@@ -43,6 +49,7 @@ export class ToolHandlers {
   private modelRouter: IModelRouter;
   private sessionId: string;
   private logger: Logger;
+  private intentAnalyzer: IntentAnalyzer;
 
   constructor(deps: ToolHandlerDependencies) {
     this.agentManager = deps.agentManager;
@@ -50,6 +57,7 @@ export class ToolHandlers {
     this.modelRouter = deps.modelRouter;
     this.sessionId = deps.sessionId;
     this.logger = new Logger('ToolHandlers');
+    this.intentAnalyzer = new IntentAnalyzer();
   }
 
   async handle(name: string, args: unknown): Promise<ToolResult> {
@@ -325,35 +333,105 @@ export class ToolHandlers {
   }
 
 
-  private handleSuggestAgent(args: unknown): ToolResult {
+  /**
+   * 의도 기반 에이전트 추천
+   * LLM이 사용자 요청을 분석하여 최적 에이전트를 선택합니다.
+   */
+  private async handleSuggestAgent(args: unknown): Promise<ToolResult> {
     const input = SuggestAgentInputSchema.parse(args);
 
-    const suggestedAgent = findBestAgent(input.query);
+    // IntentAnalyzer로 의도 분석
+    const analysisResult = await this.intentAnalyzer.analyze(input.query);
+    const { decision, confirmationMessage, options } = analysisResult;
 
-    if (suggestedAgent) {
-      const metadata = AGENT_METADATA[suggestedAgent];
+    // 1. 명시적 멘션 또는 high confidence → 바로 추천
+    if (decision.confidence === 'high' && decision.agent) {
+      const metadata = AGENT_METADATA[decision.agent];
+
+      // API 키 없으면 Claude Code 위임 안내
+      if (!this.modelRouter.hasAvailableProvider(decision.agent)) {
+        return this.formatResult({
+          suggested_agent: decision.agent,
+          description: getRoleDescription(decision.agent),
+          confidence: decision.confidence,
+          reason: decision.reason,
+          delegation_available: true,
+          message: `${metadata.name}이(가) 적합합니다. API 키가 없어 Claude Code가 직접 처리할 수 있습니다.`,
+          recommendation: `Claude Code를 이용하시겠어요? 또는 background_task(agent="${decision.agent}", prompt="...") 사용`,
+        });
+      }
+
       return this.formatResult({
-        suggested_agent: suggestedAgent,
-        description: getRoleDescription(suggestedAgent),
+        suggested_agent: decision.agent,
+        description: getRoleDescription(decision.agent),
         cost: metadata.cost,
-        use_when: metadata.useWhen,
-        avoid_when: metadata.avoidWhen,
-        matched_triggers: metadata.keyTriggers.filter(t =>
-          input.query.toLowerCase().includes(t.toLowerCase())
-        ),
-        recommendation: `Use background_task(agent="${suggestedAgent}", prompt="...") to execute this task.`,
+        confidence: decision.confidence,
+        reason: decision.reason,
+        is_explicit_mention: decision.isExplicitMention || false,
+        recommendation: `Use background_task(agent="${decision.agent}", prompt="...") to execute this task.`,
       });
     }
 
-    // No specific agent matched - return all options
+    // 2. 병렬 실행 요청
+    if (decision.isParallel) {
+      const parallelAgents = decision.alternatives?.map((alt) => ({
+        agent: alt.agent,
+        description: getRoleDescription(alt.agent),
+        cost: AGENT_METADATA[alt.agent].cost,
+      }));
+
+      return this.formatResult({
+        suggested_agent: null,
+        is_parallel_request: true,
+        confidence: decision.confidence,
+        reason: decision.reason,
+        parallel_agents: parallelAgents,
+        recommendation: '여러 에이전트를 병렬로 실행합니다. 각각 background_task를 호출하세요.',
+      });
+    }
+
+    // 3. medium confidence → 확인 요청
+    if (decision.confidence === 'medium' && decision.agent) {
+      const metadata = AGENT_METADATA[decision.agent];
+      return this.formatResult({
+        suggested_agent: decision.agent,
+        description: getRoleDescription(decision.agent),
+        cost: metadata.cost,
+        confidence: decision.confidence,
+        reason: decision.reason,
+        needs_confirmation: true,
+        confirmation_message: confirmationMessage,
+        alternatives: decision.alternatives?.map((alt) => ({
+          agent: alt.agent,
+          description: getRoleDescription(alt.agent),
+          reason: alt.reason,
+          cost: AGENT_METADATA[alt.agent].cost,
+        })),
+        options: [
+          { label: '예', action: `background_task(agent="${decision.agent}", ...)` },
+          ...(decision.alternatives?.map((alt) => ({
+            label: AGENT_METADATA[alt.agent].name,
+            action: `background_task(agent="${alt.agent}", ...)`,
+          })) || []),
+          { label: 'Claude Code가 직접 처리', action: 'Task tool 사용' },
+        ],
+      });
+    }
+
+    // 4. low confidence → 선택지 제공
     return this.formatResult({
       suggested_agent: null,
-      message: 'No specific agent matched. Here are all available agents:',
-      available_agents: Object.entries(AGENT_METADATA).map(([role, meta]) => ({
+      confidence: 'low',
+      reason: decision.reason,
+      message: confirmationMessage || '어떤 에이전트가 도와드릴까요?',
+      available_agents: options?.map((opt) => ({
+        agent: opt.agent,
+        description: opt.description,
+        cost: opt.cost,
+      })) || Object.entries(AGENT_METADATA).map(([role, meta]) => ({
         agent: role,
-        description: getRoleDescription(role as any),
+        description: getRoleDescription(role as AgentRole),
         cost: meta.cost,
-        use_when: meta.useWhen,
       })),
     });
   }

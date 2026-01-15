@@ -20,8 +20,6 @@ import {
   OrchestrationStatus,
   OrchestrationParams,
   OrchestrationResult,
-  ORCHESTRATION_TRIGGERS,
-  OrchestrationTrigger,
 } from '../../types/orchestration.js';
 import { getRoleDescription } from '../agents/prompts.js';
 
@@ -58,11 +56,9 @@ export class OrchestrationEngine implements IOrchestrationEngine {
   async createOrchestration(params: OrchestrationParams): Promise<Orchestration> {
     const orchestrationId = `orch-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-    // 트리거 감지 및 실행 계획 생성
-    const trigger = this.detectTrigger(params.goal);
+    // 실행 계획 생성 (preferredRoles 또는 기본값 사용)
     const executionPlan = this.createExecutionPlan(
       params.goal,
-      trigger,
       params.preferredRoles,
       params.constraints?.qualityLevel ?? 'balanced'
     );
@@ -83,7 +79,7 @@ export class OrchestrationEngine implements IOrchestrationEngine {
     this.logger.info('Orchestration created', {
       orchestrationId,
       goal: params.goal,
-      trigger,
+      roles: params.preferredRoles,
       stageCount: executionPlan.stages.length,
     });
 
@@ -267,64 +263,15 @@ export class OrchestrationEngine implements IOrchestrationEngine {
     );
   }
 
-  private detectTrigger(goal: string): OrchestrationTrigger | null {
-    const lowerGoal = goal.toLowerCase();
-
-    if (lowerGoal.includes('ultrawork') || lowerGoal.includes('ulw')) {
-      return 'ultrawork';
-    }
-    if (lowerGoal.includes('search') || lowerGoal.includes('찾아')) {
-      return 'search';
-    }
-    if (lowerGoal.includes('analyze') || lowerGoal.includes('분석')) {
-      return 'analyze';
-    }
-    if (lowerGoal.includes('design') || lowerGoal.includes('디자인')) {
-      return 'design';
-    }
-    if (lowerGoal.includes('document') || lowerGoal.includes('문서')) {
-      return 'document';
-    }
-
-    return null;
-  }
-
   private createExecutionPlan(
     goal: string,
-    trigger: OrchestrationTrigger | null,
     preferredRoles?: AgentRole[],
     qualityLevel: 'fast' | 'balanced' | 'thorough' = 'balanced'
   ): ExecutionPlan {
     let stages: Stage[];
 
-    if (trigger) {
-      const triggerConfig = ORCHESTRATION_TRIGGERS[trigger];
-
-      if (triggerConfig.parallel) {
-        // 병렬 실행: 모든 역할이 동시에 실행
-        stages = triggerConfig.roles.map((role, index) => ({
-          id: `stage-${index + 1}`,
-          name: `${getRoleDescription(role)} 실행`,
-          role,
-          task: goal,
-          dependsOn: [],
-          inputs: {},
-          priority: Priority.HIGH,
-        }));
-      } else {
-        // 순차 실행: 이전 스테이지가 완료되어야 다음 실행
-        stages = triggerConfig.roles.map((role, index) => ({
-          id: `stage-${index + 1}`,
-          name: `${getRoleDescription(role)} 실행`,
-          role,
-          task: goal,
-          dependsOn: index > 0 ? [`stage-${index}`] : [],
-          inputs: {},
-          priority: Priority.HIGH,
-        }));
-      }
-    } else if (preferredRoles && preferredRoles.length > 0) {
-      // 사용자 지정 역할 사용
+    if (preferredRoles && preferredRoles.length > 0) {
+      // 사용자 지정 역할 사용 (병렬 실행)
       stages = preferredRoles.map((role, index) => ({
         id: `stage-${index + 1}`,
         name: `${getRoleDescription(role)} 실행`,

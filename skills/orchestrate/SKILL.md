@@ -1,6 +1,6 @@
 ---
 name: orchestrate
-description: Multi-Model Orchestration - 멀티모델 오케스트레이션 가이드
+description: Multi-Model Orchestration - Guide for orchestrating multi-model agents
 version: 2.0.0
 author: CC Orchestrator
 tags: [orchestration, multi-model, parallel, workflow]
@@ -8,356 +8,356 @@ tags: [orchestration, multi-model, parallel, workflow]
 
 # Multi-Model Orchestration Guide
 
-이 가이드에 따라 멀티모델 에이전트를 오케스트레이션하세요.
+Follow this guide to orchestrate multi-model agents effectively.
 
 ---
 
 ## Phase 0: Intent Gate (BLOCKING)
 
-### Step 0: 요청 분류
+### Step 0: Request Classification
 
 ```
-사용자 요청 수신
+User request received
     ↓
-[요청 유형 분류]
-├─ Trivial        → 직접 도구만 사용 (에이전트 불필요)
-├─ Explicit       → 지시대로 직접 실행
-├─ Exploratory    → scout/index 병렬 실행
-├─ Open-ended     → Phase 1로 (코드베이스 평가 필요)
-├─ Research       → index 우선 실행
-├─ Design/Review  → arch 상담
-└─ Ambiguous      → 명확화 질문 1개만
+[Classify request type]
+├─ Trivial        → Use tools directly (no agent needed)
+├─ Explicit       → Execute as instructed
+├─ Exploratory    → Run scout/index in parallel
+├─ Open-ended     → Go to Phase 1 (codebase evaluation needed)
+├─ Research       → Run index first
+├─ Design/Review  → Consult arch
+└─ Ambiguous      → Ask only 1 clarifying question
 ```
 
-### Step 1: 모호성 검증
+### Step 1: Ambiguity Check
 
 ```
-├─ 단일 해석 가능        → 진행
-├─ 여러 해석 + 비슷한 난이도 → 합리적 가정 후 진행
-├─ 2배+ 난이도 차이      → 반드시 질문
-└─ 핵심 정보 부족        → 반드시 질문
+├─ Single interpretation      → Proceed
+├─ Multiple + similar effort  → Make reasonable assumption, proceed
+├─ 2x+ effort difference      → Must ask
+└─ Missing key information    → Must ask
 ```
 
-### Step 2: 검증 체크리스트
+### Step 2: Verification Checklist
 
-- [ ] 암묵적 가정 확인했는가?
-- [ ] 검색 범위가 명확한가?
-- [ ] 적절한 에이전트를 선택했는가?
+- [ ] Checked implicit assumptions?
+- [ ] Is the search scope clear?
+- [ ] Selected the appropriate agent?
 
 ---
 
-## Phase 1: 코드베이스 평가 (Open-ended 작업만)
+## Phase 1: Codebase Evaluation (Open-ended tasks only)
 
-### 상태 분류 매트릭스
+### State Classification Matrix
 
-| 상태 | 시그널 | 행동 |
-|------|--------|------|
-| **Disciplined** | 일관된 패턴, 설정 존재 | 기존 스타일 엄격히 따름 |
-| **Transition** | 혼합 패턴 | "어느 패턴 따를까요?" 질문 |
-| **Legacy** | 일관성 없음 | "제안: [X] 적용할까요?" |
-| **Greenfield** | 새 프로젝트 | 현대적 모범 사례 적용 |
-
----
-
-## Phase 2: 실행
-
-### 2A: 탐색 & 리서치
-
-**도구 선택 우선순위:**
-
-| 리소스 | 비용 | 사용 시점 |
-|--------|------|-----------|
-| Grep, Glob, Read | FREE | 범위 명확, 단순 검색 |
-| Task(Explore) | FREE | 코드베이스 내부 탐색 |
-| `index` | CHEAP | 외부 문서, API 레퍼런스 |
-| `canvas` | MODERATE | UI/UX, 스타일링 |
-| `arch` | EXPENSIVE | 아키텍처, 코드 리뷰, 전략 |
-
-**병렬 실행 패턴:**
-
-```
-# 올바른 방법: 항상 병렬로 실행
-background_task(agent="index", prompt="JWT 모범 사례 조사...")
-background_task(agent="arch", prompt="인증 아키텍처 검토...")
-// 즉시 다음 작업 계속 - 대기하지 않음
-
-# 잘못된 방법: 순차 대기
-result = wait_agent(...)  // 절대 금지 - 병렬성 손실
-```
-
-**탐색 중단 조건:**
-- 충분한 컨텍스트 확보됨
-- 같은 정보가 반복적으로 나타남
-- 2번 탐색해도 신규 정보 없음
-- 직접적인 답변 발견됨
-
-### 2B: 구현
-
-**Todo 생성 규칙:**
-- 2단계 이상 작업 → 반드시 생성
-- 모호한 범위 → 반드시 생성 (생각 명확화)
-- 사용자가 여러 항목 요청 → 반드시 생성
-
-**워크플로우:**
-1. 즉시 생성 (공지 없이)
-2. 현재 작업 `in_progress`로 마킹
-3. 완료 즉시 `completed`로 마킹
-4. 배칭 금지 (한 번에 하나씩)
-
-### 2C: 실패 복구
-
-**3연속 실패 시:**
-1. 모든 편집 중단
-2. 마지막 정상 상태로 복원 (git checkout 등)
-3. 시도한 내용 문서화
-4. `arch` 상담
-5. 사용자에게 상황 설명
+| State | Signal | Action |
+|-------|--------|--------|
+| **Disciplined** | Consistent patterns, config exists | Strictly follow existing style |
+| **Transition** | Mixed patterns | Ask "Which pattern to follow?" |
+| **Legacy** | Inconsistent | "Suggest: Apply [X]?" |
+| **Greenfield** | New project | Apply modern best practices |
 
 ---
 
-## Phase 3: 완료 검증
+## Phase 2: Execution
 
-**체크리스트:**
-- [ ] 모든 todo 완료
-- [ ] 타입 에러 없음 (npx tsc --noEmit)
-- [ ] 빌드 통과 (있으면)
-- [ ] 사용자 요청 완전히 충족
+### 2A: Exploration & Research
 
-**정리:**
+**Tool Selection Priority:**
+
+| Resource | Cost | When to Use |
+|----------|------|-------------|
+| Grep, Glob, Read | FREE | Clear scope, simple search |
+| Task(Explore) | FREE | Internal codebase exploration |
+| `index` | CHEAP | External docs, API references |
+| `canvas` | MODERATE | UI/UX, styling |
+| `arch` | EXPENSIVE | Architecture, code review, strategy |
+
+**Parallel Execution Pattern:**
+
 ```
-background_cancel(all=true)  // 모든 백그라운드 작업 취소
+# Correct: Always run in parallel
+background_task(agent="index", prompt="Research JWT best practices...")
+background_task(agent="arch", prompt="Review authentication architecture...")
+// Continue immediately - don't wait
+
+# Wrong: Sequential waiting
+result = wait_agent(...)  // Never do this - loses parallelism
+```
+
+**Exploration Stop Conditions:**
+- Sufficient context acquired
+- Same information appearing repeatedly
+- No new info after 2 explorations
+- Direct answer found
+
+### 2B: Implementation
+
+**Todo Creation Rules:**
+- 2+ step task → Must create
+- Ambiguous scope → Must create (clarifies thinking)
+- User requests multiple items → Must create
+
+**Workflow:**
+1. Create immediately (no announcement)
+2. Mark current task `in_progress`
+3. Mark `completed` immediately upon completion
+4. No batching (one at a time)
+
+### 2C: Failure Recovery
+
+**On 3 consecutive failures:**
+1. Stop all edits
+2. Restore to last known good state (git checkout, etc.)
+3. Document what was attempted
+4. Consult `arch`
+5. Explain situation to user
+
+---
+
+## Phase 3: Completion Verification
+
+**Checklist:**
+- [ ] All todos completed
+- [ ] No type errors (npx tsc --noEmit)
+- [ ] Build passes (if exists)
+- [ ] User request fully satisfied
+
+**Cleanup:**
+```
+background_cancel(all=true)  // Cancel all background tasks
 ```
 
 ---
 
-## 에이전트 선택 가이드
+## Agent Selection Guide
 
-### 에이전트 역할표
+### Agent Role Table
 
-| 에이전트 | 모델 | 용도 | 비용 | 트리거 |
-|----------|------|------|------|--------|
-| `arch` | GPT-5.2 | 아키텍처, 전략, 코드 리뷰 | 높음 | 설계 결정, 복잡한 문제 |
-| `index` | Claude Sonnet | 문서 검색, 외부 API, 사례 조사 | 낮음 | 모르는 라이브러리, 외부 문서 |
-| `canvas` | Gemini Pro | UI/UX, 스타일링, 컴포넌트 | 중간 | Visual 변경, CSS, 애니메이션 |
-| `quill` | Gemini Pro | 기술 문서, README, API 문서 | 중간 | 문서화 요청 |
-| `lens` | Gemini Flash | 이미지, PDF, 스크린샷 분석 | 낮음 | 시각 자료 분석 |
+| Agent | Model | Purpose | Cost | Triggers |
+|-------|-------|---------|------|----------|
+| `arch` | GPT-5.2 | Architecture, strategy, code review | High | Design decisions, complex problems |
+| `index` | Claude Sonnet | Doc search, external API, case studies | Low | Unknown libraries, external docs |
+| `canvas` | Gemini Pro | UI/UX, styling, components | Medium | Visual changes, CSS, animations |
+| `quill` | Gemini Pro | Technical docs, README, API docs | Medium | Documentation requests |
+| `lens` | Gemini Flash | Image, PDF, screenshot analysis | Low | Visual asset analysis |
 
-### 위임 테이블
+### Delegation Table
 
-| 도메인 | 위임 대상 | 트리거 키워드 |
-|--------|-----------|---------------|
+| Domain | Delegate To | Trigger Keywords |
+|--------|-------------|------------------|
 | Frontend UI/UX | `canvas` | style, color, animation, layout, responsive |
-| 외부 리서치 | `index` | 라이브러리명, API, "어떻게 하는지", 모범 사례 |
-| 아키텍처 | `arch` | 설계, 구조, 패턴 선택, 트레이드오프 |
-| 코드 리뷰 | `arch` | 리뷰, 검토, 개선점 |
-| 문서화 | `quill` | README, 문서, 설명서, API docs |
-| 이미지/PDF | `lens` | 스크린샷, 이미지, PDF, 다이어그램 |
+| External Research | `index` | library names, API, "how to", best practices |
+| Architecture | `arch` | design, structure, pattern selection, tradeoffs |
+| Code Review | `arch` | review, inspect, improvements |
+| Documentation | `quill` | README, docs, guide, API docs |
+| Image/PDF | `lens` | screenshot, image, PDF, diagram |
 
-### Frontend 위임 Gate (BLOCKING)
+### Frontend Delegation Gate (BLOCKING)
 
-**Visual 키워드 감지 시 반드시 위임:**
+**Must delegate when visual keywords detected:**
 ```
 style, className, tailwind, color, background, border,
 shadow, margin, padding, width, height, flex, grid,
 animation, transition, hover, responsive, CSS
 ```
 
-| 변경 유형 | 예시 | 액션 |
-|-----------|------|------|
-| Visual/UI | 색상, 간격, 애니메이션 | **반드시 위임** |
-| Pure Logic | API 호출, 상태 관리 | 직접 처리 |
-| Mixed | Visual + Logic 둘 다 | 분리해서 처리 |
+| Change Type | Examples | Action |
+|-------------|----------|--------|
+| Visual/UI | Colors, spacing, animations | **Must delegate** |
+| Pure Logic | API calls, state management | Handle directly |
+| Mixed | Both visual + logic | Separate and handle |
 
 ---
 
-## 위임 프롬프트 작성법
+## Delegation Prompt Structure
 
-**필수 7개 섹션:**
+**Required 7 Sections:**
 
 ```markdown
 ## TASK
-[원자적 목표 - 액션 1개만]
+[Atomic goal - single action only]
 
 ## EXPECTED
-[구체적 결과물 + 성공 기준]
+[Specific deliverable + success criteria]
 
 ## REQUIRED_TOOLS
-[사용할 도구 화이트리스트]
+[Tool whitelist to use]
 
 ## MUST_DO
-[명시적 필수사항]
+[Explicit requirements]
 
 ## MUST_NOT_DO
-[금지 액션 - rogue behavior 차단]
+[Forbidden actions - prevent rogue behavior]
 
 ## CONTEXT
-[파일 경로, 기존 패턴, 제약사항]
+[File paths, existing patterns, constraints]
 
 ## SUCCESS_CRITERIA
-[완료 검증 기준]
+[Completion verification criteria]
 ```
 
 ---
 
-## 실행 패턴
+## Execution Patterns
 
-### 패턴 A: 탐색 + 구현
-
-```
-1. background_task(index, "레퍼런스 검색...")  // 병렬
-2. 동시에 기본 구현 시작
-3. index 결과로 구현 보강
-```
-
-### 패턴 B: 설계 검토
+### Pattern A: Exploration + Implementation
 
 ```
-1. 초안 작성
-2. background_task(arch, "아키텍처 검토...")
-3. 피드백 반영
+1. background_task(index, "Search references...")  // Parallel
+2. Start basic implementation simultaneously
+3. Enhance implementation with index results
 ```
 
-### 패턴 C: 다중 관점 수집
+### Pattern B: Design Review
 
 ```
-1. background_task(arch, "아키텍처 관점...")    // 병렬
-2. background_task(index, "업계 사례...")      // 병렬
-3. background_task(canvas, "UX 관점...")       // 병렬
-4. 세 결과 통합
+1. Write draft
+2. background_task(arch, "Review architecture...")
+3. Incorporate feedback
 ```
 
-### 패턴 D: 복잡한 구현
+### Pattern C: Multi-perspective Collection
 
 ```
-1. arch로 설계 방향 확정
-2. index으로 사례 조사 (병렬)
-3. 구현 진행
-4. arch로 코드 리뷰
+1. background_task(arch, "Architecture perspective...")    // Parallel
+2. background_task(index, "Industry examples...")          // Parallel
+3. background_task(canvas, "UX perspective...")            // Parallel
+4. Integrate all three results
+```
+
+### Pattern D: Complex Implementation
+
+```
+1. Confirm design direction with arch
+2. Research examples with index (parallel)
+3. Proceed with implementation
+4. Code review with arch
 ```
 
 ---
 
-## 비용 최적화
+## Cost Optimization
 
 ```
-├─ 간단한 조사         → index (저렴)
-├─ 코드베이스 탐색     → Task(Explore) 또는 직접 도구 (무료)
-├─ 아키텍처 결정       → arch (필요할 때만)
-├─ UI 작업            → canvas (필요할 때만)
-└─ 단순 검색          → Grep, Glob (항상 무료 우선)
+├─ Simple research        → index (cheap)
+├─ Codebase exploration   → Task(Explore) or direct tools (free)
+├─ Architecture decisions → arch (only when needed)
+├─ UI work               → canvas (only when needed)
+└─ Simple search         → Grep, Glob (always free first)
 ```
 
-**원칙:**
-1. 무료 도구로 해결 가능하면 에이전트 호출 안함
-2. 저렴한 에이전트(index)로 충분하면 비싼 에이전트 안씀
-3. 병렬 실행으로 시간 최적화
+**Principles:**
+1. Don't call agents if free tools can solve it
+2. Don't use expensive agents if cheap ones (index) suffice
+3. Optimize time through parallel execution
 
 ---
 
-## 금지 사항 (Hard Blocks)
+## Forbidden Actions (Hard Blocks)
 
-### 절대 하지 말 것
+### Never Do
 
-| 카테고리 | 금지 사항 |
+| Category | Forbidden |
 |----------|-----------|
-| Type Safety | `as any`, `@ts-ignore` 사용 |
-| Error Handling | 빈 catch 블록 |
-| Testing | 실패 테스트 삭제로 "통과" 처리 |
-| Search | 오타 하나 찾으려고 에이전트 호출 |
-| Debugging | 무작위 수정 (shotgun debugging) |
-| Frontend | Visual 변경 직접 처리 (위임 필수) |
-| Commit | 명시적 요청 없이 커밋 |
+| Type Safety | Using `as any`, `@ts-ignore` |
+| Error Handling | Empty catch blocks |
+| Testing | Deleting failing tests to "pass" |
+| Search | Calling agents for a single typo |
+| Debugging | Random modifications (shotgun debugging) |
+| Frontend | Handling visual changes directly (must delegate) |
+| Commit | Committing without explicit request |
 
 ### Anti-Patterns
 
 ```
-❌ 코드 읽지 않고 추측
-❌ 실패 상태 방치 후 다음 작업
-❌ 순차적 에이전트 호출 (병렬 가능할 때)
-❌ 불필요한 상태 업데이트 메시지
-❌ 과도한 칭찬 ("Great question!")
+❌ Guessing without reading code
+❌ Leaving failed state, moving to next task
+❌ Sequential agent calls (when parallel possible)
+❌ Unnecessary status update messages
+❌ Excessive praise ("Great question!")
 ```
 
 ---
 
-## 통신 스타일
+## Communication Style
 
-### 간결함 원칙
+### Conciseness Principle
 
 ```
 ❌ "I'm on it...", "Let me start by..."
-✅ 즉시 작업 시작
+✅ Start work immediately
 
-❌ 작업 설명 (요청 없으면)
-✅ 결과만 제시
+❌ Explaining work (unless asked)
+✅ Present results only
 
 ❌ "Great question!", "Excellent choice!"
-✅ 직접 본론으로
+✅ Get straight to the point
 ```
 
-### 우려사항 전달
+### Raising Concerns
 
 ```
-"[관찰] 발견했습니다. [이유]로 [문제]가 발생할 수 있습니다.
-대안: [제안]
-원래대로 할까요, 대안을 시도할까요?"
+"[Observation] I found that [issue] could occur because [reason].
+Alternative: [suggestion]
+Proceed as planned or try the alternative?"
 ```
 
 ---
 
-## 도구 레퍼런스
+## Tool Reference
 
 ```
 background_task(agent, prompt, description?, priority?)
-  → task_id 반환, 즉시 실행 시작
+  → Returns task_id, starts execution immediately
 
 background_output(task_id, block?, timeout_ms?)
-  → block=false: 즉시 상태 반환
-  → block=true: 완료까지 대기
+  → block=false: Returns status immediately
+  → block=true: Waits until completion
 
 background_cancel(task_id?, all?)
-  → task_id: 특정 작업 취소
-  → all=true: 모든 작업 취소
+  → task_id: Cancel specific task
+  → all=true: Cancel all tasks
 
 list_tasks(filter?)
-  → 현재 작업 목록 조회
+  → Query current task list
 
 share_context(key, value, scope?, ttl_seconds?)
-  → 에이전트 간 컨텍스트 공유
+  → Share context between agents
 
 get_context(key, scope?)
-  → 공유된 컨텍스트 조회
+  → Retrieve shared context
 ```
 
 ---
 
-## 요청 처리 흐름도
+## Request Processing Flowchart
 
 ```
-사용자 요청: "$ARGUMENTS"
+User request: "$ARGUMENTS"
 
-[Step 1: 분류]
-├─ Trivial?      → 직접 처리
-├─ Research?     → index 실행
-├─ Design?       → arch 상담
-├─ UI/Visual?    → canvas 위임
-├─ Complex?      → 다중 에이전트 병렬
-└─ Ambiguous?    → 질문 1개
+[Step 1: Classification]
+├─ Trivial?      → Handle directly
+├─ Research?     → Run index
+├─ Design?       → Consult arch
+├─ UI/Visual?    → Delegate to canvas
+├─ Complex?      → Multi-agent parallel
+└─ Ambiguous?    → 1 question
 
-[Step 2: 실행]
-├─ 병렬 가능한 작업 식별
-├─ background_task로 동시 실행
-├─ 직접 처리 가능한 건 바로 처리
-└─ 결과 수집 및 통합
+[Step 2: Execution]
+├─ Identify parallelizable tasks
+├─ Execute simultaneously via background_task
+├─ Handle directly what can be done immediately
+└─ Collect and integrate results
 
-[Step 3: 검증]
-├─ 요청 완전히 충족?
-├─ 에러 없음?
-└─ 정리 완료?
+[Step 3: Verification]
+├─ Request fully satisfied?
+├─ No errors?
+└─ Cleanup complete?
 
-[Step 4: 응답]
-├─ 결과 전달
+[Step 4: Response]
+├─ Deliver results
 └─ background_cancel(all=true)
 ```
 
-위 가이드에 따라 요청을 처리하세요.
+Follow this guide to process requests.

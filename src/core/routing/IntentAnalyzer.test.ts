@@ -71,7 +71,7 @@ describe('IntentAnalyzer', () => {
       expect(result.feedbackType).toBe('retry_different');
     });
 
-    it('should detect "수정해" as modify', async () => {
+    it('should detect "수정해줘" as modify', async () => {
       const result = await analyzer.analyze('결과 수정해줘');
       expect(result.isFeedbackRequest).toBe(true);
       expect(result.feedbackType).toBe('modify');
@@ -81,6 +81,11 @@ describe('IntentAnalyzer', () => {
       const result = await analyzer.analyze('더 자세히 설명해줘');
       expect(result.isFeedbackRequest).toBe(true);
       expect(result.feedbackType).toBe('modify');
+    });
+
+    it('should NOT detect generic "update" as modify', async () => {
+      const result = await analyzer.analyze('update the README file');
+      expect(result.isFeedbackRequest).toBeFalsy();
     });
   });
 

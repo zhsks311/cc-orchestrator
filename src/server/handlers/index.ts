@@ -25,8 +25,6 @@ import {
 import {
   getRoleDescription,
   AGENT_METADATA,
-  parseAgentMention,
-  isParallelRequest,
 } from '../../core/agents/prompts.js';
 import { IntentAnalyzer } from '../../core/routing/IntentAnalyzer.js';
 

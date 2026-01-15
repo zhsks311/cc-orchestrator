@@ -65,19 +65,6 @@ export interface IIntentAnalyzer {
   analyze(query: string): Promise<IntentAnalysisResult>;
 }
 
-/**
- * LLM 응답을 파싱하기 위한 인터페이스
- */
-interface LLMRoutingResponse {
-  agent: string | null;
-  confidence: ConfidenceLevel;
-  reason: string;
-  alternatives?: Array<{
-    agent: string;
-    reason: string;
-  }>;
-}
-
 export class IntentAnalyzer implements IIntentAnalyzer {
   private logger: Logger;
 
@@ -112,7 +99,7 @@ export class IntentAnalyzer implements IIntentAnalyzer {
     }
 
     // 3. LLM 기반 의도 분석
-    const llmDecision = await this.analyzewithLLM(query);
+    const llmDecision = await this.analyzeWithLLM(query);
 
     // 4. Confidence에 따른 결과 생성
     return this.createResultFromDecision(llmDecision);
@@ -139,11 +126,12 @@ export class IntentAnalyzer implements IIntentAnalyzer {
       '바꿔서', '교체', '다르게',
     ];
 
-    // 수정 요청 패턴
+    // 수정 요청 패턴 (이전 결과 참조를 암시하는 패턴만)
     const modifyPatterns = [
-      '수정해', '고쳐', '바꿔줘', '변경해',
+      '수정해줘', '고쳐줘', '바꿔줘', '변경해줘',  // "줘" 포함으로 요청 명확화
       '조금 더', '좀 더', '덜', '더 자세히', '더 간단히',
-      'modify', 'change', 'update', 'adjust',
+      '결과 수정', '결과를 수정', '결과를 바꿔',  // 명시적 결과 참조
+      'modify it', 'change it', 'adjust it',  // "it" 포함으로 이전 결과 참조
     ];
 
     // 패턴 매칭
@@ -204,7 +192,7 @@ export class IntentAnalyzer implements IIntentAnalyzer {
    * LLM을 사용하여 의도 분석
    * 실제로는 Claude Code의 판단을 활용 (MCP tool result로 반환)
    */
-  private async analyzewithLLM(query: string): Promise<RoutingDecision> {
+  private async analyzeWithLLM(query: string): Promise<RoutingDecision> {
     // LLM 분석을 위한 프롬프트 구성
     const agentDescriptions = formatAgentDescriptionsForLLM();
 

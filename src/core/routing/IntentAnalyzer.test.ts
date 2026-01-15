@@ -14,22 +14,34 @@ describe('IntentAnalyzer', () => {
   });
 
   describe('Explicit @ mentions', () => {
-    it('should detect @oracle mention', async () => {
-      const result = await analyzer.analyze('@oracle 이 코드 아키텍처 검토해줘');
-      expect(result.decision.agent).toBe(AgentRole.ORACLE);
+    it('should detect @arch mention', async () => {
+      const result = await analyzer.analyze('@arch 이 코드 아키텍처 검토해줘');
+      expect(result.decision.agent).toBe(AgentRole.ARCH);
       expect(result.decision.confidence).toBe('high');
       expect(result.decision.isExplicitMention).toBe(true);
     });
 
-    it('should detect @librarian mention', async () => {
-      const result = await analyzer.analyze('@librarian API 문서 찾아줘');
-      expect(result.decision.agent).toBe(AgentRole.LIBRARIAN);
+    it('should detect @index mention', async () => {
+      const result = await analyzer.analyze('@index API 문서 찾아줘');
+      expect(result.decision.agent).toBe(AgentRole.INDEX);
       expect(result.decision.confidence).toBe('high');
     });
 
-    it('should detect @frontend mention', async () => {
-      const result = await analyzer.analyze('@frontend 버튼 컴포넌트 만들어줘');
-      expect(result.decision.agent).toBe(AgentRole.FRONTEND_ENGINEER);
+    it('should detect @canvas mention', async () => {
+      const result = await analyzer.analyze('@canvas 버튼 컴포넌트 만들어줘');
+      expect(result.decision.agent).toBe(AgentRole.CANVAS);
+      expect(result.decision.confidence).toBe('high');
+    });
+
+    it('should detect legacy @oracle mention (alias)', async () => {
+      const result = await analyzer.analyze('@oracle 이 코드 아키텍처 검토해줘');
+      expect(result.decision.agent).toBe(AgentRole.ARCH);
+      expect(result.decision.confidence).toBe('high');
+    });
+
+    it('should detect legacy @librarian mention (alias)', async () => {
+      const result = await analyzer.analyze('@librarian API 문서 찾아줘');
+      expect(result.decision.agent).toBe(AgentRole.INDEX);
       expect(result.decision.confidence).toBe('high');
     });
   });
@@ -90,22 +102,22 @@ describe('IntentAnalyzer', () => {
   });
 
   describe('Heuristic analysis', () => {
-    it('should suggest librarian for API/library search', async () => {
-      // "레퍼런스" is in Librarian's expertise
+    it('should suggest index for API/library search', async () => {
+      // "레퍼런스" is in Index's expertise
       const result = await analyzer.analyze('레퍼런스 찾아줘 API 사용법');
-      expect(result.decision.agent).toBe(AgentRole.LIBRARIAN);
+      expect(result.decision.agent).toBe(AgentRole.INDEX);
     });
 
-    it('should suggest frontend-engineer for UI/component tasks', async () => {
-      // "UI", "컴포넌트" are in frontend-engineer's expertise
+    it('should suggest canvas for UI/component tasks', async () => {
+      // "UI", "컴포넌트" are in Canvas's expertise
       const result = await analyzer.analyze('로그인 페이지 UI 컴포넌트 만들어줘');
-      expect(result.decision.agent).toBe(AgentRole.FRONTEND_ENGINEER);
+      expect(result.decision.agent).toBe(AgentRole.CANVAS);
     });
 
-    it('should suggest document-writer for documentation tasks', async () => {
-      // "문서", "README" are in document-writer's expertise
+    it('should suggest quill for documentation tasks', async () => {
+      // "문서", "README" are in Quill's expertise
       const result = await analyzer.analyze('README 문서 작성해줘');
-      expect(result.decision.agent).toBe(AgentRole.DOCUMENT_WRITER);
+      expect(result.decision.agent).toBe(AgentRole.QUILL);
     });
 
     it('should return low confidence for ambiguous queries', async () => {
@@ -122,15 +134,20 @@ describe('IntentAnalyzer', () => {
   });
 
   describe('Natural language agent references', () => {
-    it('should detect "오라클" as oracle mention', async () => {
-      const result = await analyzer.analyze('오라클한테 물어봐');
-      expect(result.decision.agent).toBe(AgentRole.ORACLE);
+    it('should detect "아키텍트" as arch mention', async () => {
+      const result = await analyzer.analyze('아키텍트한테 물어봐');
+      expect(result.decision.agent).toBe(AgentRole.ARCH);
     });
 
     it('should detect agent name in Korean context', async () => {
       // Uses the natural language detection (not @ mention)
-      const result = await analyzer.analyze('라이브러리안에게 검색 부탁해');
-      expect(result.decision.agent).toBe(AgentRole.LIBRARIAN);
+      const result = await analyzer.analyze('인덱스에게 검색 부탁해');
+      expect(result.decision.agent).toBe(AgentRole.INDEX);
+    });
+
+    it('should detect legacy names via aliases', async () => {
+      const result = await analyzer.analyze('오라클한테 물어봐');
+      expect(result.decision.agent).toBe(AgentRole.ARCH);
     });
   });
 });

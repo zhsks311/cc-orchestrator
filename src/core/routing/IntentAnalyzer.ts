@@ -408,11 +408,11 @@ confidence 기준:
    */
   private createParallelResult(query: string): IntentAnalysisResult {
     // 병렬 실행 시 어떤 에이전트들을 포함할지 결정
-    // 기본적으로 주요 에이전트 3개 (Oracle, Frontend, Librarian)
+    // 기본적으로 주요 에이전트 3개 (Arch, Canvas, Index)
     const parallelAgents = [
-      AgentRole.ORACLE,
-      AgentRole.FRONTEND_ENGINEER,
-      AgentRole.LIBRARIAN,
+      AgentRole.ARCH,
+      AgentRole.CANVAS,
+      AgentRole.INDEX,
     ];
 
     return {

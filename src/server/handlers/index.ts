@@ -342,7 +342,12 @@ export class ToolHandlers {
 
     // IntentAnalyzer로 의도 분석
     const analysisResult = await this.intentAnalyzer.analyze(input.query);
-    const { decision, confirmationMessage, options } = analysisResult;
+    const { decision, confirmationMessage, options, isFeedbackRequest, feedbackType } = analysisResult;
+
+    // 0. 피드백/재시도 요청 처리
+    if (isFeedbackRequest) {
+      return this.handleFeedbackRequest(feedbackType, confirmationMessage, options);
+    }
 
     // 1. 명시적 멘션 또는 high confidence → 바로 추천
     if (decision.confidence === 'high' && decision.agent) {
@@ -434,6 +439,65 @@ export class ToolHandlers {
         cost: meta.cost,
       })),
     });
+  }
+
+  /**
+   * 피드백/재시도 요청 처리
+   */
+  private handleFeedbackRequest(
+    feedbackType: 'retry_same' | 'retry_different' | 'modify' | undefined,
+    confirmationMessage: string | undefined,
+    options?: Array<{ agent: AgentRole; description: string; cost: string }>
+  ): ToolResult {
+    switch (feedbackType) {
+      case 'retry_same':
+        return this.formatResult({
+          is_feedback_request: true,
+          feedback_type: 'retry_same',
+          message: confirmationMessage || '이전과 같은 에이전트로 다시 시도합니다.',
+          recommendation: '이전 작업의 task_id를 사용하여 같은 에이전트에게 다시 요청하거나, 새로운 프롬프트로 background_task를 호출하세요.',
+          actions: [
+            { label: '같은 프롬프트로 재시도', action: 'background_task(agent="<previous>", prompt="<same>")' },
+            { label: '수정된 프롬프트로 시도', action: 'background_task(agent="<previous>", prompt="<modified>")' },
+          ],
+        });
+
+      case 'retry_different':
+        return this.formatResult({
+          is_feedback_request: true,
+          feedback_type: 'retry_different',
+          message: confirmationMessage || '다른 에이전트로 시도해 볼까요?',
+          available_agents: options || Object.entries(AGENT_METADATA).map(([role, meta]) => ({
+            agent: role,
+            description: getRoleDescription(role as AgentRole),
+            cost: meta.cost,
+          })),
+          recommendation: '아래 에이전트 중 하나를 선택하여 background_task를 호출하세요.',
+        });
+
+      case 'modify':
+        return this.formatResult({
+          is_feedback_request: true,
+          feedback_type: 'modify',
+          message: confirmationMessage || '이전 결과를 어떻게 수정할까요?',
+          recommendation: '수정 요청을 구체적으로 설명해주세요. 예: "더 자세히 설명해줘", "코드만 보여줘", "한국어로 번역해줘"',
+          actions: [
+            { label: '같은 에이전트에게 수정 요청', action: 'background_task(agent="<previous>", prompt="<수정 요청>")' },
+            { label: '다른 에이전트로 처리', action: 'suggest_agent로 다른 에이전트 추천받기' },
+          ],
+        });
+
+      default:
+        return this.formatResult({
+          is_feedback_request: true,
+          message: '어떤 도움이 필요하신가요?',
+          available_agents: Object.entries(AGENT_METADATA).map(([role, meta]) => ({
+            agent: role,
+            description: getRoleDescription(role as AgentRole),
+            cost: meta.cost,
+          })),
+        });
+    }
   }
 
   private formatResult(data: unknown): ToolResult {

@@ -53,6 +53,12 @@ export interface IntentAnalysisResult {
     description: string;
     cost: string;
   }>;
+
+  /** 피드백/재시도 요청인 경우 */
+  isFeedbackRequest?: boolean;
+
+  /** 피드백 유형 */
+  feedbackType?: 'retry_same' | 'retry_different' | 'modify';
 }
 
 export interface IIntentAnalyzer {
@@ -85,7 +91,14 @@ export class IntentAnalyzer implements IIntentAnalyzer {
   async analyze(query: string): Promise<IntentAnalysisResult> {
     this.logger.debug('Analyzing intent', { query });
 
-    // 1. 명시적 @ 멘션 체크 (최우선)
+    // 0. 피드백/재시도 요청 체크 (최우선)
+    const feedbackResult = this.detectFeedbackRequest(query);
+    if (feedbackResult) {
+      this.logger.info('Feedback request detected', { type: feedbackResult.feedbackType });
+      return feedbackResult;
+    }
+
+    // 1. 명시적 @ 멘션 체크
     const mentionedAgent = parseAgentMention(query);
     if (mentionedAgent) {
       this.logger.info('Explicit mention detected', { agent: mentionedAgent });
@@ -103,6 +116,88 @@ export class IntentAnalyzer implements IIntentAnalyzer {
 
     // 4. Confidence에 따른 결과 생성
     return this.createResultFromDecision(llmDecision);
+  }
+
+  /**
+   * 피드백/재시도 요청 감지
+   * "다시 해줘", "다른 에이전트로", "retry" 등을 감지
+   */
+  private detectFeedbackRequest(query: string): IntentAnalysisResult | null {
+    const lowerQuery = query.toLowerCase();
+
+    // 같은 에이전트로 재시도 패턴
+    const retrySamePatterns = [
+      '다시 해', '다시해', '재시도', '한번 더', '한번더',
+      'retry', 'again', 'try again', '다시 시도',
+      '똑같이', '같은 에이전트', '방금 에이전트',
+    ];
+
+    // 다른 에이전트로 재시도 패턴
+    const retryDifferentPatterns = [
+      '다른 에이전트', '다른에이전트', '다른 걸로', '다른걸로',
+      '다른 모델', '다른모델', 'different agent', 'try another',
+      '바꿔서', '교체', '다르게',
+    ];
+
+    // 수정 요청 패턴
+    const modifyPatterns = [
+      '수정해', '고쳐', '바꿔줘', '변경해',
+      '조금 더', '좀 더', '덜', '더 자세히', '더 간단히',
+      'modify', 'change', 'update', 'adjust',
+    ];
+
+    // 패턴 매칭
+    for (const pattern of retryDifferentPatterns) {
+      if (lowerQuery.includes(pattern)) {
+        return {
+          decision: {
+            agent: null,
+            confidence: 'high',
+            reason: '다른 에이전트로 재시도 요청',
+          },
+          isFeedbackRequest: true,
+          feedbackType: 'retry_different',
+          confirmationMessage: '다른 에이전트로 시도해 볼까요?',
+          options: Object.entries(AGENT_METADATA).map(([role, meta]) => ({
+            agent: role as AgentRole,
+            description: getRoleDescription(role as AgentRole),
+            cost: meta.cost,
+          })),
+        };
+      }
+    }
+
+    for (const pattern of modifyPatterns) {
+      if (lowerQuery.includes(pattern)) {
+        return {
+          decision: {
+            agent: null,
+            confidence: 'high',
+            reason: '결과 수정 요청',
+          },
+          isFeedbackRequest: true,
+          feedbackType: 'modify',
+          confirmationMessage: '이전 결과를 어떻게 수정할까요?',
+        };
+      }
+    }
+
+    for (const pattern of retrySamePatterns) {
+      if (lowerQuery.includes(pattern)) {
+        return {
+          decision: {
+            agent: null,
+            confidence: 'high',
+            reason: '같은 에이전트로 재시도 요청',
+          },
+          isFeedbackRequest: true,
+          feedbackType: 'retry_same',
+          confirmationMessage: '같은 에이전트로 다시 시도할까요?',
+        };
+      }
+    }
+
+    return null;
   }
 
   /**

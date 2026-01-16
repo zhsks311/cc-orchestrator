@@ -7,11 +7,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 {{HOOKS_PATH}}/collect_project_context.py \"$CWD\""
+            "command": "{{PYTHON}} {{HOOKS_PATH}}/collect_project_context.py \"$CWD\""
           },
           {
             "type": "command",
-            "command": "python3 {{HOOKS_PATH}}/recovery_wrapper.py"
+            "command": "{{PYTHON}} {{HOOKS_PATH}}/recovery_wrapper.py"
           }
         ]
       }
@@ -22,7 +22,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 {{HOOKS_PATH}}/summary_saver_wrapper.py"
+            "command": "{{PYTHON}} {{HOOKS_PATH}}/summary_saver_wrapper.py"
           }
         ]
       }
@@ -33,7 +33,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 {{HOOKS_PATH}}/summary_saver_wrapper.py"
+            "command": "{{PYTHON}} {{HOOKS_PATH}}/summary_saver_wrapper.py"
           }
         ]
       }
@@ -44,7 +44,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 {{HOOKS_PATH}}/context_saver_wrapper.py"
+            "command": "{{PYTHON}} {{HOOKS_PATH}}/context_saver_wrapper.py"
           }
         ]
       },
@@ -53,7 +53,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 {{HOOKS_PATH}}/context_saver_wrapper.py"
+            "command": "{{PYTHON}} {{HOOKS_PATH}}/context_saver_wrapper.py"
           }
         ]
       },
@@ -62,11 +62,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 {{HOOKS_PATH}}/context_saver_wrapper.py"
+            "command": "{{PYTHON}} {{HOOKS_PATH}}/context_saver_wrapper.py"
           },
           {
             "type": "command",
-            "command": "python3 {{HOOKS_PATH}}/review_completion_wrapper.py",
+            "command": "{{PYTHON}} {{HOOKS_PATH}}/review_completion_wrapper.py",
             "timeout": 180
           }
         ]
@@ -76,7 +76,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 {{HOOKS_PATH}}/review_test_wrapper.py"
+            "command": "{{PYTHON}} {{HOOKS_PATH}}/review_test_wrapper.py"
           }
         ]
       }

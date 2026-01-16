@@ -10,10 +10,9 @@ SessionEnd: Save final summary when session ends
 import sys
 import json
 import re
-import importlib.util
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any, Optional, List
+from typing import Dict, Optional, List
 
 # ============================================================================
 # Constants (configurable)
@@ -65,26 +64,42 @@ def mask_sensitive_info(text: str) -> str:
 
 def load_context_resilience():
     """
-    Safely load context_resilience module using importlib
-    Avoids global sys.path modification side effects
+    Load context_resilience module by temporarily adding HOOKS_DIR to sys.path.
+
+    Note: This module uses relative imports (from .submodule import ...), so we
+    cannot use importlib.util.spec_from_file_location directly. Instead, we
+    temporarily modify sys.path and restore it after import to minimize side effects.
+
+    For a hook script that runs in isolation and exits, this approach is acceptable.
     """
     module_path = HOOKS_DIR / "context_resilience" / "__init__.py"
     if not module_path.exists():
         log(f"context_resilience module not found at {module_path}")
         return None
 
-    try:
-        spec = importlib.util.spec_from_file_location("context_resilience", module_path)
-        if spec is None or spec.loader is None:
-            log("Failed to create module spec")
-            return None
+    hooks_dir_str = str(HOOKS_DIR)
+    path_modified = False
 
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        return module
+    try:
+        # Only add to path if not already present
+        if hooks_dir_str not in sys.path:
+            sys.path.insert(0, hooks_dir_str)
+            path_modified = True
+
+        # Import the module (this will resolve relative imports correctly)
+        import context_resilience
+        return context_resilience
     except Exception as e:
         log(f"Failed to load context_resilience: {e}")
         return None
+    finally:
+        # Clean up sys.path if we modified it (best effort)
+        # Note: Other modules may have been imported, so removal is optional
+        if path_modified and hooks_dir_str in sys.path:
+            try:
+                sys.path.remove(hooks_dir_str)
+            except ValueError:
+                pass  # Already removed or not present
 
 
 def extract_user_intent(transcript: List[Dict]) -> Optional[str]:

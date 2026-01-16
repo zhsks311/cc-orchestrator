@@ -107,17 +107,14 @@ class AutoRecoveryEngine:
         컨텍스트 복구 실행
 
         Returns:
-            {
-                "continue": True,
-                "systemMessage": "복구 메시지..."
-            }
+            hookSpecificOutput 형식으로 Claude에게 컨텍스트 전달
         """
         if not self.should_recover(session_id):
-            return {"continue": True, "systemMessage": ""}
+            return {"continue": True}
 
         context = self.manager.load(session_id)
         if not context:
-            return {"continue": True, "systemMessage": ""}
+            return {"continue": True}
 
         # 복구 메시지 생성
         message = self.manager.build_recovery_message(context)
@@ -133,8 +130,10 @@ class AutoRecoveryEngine:
             message = message[:max_len - 50] + "\n\n... (일부 생략됨)"
 
         return {
-            "continue": True,
-            "systemMessage": message
+            "hookSpecificOutput": {
+                "hookEventName": "SessionStart",
+                "additionalContext": message
+            }
         }
 
     def recover_for_cwd(self, cwd: str) -> Dict[str, Any]:
@@ -145,7 +144,7 @@ class AutoRecoveryEngine:
         """
         session_id = self.find_recent_session(current_cwd=cwd)
         if not session_id:
-            return {"continue": True, "systemMessage": ""}
+            return {"continue": True}
 
         return self.recover(session_id)
 

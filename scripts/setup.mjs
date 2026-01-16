@@ -764,7 +764,10 @@ async function main() {
 
     // Merge settings
     const hooksPath = normalizePath(claudeHooksDir);
-    const templateStr = JSON.stringify(template).split('{{HOOKS_PATH}}').join(hooksPath);
+    const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
+    const templateStr = JSON.stringify(template)
+      .split('{{HOOKS_PATH}}').join(hooksPath)
+      .split('{{PYTHON}}').join(pythonCmd);
     const resolved = JSON.parse(templateStr);
     const merged = { ...existing };
     if (resolved.hooks) {

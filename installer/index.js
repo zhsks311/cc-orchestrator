@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 /**
- * cc-orch
+ * cc-orchestrator
  *
  * One-line installer for CC Orchestrator
  *
  * Usage:
- *   npx cc-orch              # Install
- *   npx cc-orch --upgrade    # Update existing installation
- *   npx cc-orch --help       # Show help
+ *   npx cc-orchestrator              # Install
+ *   npx cc-orchestrator --upgrade    # Update existing installation
+ *   npx cc-orchestrator --help       # Show help
  */
 
 import * as fs from 'fs';
@@ -16,8 +16,8 @@ import * as os from 'os';
 import * as readline from 'readline';
 import { execSync, spawn } from 'child_process';
 
-const REPO_URL = 'https://github.com/zhsks311/cc-orchestrator.git';
-const DEFAULT_INSTALL_DIR = path.join(os.homedir(), '.cc-orchestrator');
+const REPO_URL = 'https://github.com/zhsks311/cc-orchestratorestrator.git';
+const DEFAULT_INSTALL_DIR = path.join(os.homedir(), '.cc-orchestratorestrator');
 
 // Parse arguments
 const args = process.argv.slice(2);
@@ -42,7 +42,7 @@ function printBanner() {
 function printHelp() {
   printBanner();
   console.log(`Usage:
-  npx cc-orch [directory] [options]
+  npx cc-orchestrator [directory] [options]
 
 Options:
   --upgrade, -u    Update existing installation
@@ -50,14 +50,14 @@ Options:
   --help, -h       Show this help message
 
 Examples:
-  npx cc-orch                    # Install to ~/.cc-orchestrator
-  npx cc-orch ./my-cco           # Install to custom directory
-  npx cc-orch --upgrade          # Update existing installation
-  npx cc-orch --force            # Force reinstall
+  npx cc-orchestrator                    # Install to ~/.cc-orchestratorestrator
+  npx cc-orchestrator ./my-cco           # Install to custom directory
+  npx cc-orchestrator --upgrade          # Update existing installation
+  npx cc-orchestrator --force            # Force reinstall
 
 After installation:
   1. Restart Claude Code
-  2. Try: "oracle한테 프로젝트 리뷰해달라고 해"
+  2. Try: "ask arch to review this project"
 `);
 }
 
@@ -100,17 +100,17 @@ function spawnAsync(cmd, args, options = {}) {
 }
 
 async function install(installDir) {
-  console.log(`\n📁 설치 경로: ${installDir}\n`);
+  console.log(`\n📁 Install path: ${installDir}\n`);
 
   // Check if directory exists
   if (fs.existsSync(installDir)) {
     if (upgradeMode) {
-      console.log('📦 기존 설치 발견 - 업그레이드 모드\n');
+      console.log('📦 Existing installation found - upgrade mode\n');
     } else {
-      const answer = await question('⚠️  이미 설치되어 있습니다. 덮어쓰시겠습니까? (y/N): ');
+      const answer = await question('⚠️  Already installed. Overwrite? (y/N): ');
       if (answer.toLowerCase() !== 'y') {
-        console.log('\n설치가 취소되었습니다.');
-        console.log('업그레이드하려면: npx cc-orch --upgrade\n');
+        console.log('\nInstallation cancelled.');
+        console.log('To upgrade: npx cc-orchestrator --upgrade\n');
         process.exit(0);
       }
     }
@@ -119,10 +119,10 @@ async function install(installDir) {
   // Step 1: Clone or pull
   console.log('─'.repeat(50));
   if (fs.existsSync(path.join(installDir, '.git'))) {
-    console.log('\n[1/3] 최신 코드 가져오기...\n');
+    console.log('\n[1/3] Fetching latest code...\n');
     exec('git pull origin main', { cwd: installDir });
   } else {
-    console.log('\n[1/3] 저장소 복제 중...\n');
+    console.log('\n[1/3] Cloning repository...\n');
     if (fs.existsSync(installDir)) {
       fs.rmSync(installDir, { recursive: true, force: true });
     }
@@ -130,11 +130,11 @@ async function install(installDir) {
   }
 
   // Step 2: npm install
-  console.log('\n[2/3] 의존성 설치 중...\n');
+  console.log('\n[2/3] Installing dependencies...\n');
   exec('npm install', { cwd: installDir });
 
   // Step 3: Run setup
-  console.log('\n[3/3] 설정 마법사 실행...\n');
+  console.log('\n[3/3] Running setup wizard...\n');
   console.log('─'.repeat(50));
 
   const setupArgs = forceMode ? ['run', 'setup', '--', '--force'] : ['run', 'setup'];
@@ -143,20 +143,20 @@ async function install(installDir) {
   // Done
   console.log(`
 ╔════════════════════════════════════════════════════════════╗
-║  ✅ CC Orchestrator 설치 완료!                              ║
+║  ✅ CC Orchestrator Installation Complete!                 ║
 ╠════════════════════════════════════════════════════════════╣
 ║                                                            ║
-║  다음 단계:                                                 ║
-║  1. Claude Code를 재시작하세요                              ║
-║  2. 다음과 같이 사용해보세요:                               ║
-║     "oracle한테 이 프로젝트 리뷰해달라고 해"                ║
+║  Next steps:                                               ║
+║  1. Restart Claude Code                                    ║
+║  2. Try using it:                                          ║
+║     "ask arch to review this project"                      ║
 ║                                                            ║
-║  업데이트:                                                  ║
+║  Update:                                                   ║
 ║     cd ${installDir}
 ║     npm run update                                         ║
 ║                                                            ║
-║  또는:                                                      ║
-║     npx cc-orch --upgrade                                  ║
+║  Or:                                                       ║
+║     npx cc-orchestrator --upgrade                          ║
 ║                                                            ║
 ╚════════════════════════════════════════════════════════════╝
 `);
@@ -171,7 +171,7 @@ async function main() {
   printBanner();
 
   // Check prerequisites
-  console.log('사전 요구사항 확인...\n');
+  console.log('Checking prerequisites...\n');
 
   const hasGit = checkCommand('git');
   const hasNode = checkCommand('node');
@@ -182,9 +182,9 @@ async function main() {
   console.log(`  npm:  ${hasNpm ? '✓' : '✗'}`);
 
   if (!hasGit || !hasNode || !hasNpm) {
-    console.log('\n❌ 필수 도구가 설치되지 않았습니다.');
-    if (!hasGit) console.log('   - Git을 설치하세요: https://git-scm.com/');
-    if (!hasNode) console.log('   - Node.js를 설치하세요: https://nodejs.org/');
+    console.log('\n❌ Required tools not installed.');
+    if (!hasGit) console.log('   - Install Git: https://git-scm.com/');
+    if (!hasNode) console.log('   - Install Node.js: https://nodejs.org/');
     process.exit(1);
   }
 
@@ -197,6 +197,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error('\n❌ 오류 발생:', error.message);
+  console.error('\n❌ Error:', error.message);
   process.exit(1);
 });

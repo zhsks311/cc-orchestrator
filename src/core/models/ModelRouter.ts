@@ -109,8 +109,8 @@ export class ModelRouter implements IModelRouter {
   }
 
   /**
-   * 특정 역할에 사용 가능한 프로바이더가 있는지 확인
-   * API 키가 설정된 프로바이더가 하나라도 있으면 true
+   * Check if there's an available provider for a specific role
+   * Returns true if at least one provider with an API key is available
    */
   hasAvailableProvider(role: AgentRole): boolean {
     const config = this.findAvailableProviderConfig(role, false);

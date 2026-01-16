@@ -1,6 +1,6 @@
 /**
  * Tool Use Types
- * Sisyphus 에이전트가 다른 에이전트를 호출하기 위한 Tool Use 타입 정의
+ * Type definitions for Sisyphus agent to invoke other agents via Tool Use
  */
 
 /**

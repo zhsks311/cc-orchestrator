@@ -1,8 +1,8 @@
 /**
  * Intent-based Agent Router
  *
- * 휴리스틱 분석을 통해 사용자 요청의 의도를 분석하고 적절한 에이전트를 선택합니다.
- * Confidence 수준에 따라 자동 실행, 확인 요청, 또는 선택지 제공을 결정합니다.
+ * Analyzes user request intent through heuristic analysis and selects the appropriate agent.
+ * Decides between auto-execution, confirmation request, or option presentation based on confidence level.
  */
 
 import { AgentRole } from '../../types/index.js';
@@ -15,37 +15,37 @@ import {
 } from '../agents/prompts.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 휴리스틱 점수 가중치 상수
+// Heuristic scoring weight constants
 // ─────────────────────────────────────────────────────────────────────────────
 const SCORING_WEIGHTS = {
-  /** 에이전트 이름/별칭 언급 시 가중치 */
+  /** Weight for agent name/alias mention */
   NAME_MENTION: 0.4,
-  /** 전문 분야 키워드 매칭 시 가중치 */
+  /** Weight for expertise keyword matching */
   EXPERTISE_KEYWORD: 0.15,
-  /** 사용 사례(useWhen) 매칭 시 가중치 */
+  /** Weight for use case (useWhen) matching */
   USE_CASE: 0.1,
-  /** 예시 패턴 매칭 시 가중치 */
+  /** Weight for example pattern matching */
   EXAMPLE_MATCH: 0.2,
-  /** 회피 사례 매칭 시 감점 */
+  /** Penalty for avoid case matching */
   AVOID_CASE_PENALTY: -0.2,
 } as const;
 
 const CONFIDENCE_THRESHOLDS = {
-  /** high confidence 최소 점수 */
+  /** Minimum score for high confidence */
   HIGH: 0.6,
-  /** medium confidence 최소 점수 */
+  /** Minimum score for medium confidence */
   MEDIUM: 0.3,
-  /** 1, 2위 점수 차이가 이 값 미만이면 medium으로 하향 */
+  /** Downgrade to medium if 1st-2nd score gap is less than this */
   SCORE_GAP_FOR_DOWNGRADE: 0.2,
-  /** 대안으로 제시할 최소 점수 */
+  /** Minimum score to suggest as alternative */
   MIN_ALTERNATIVE_SCORE: 0.1,
-  /** 키워드 최소 길이 (너무 짧은 키워드 제외) */
+  /** Minimum keyword length (exclude too short keywords) */
   MIN_KEYWORD_LENGTH: 2,
-  /** 예시 패턴 매칭에 필요한 최소 단어 수 */
+  /** Minimum word matches needed for example pattern */
   MIN_EXAMPLE_WORD_MATCHES: 2,
 } as const;
 
-/** 병렬 실행 시 기본 포함 에이전트 */
+/** Default agents for parallel execution */
 const DEFAULT_PARALLEL_AGENTS: readonly AgentRole[] = [
   AgentRole.ARCH,
   AgentRole.CANVAS,
@@ -55,46 +55,46 @@ const DEFAULT_PARALLEL_AGENTS: readonly AgentRole[] = [
 export type ConfidenceLevel = 'high' | 'medium' | 'low';
 
 export interface RoutingDecision {
-  /** 선택된 에이전트 (null이면 선택 불가) */
+  /** Selected agent (null if unable to select) */
   agent: AgentRole | null;
 
-  /** 신뢰도 수준 */
+  /** Confidence level */
   confidence: ConfidenceLevel;
 
-  /** 선택 이유 */
+  /** Reason for selection */
   reason: string;
 
-  /** 대안 에이전트들 (confidence가 medium/low일 때) */
+  /** Alternative agents (when confidence is medium/low) */
   alternatives?: Array<{
     agent: AgentRole;
     reason: string;
   }>;
 
-  /** 병렬 실행 요청 여부 */
+  /** Whether parallel execution is requested */
   isParallel?: boolean;
 
-  /** 명시적 멘션으로 선택됨 */
+  /** Selected via explicit mention */
   isExplicitMention?: boolean;
 }
 
 export interface IntentAnalysisResult {
-  /** 라우팅 결정 */
+  /** Routing decision */
   decision: RoutingDecision;
 
-  /** 사용자에게 확인이 필요한 경우의 메시지 */
+  /** Message when user confirmation is needed */
   confirmationMessage?: string;
 
-  /** 선택지 제공이 필요한 경우의 옵션들 */
+  /** Options when presenting choices */
   options?: Array<{
     agent: AgentRole;
     description: string;
     cost: string;
   }>;
 
-  /** 피드백/재시도 요청인 경우 */
+  /** Whether this is a feedback/retry request */
   isFeedbackRequest?: boolean;
 
-  /** 피드백 유형 */
+  /** Feedback type */
   feedbackType?: 'retry_same' | 'retry_different' | 'modify';
 }
 
@@ -110,79 +110,77 @@ export class IntentAnalyzer implements IIntentAnalyzer {
   }
 
   /**
-   * 사용자 쿼리를 분석하여 라우팅 결정을 내립니다.
+   * Analyzes user query and makes routing decision.
    */
   async analyze(query: string): Promise<IntentAnalysisResult> {
     this.logger.debug('Analyzing intent', { query });
 
-    // 0. 피드백/재시도 요청 체크 (최우선)
+    // 0. Check for feedback/retry request (highest priority)
     const feedbackResult = this.detectFeedbackRequest(query);
     if (feedbackResult) {
       this.logger.info('Feedback request detected', { type: feedbackResult.feedbackType });
       return feedbackResult;
     }
 
-    // 1. 명시적 @ 멘션 체크
+    // 1. Check for explicit @ mention
     const mentionedAgent = parseAgentMention(query);
     if (mentionedAgent) {
       this.logger.info('Explicit mention detected', { agent: mentionedAgent });
-      return this.createHighConfidenceResult(mentionedAgent, '명시적 멘션', true);
+      return this.createHighConfidenceResult(mentionedAgent, 'Explicit mention', true);
     }
 
-    // 2. 병렬 실행 요청 체크
+    // 2. Check for parallel execution request
     if (isParallelRequest(query)) {
       this.logger.info('Parallel request detected');
       return this.createParallelResult(query);
     }
 
-    // 3. 휴리스틱 기반 의도 분석
+    // 3. Heuristic-based intent analysis
     const heuristicDecision = await this.analyzeWithHeuristics(query);
 
-    // 4. Confidence에 따른 결과 생성
+    // 4. Generate result based on confidence
     return this.createResultFromDecision(heuristicDecision);
   }
 
   /**
-   * 피드백/재시도 요청 감지
-   * "다시 해줘", "다른 에이전트로", "retry" 등을 감지
+   * Detect feedback/retry requests
+   * Detects patterns like "do it again", "try another agent", "retry", etc.
    */
   private detectFeedbackRequest(query: string): IntentAnalysisResult | null {
     const lowerQuery = query.toLowerCase();
 
-    // 같은 에이전트로 재시도 패턴
+    // Retry with same agent patterns
     const retrySamePatterns = [
-      '다시 해', '다시해', '재시도', '한번 더', '한번더',
-      'retry', 'again', 'try again', '다시 시도',
-      '똑같이', '같은 에이전트', '방금 에이전트',
+      'retry', 'again', 'try again', 'one more time',
+      'same agent', 'same one', 'do it again',
+      'redo', 'repeat',
     ];
 
-    // 다른 에이전트로 재시도 패턴
+    // Retry with different agent patterns
     const retryDifferentPatterns = [
-      '다른 에이전트', '다른에이전트', '다른 걸로', '다른걸로',
-      '다른 모델', '다른모델', 'different agent', 'try another',
-      '바꿔서', '교체', '다르게',
+      'different agent', 'another agent', 'try another',
+      'different model', 'switch agent', 'change agent',
     ];
 
-    // 수정 요청 패턴 (이전 결과 참조를 암시하는 패턴만)
+    // Modify request patterns (patterns implying reference to previous result)
     const modifyPatterns = [
-      '수정해줘', '고쳐줘', '바꿔줘', '변경해줘',  // "줘" 포함으로 요청 명확화
-      '조금 더', '좀 더', '덜', '더 자세히', '더 간단히',
-      '결과 수정', '결과를 수정', '결과를 바꿔',  // 명시적 결과 참조
-      'modify it', 'change it', 'adjust it',  // "it" 포함으로 이전 결과 참조
+      'modify it', 'change it', 'adjust it', 'fix it',
+      'more detail', 'more details', 'less detail', 'simpler',
+      'modify the result', 'change the result', 'update it',
     ];
 
-    // 패턴 매칭
+    // Pattern matching
     for (const pattern of retryDifferentPatterns) {
       if (lowerQuery.includes(pattern)) {
         return {
           decision: {
             agent: null,
             confidence: 'high',
-            reason: '다른 에이전트로 재시도 요청',
+            reason: 'Retry with different agent requested',
           },
           isFeedbackRequest: true,
           feedbackType: 'retry_different',
-          confirmationMessage: '다른 에이전트로 시도해 볼까요?',
+          confirmationMessage: 'Would you like to try with a different agent?',
           options: Object.entries(AGENT_METADATA).map(([role, meta]) => ({
             agent: role as AgentRole,
             description: getRoleDescription(role as AgentRole),
@@ -198,11 +196,11 @@ export class IntentAnalyzer implements IIntentAnalyzer {
           decision: {
             agent: null,
             confidence: 'high',
-            reason: '결과 수정 요청',
+            reason: 'Result modification requested',
           },
           isFeedbackRequest: true,
           feedbackType: 'modify',
-          confirmationMessage: '이전 결과를 어떻게 수정할까요?',
+          confirmationMessage: 'How would you like to modify the previous result?',
         };
       }
     }
@@ -213,11 +211,11 @@ export class IntentAnalyzer implements IIntentAnalyzer {
           decision: {
             agent: null,
             confidence: 'high',
-            reason: '같은 에이전트로 재시도 요청',
+            reason: 'Retry with same agent requested',
           },
           isFeedbackRequest: true,
           feedbackType: 'retry_same',
-          confirmationMessage: '같은 에이전트로 다시 시도할까요?',
+          confirmationMessage: 'Would you like to retry with the same agent?',
         };
       }
     }
@@ -226,64 +224,64 @@ export class IntentAnalyzer implements IIntentAnalyzer {
   }
 
   /**
-   * 휴리스틱 기반 의도 분석
+   * Heuristic-based intent analysis
    *
-   * 향후 LLM 기반 분석으로 확장 가능하도록 async로 유지
+   * Kept as async for future extension to LLM-based analysis
    */
   private async analyzeWithHeuristics(query: string): Promise<RoutingDecision> {
     return this.heuristicAnalysis(query);
   }
 
   /**
-   * 휴리스틱 기반 의도 분석 (LLM 호출 대신 사용)
+   * Heuristic-based intent analysis (used instead of LLM call)
    */
   private heuristicAnalysis(query: string): RoutingDecision {
     const lowerQuery = query.toLowerCase();
     const scores: Map<AgentRole, { score: number; reasons: string[] }> = new Map();
 
-    // 각 에이전트에 대해 점수 계산
+    // Calculate score for each agent
     for (const [role, metadata] of Object.entries(AGENT_METADATA)) {
       const agentRole = role as AgentRole;
       let score = 0;
       const reasons: string[] = [];
 
-      // 1. 에이전트 이름/별칭 언급 체크 (자연어로)
+      // 1. Check agent name/alias mention (natural language)
       const namePatterns = [
         metadata.name.toLowerCase(),
         ...metadata.aliases.map((a) => a.toLowerCase()),
       ];
       for (const pattern of namePatterns) {
-        // @ 없이도 이름 언급 감지 (예: "아키텍트한테 물어봐")
+        // Detect name mention without @ (e.g., "ask the architect")
         if (lowerQuery.includes(pattern) && !lowerQuery.includes(`@${pattern}`)) {
           score += SCORING_WEIGHTS.NAME_MENTION;
-          reasons.push(`에이전트 이름 언급: ${pattern}`);
+          reasons.push(`Agent name mentioned: ${pattern}`);
           break;
         }
       }
 
-      // 2. 전문 분야 키워드 매칭
+      // 2. Expertise keyword matching
       for (const expertise of metadata.expertise) {
         const keywords = expertise.toLowerCase().split(/[\/\s,]+/);
         for (const keyword of keywords) {
           if (keyword.length > CONFIDENCE_THRESHOLDS.MIN_KEYWORD_LENGTH && lowerQuery.includes(keyword)) {
             score += SCORING_WEIGHTS.EXPERTISE_KEYWORD;
-            reasons.push(`전문 분야 키워드: ${keyword}`);
+            reasons.push(`Expertise keyword: ${keyword}`);
           }
         }
       }
 
-      // 3. useWhen 패턴 매칭
+      // 3. useWhen pattern matching
       for (const useCase of metadata.useWhen) {
         const keywords = useCase.toLowerCase().split(/[\/\s,]+/);
         for (const keyword of keywords) {
           if (keyword.length > CONFIDENCE_THRESHOLDS.MIN_KEYWORD_LENGTH && lowerQuery.includes(keyword)) {
             score += SCORING_WEIGHTS.USE_CASE;
-            reasons.push(`사용 사례 매칭: ${keyword}`);
+            reasons.push(`Use case match: ${keyword}`);
           }
         }
       }
 
-      // 4. 예시 패턴 매칭
+      // 4. Example pattern matching
       for (const example of metadata.examples) {
         if (example.shouldUse) {
           const exampleWords = example.input.toLowerCase().split(/\s+/);
@@ -295,18 +293,18 @@ export class IntentAnalyzer implements IIntentAnalyzer {
           }
           if (matchCount >= CONFIDENCE_THRESHOLDS.MIN_EXAMPLE_WORD_MATCHES) {
             score += SCORING_WEIGHTS.EXAMPLE_MATCH;
-            reasons.push(`예시 패턴 매칭: ${example.input}`);
+            reasons.push(`Example pattern match: ${example.input}`);
           }
         }
       }
 
-      // 5. avoidWhen에 해당하면 감점
+      // 5. Deduct points if matches avoidWhen
       for (const avoidCase of metadata.avoidWhen) {
         const keywords = avoidCase.toLowerCase().split(/[\/\s,]+/);
         for (const keyword of keywords) {
           if (keyword.length > CONFIDENCE_THRESHOLDS.MIN_KEYWORD_LENGTH && lowerQuery.includes(keyword)) {
             score += SCORING_WEIGHTS.AVOID_CASE_PENALTY;
-            reasons.push(`회피 사례 매칭 (감점): ${keyword}`);
+            reasons.push(`Avoid case match (penalty): ${keyword}`);
           }
         }
       }
@@ -314,24 +312,24 @@ export class IntentAnalyzer implements IIntentAnalyzer {
       scores.set(agentRole, { score: Math.max(0, score), reasons });
     }
 
-    // 점수 기준 정렬
+    // Sort by score
     const sortedScores = Array.from(scores.entries()).sort((a, b) => b[1].score - a[1].score);
 
-    // 에이전트가 없으면 low confidence 반환
+    // Return low confidence if no agents available
     if (sortedScores.length === 0) {
       return {
         agent: null,
         confidence: 'low',
-        reason: '사용 가능한 에이전트가 없습니다',
+        reason: 'No agents available',
       };
     }
 
-    const topEntry = sortedScores[0]!;  // 위에서 length 체크했으므로 안전
+    const topEntry = sortedScores[0]!;  // Safe due to length check above
     const topAgentRole = topEntry[0];
     const topAgentData = topEntry[1];
     const secondEntry = sortedScores.length > 1 ? sortedScores[1] : null;
 
-    // Confidence 결정
+    // Determine confidence
     let confidence: ConfidenceLevel;
     if (topAgentData.score >= CONFIDENCE_THRESHOLDS.HIGH) {
       confidence = 'high';
@@ -341,7 +339,7 @@ export class IntentAnalyzer implements IIntentAnalyzer {
       confidence = 'low';
     }
 
-    // 1, 2위 점수 차이가 작으면 medium으로 낮춤
+    // Downgrade to medium if 1st-2nd score gap is small
     if (
       confidence === 'high' &&
       secondEntry &&
@@ -357,11 +355,11 @@ export class IntentAnalyzer implements IIntentAnalyzer {
       reasons: topAgentData.reasons,
     });
 
-    // 결과 생성
+    // Generate result
     const topReason =
       topAgentData.reasons.length > 0 && topAgentData.reasons[0]
         ? topAgentData.reasons[0]
-        : '의도를 명확히 파악하기 어렵습니다';
+        : 'Unable to clearly determine intent';
 
     const result: RoutingDecision = {
       agent: confidence === 'low' ? null : topAgentRole,
@@ -369,13 +367,13 @@ export class IntentAnalyzer implements IIntentAnalyzer {
       reason: topReason,
     };
 
-    // 대안 추가 (medium/low인 경우)
+    // Add alternatives (for medium/low confidence)
     if (confidence !== 'high' && secondEntry && secondEntry[1].score > CONFIDENCE_THRESHOLDS.MIN_ALTERNATIVE_SCORE) {
       const secondReasons = secondEntry[1].reasons;
       const secondReason =
         secondReasons.length > 0 && secondReasons[0]
           ? secondReasons[0]
-          : '대안으로 고려 가능';
+          : 'Can be considered as alternative';
 
       result.alternatives = [
         {
@@ -389,7 +387,7 @@ export class IntentAnalyzer implements IIntentAnalyzer {
   }
 
   /**
-   * 높은 신뢰도 결과 생성 (명시적 멘션)
+   * Create high confidence result (explicit mention)
    */
   private createHighConfidenceResult(
     agent: AgentRole,
@@ -407,15 +405,15 @@ export class IntentAnalyzer implements IIntentAnalyzer {
   }
 
   /**
-   * 병렬 실행 결과 생성
+   * Create parallel execution result
    */
   private createParallelResult(_query: string): IntentAnalysisResult {
-    // 병렬 실행 시 기본 에이전트 사용 (상단 상수로 정의)
+    // Use default agents for parallel execution (defined in constants above)
     return {
       decision: {
-        agent: null, // 병렬 실행이므로 단일 에이전트 아님
+        agent: null, // Not a single agent since parallel execution
         confidence: 'high',
-        reason: '병렬 실행 요청',
+        reason: 'Parallel execution requested',
         isParallel: true,
         alternatives: DEFAULT_PARALLEL_AGENTS.map((agent) => ({
           agent,
@@ -426,17 +424,17 @@ export class IntentAnalyzer implements IIntentAnalyzer {
   }
 
   /**
-   * LLM 결정으로부터 결과 생성
+   * Create result from LLM decision
    */
   private createResultFromDecision(decision: RoutingDecision): IntentAnalysisResult {
     const result: IntentAnalysisResult = { decision };
 
     if (decision.confidence === 'medium' && decision.agent) {
-      // 확인 메시지 생성
+      // Generate confirmation message
       const metadata = AGENT_METADATA[decision.agent];
-      result.confirmationMessage = `${metadata.name}(${getRoleDescription(decision.agent)})이(가) 적합해 보이는데, 맞나요?`;
+      result.confirmationMessage = `${metadata.name} (${getRoleDescription(decision.agent)}) seems appropriate. Is that correct?`;
 
-      // 대안 옵션 추가
+      // Add alternative options
       result.options = [
         {
           agent: decision.agent,
@@ -456,8 +454,8 @@ export class IntentAnalyzer implements IIntentAnalyzer {
         }
       }
     } else if (decision.confidence === 'low') {
-      // 선택지 제공
-      result.confirmationMessage = '어떤 에이전트가 도와드릴까요?';
+      // Provide options
+      result.confirmationMessage = 'Which agent would you like to help you?';
       result.options = Object.entries(AGENT_METADATA).map(([role, meta]) => ({
         agent: role as AgentRole,
         description: getRoleDescription(role as AgentRole),

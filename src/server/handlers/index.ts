@@ -87,7 +87,7 @@ export class ToolHandlers {
   private async handleBackgroundTask(args: unknown): Promise<ToolResult> {
     const input = BackgroundTaskInputSchema.parse(args);
 
-    // API 키 확인 - 없으면 delegation 응답
+    // Check API key - return delegation response if not available
     if (!this.modelRouter.hasAvailableProvider(input.agent)) {
       this.logger.info('No provider available, delegating to Claude Code', {
         agent: input.agent,
@@ -114,7 +114,7 @@ export class ToolHandlers {
       status: 'running',
       agent: agent.role,
       agent_description: getRoleDescription(agent.role),
-      message: `백그라운드 작업이 시작되었습니다. background_output(task_id="${agent.id}")로 상태를 확인하세요.`,
+      message: `Background task started. Check status with background_output(task_id="${agent.id}").`,
     });
   }
 
@@ -128,7 +128,7 @@ export class ToolHandlers {
   } as const;
 
   /**
-   * API 키가 없을 때 Claude Code에게 위임하는 응답 생성
+   * Generate delegation response to Claude Code when no API key is available
    */
   private formatDelegationResponse(agent: AgentRole, prompt: string): ToolResult {
     const { SubagentType } = ToolHandlers;
@@ -153,14 +153,14 @@ export class ToolHandlers {
         subagent_type: suggestedSubagent,
         prompt,
       },
-      message: `API 키가 설정되지 않아 Claude Code가 직접 처리합니다. Task tool의 ${suggestedSubagent} 에이전트를 사용하세요.`,
+      message: `No API key configured. Claude Code will handle this directly. Use the Task tool with ${suggestedSubagent} agent.`,
     });
   }
 
   private async handleBackgroundOutput(args: unknown): Promise<ToolResult> {
     const input = BackgroundOutputInputSchema.parse(args);
 
-    // block=false (기본): 즉시 현재 상태 반환
+    // block=false (default): return current status immediately
     if (!input.block) {
       const agent = await this.agentManager.getAgent(input.task_id);
 
@@ -175,9 +175,9 @@ export class ToolHandlers {
           started_at: agent.startedAt?.toISOString(),
           elapsed_ms: agent.startedAt ? Date.now() - agent.startedAt.getTime() : 0,
         };
-        result.message = '작업이 진행 중입니다...';
+        result.message = 'Task is in progress...';
       } else if (agent.status === AgentStatus.QUEUED) {
-        result.message = '작업이 대기 중입니다...';
+        result.message = 'Task is queued...';
       } else if (agent.status === AgentStatus.COMPLETED) {
         result.result = agent.result;
         result.execution_time_ms = agent.executionTimeMs;
@@ -193,15 +193,15 @@ export class ToolHandlers {
       } else if (agent.status === AgentStatus.FAILED) {
         result.error = agent.error?.message;
       } else if (agent.status === AgentStatus.TIMEOUT) {
-        result.error = '작업 시간 초과';
+        result.error = 'Task timed out';
       } else if (agent.status === AgentStatus.CANCELLED) {
-        result.message = '작업이 취소되었습니다.';
+        result.message = 'Task was cancelled.';
       }
 
       return this.formatResult(result);
     }
 
-    // block=true: 완료까지 대기
+    // block=true: wait until completion
     const agentResult = await this.agentManager.waitForCompletion(
       input.task_id,
       input.timeout_ms
@@ -232,7 +232,7 @@ export class ToolHandlers {
     const input = BackgroundCancelInputSchema.parse(args);
 
     if (input.all) {
-      // 모든 실행 중인 작업 취소
+      // Cancel all running tasks
       const agents = await this.agentManager.listAgents({
         sessionId: this.sessionId,
         status: [AgentStatus.RUNNING, AgentStatus.QUEUED],
@@ -251,22 +251,22 @@ export class ToolHandlers {
       return this.formatResult({
         cancelled_count: agents.length,
         cancelled_task_ids: agents.map((a) => a.id),
-        message: `${agents.length}개의 작업이 취소되었습니다.`,
+        message: `${agents.length} task(s) cancelled.`,
       });
     }
 
-    // 특정 작업만 취소
+    // Cancel specific task only
     if (input.task_id) {
       await this.agentManager.cancelAgent(input.task_id);
 
       return this.formatResult({
         task_id: input.task_id,
         status: 'cancelled',
-        message: '작업이 취소되었습니다.',
+        message: 'Task cancelled.',
       });
     }
 
-    throw new ValidationError('task_id 또는 all=true 중 하나는 필수입니다');
+    throw new ValidationError('Either task_id or all=true is required');
   }
 
   private async handleListTasks(args: unknown): Promise<ToolResult> {
@@ -307,7 +307,7 @@ export class ToolHandlers {
     return this.formatResult({
       key: input.key,
       scope: input.scope,
-      message: '컨텍스트가 저장되었습니다.',
+      message: 'Context saved.',
     });
   }
 
@@ -332,26 +332,26 @@ export class ToolHandlers {
 
 
   /**
-   * 의도 기반 에이전트 추천
-   * LLM이 사용자 요청을 분석하여 최적 에이전트를 선택합니다.
+   * Intent-based agent recommendation
+   * LLM analyzes user request to select the optimal agent.
    */
   private async handleSuggestAgent(args: unknown): Promise<ToolResult> {
     const input = SuggestAgentInputSchema.parse(args);
 
-    // IntentAnalyzer로 의도 분석
+    // Analyze intent with IntentAnalyzer
     const analysisResult = await this.intentAnalyzer.analyze(input.query);
     const { decision, confirmationMessage, options, isFeedbackRequest, feedbackType } = analysisResult;
 
-    // 0. 피드백/재시도 요청 처리
+    // 0. Handle feedback/retry requests
     if (isFeedbackRequest) {
       return this.handleFeedbackRequest(feedbackType, confirmationMessage, options);
     }
 
-    // 1. 명시적 멘션 또는 high confidence → 바로 추천
+    // 1. Explicit mention or high confidence -> recommend directly
     if (decision.confidence === 'high' && decision.agent) {
       const metadata = AGENT_METADATA[decision.agent];
 
-      // API 키 없으면 Claude Code 위임 안내
+      // Suggest Claude Code delegation if no API key
       if (!this.modelRouter.hasAvailableProvider(decision.agent)) {
         return this.formatResult({
           suggested_agent: decision.agent,
@@ -359,8 +359,8 @@ export class ToolHandlers {
           confidence: decision.confidence,
           reason: decision.reason,
           delegation_available: true,
-          message: `${metadata.name}이(가) 적합합니다. API 키가 없어 Claude Code가 직접 처리할 수 있습니다.`,
-          recommendation: `Claude Code를 이용하시겠어요? 또는 background_task(agent="${decision.agent}", prompt="...") 사용`,
+          message: `${metadata.name} is suitable. No API key available, so Claude Code can handle this directly.`,
+          recommendation: `Would you like Claude Code to handle this? Or use background_task(agent="${decision.agent}", prompt="...")`,
         });
       }
 
@@ -375,7 +375,7 @@ export class ToolHandlers {
       });
     }
 
-    // 2. 병렬 실행 요청
+    // 2. Parallel execution request
     if (decision.isParallel) {
       const parallelAgents = decision.alternatives?.map((alt) => ({
         agent: alt.agent,
@@ -389,11 +389,11 @@ export class ToolHandlers {
         confidence: decision.confidence,
         reason: decision.reason,
         parallel_agents: parallelAgents,
-        recommendation: '여러 에이전트를 병렬로 실행합니다. 각각 background_task를 호출하세요.',
+        recommendation: 'Running multiple agents in parallel. Call background_task for each.',
       });
     }
 
-    // 3. medium confidence → 확인 요청
+    // 3. Medium confidence -> request confirmation
     if (decision.confidence === 'medium' && decision.agent) {
       const metadata = AGENT_METADATA[decision.agent];
       return this.formatResult({
@@ -411,22 +411,22 @@ export class ToolHandlers {
           cost: AGENT_METADATA[alt.agent].cost,
         })),
         options: [
-          { label: '예', action: `background_task(agent="${decision.agent}", ...)` },
+          { label: 'Yes', action: `background_task(agent="${decision.agent}", ...)` },
           ...(decision.alternatives?.map((alt) => ({
             label: AGENT_METADATA[alt.agent].name,
             action: `background_task(agent="${alt.agent}", ...)`,
           })) || []),
-          { label: 'Claude Code가 직접 처리', action: 'Task tool 사용' },
+          { label: 'Let Claude Code handle it', action: 'Use Task tool' },
         ],
       });
     }
 
-    // 4. low confidence → 선택지 제공
+    // 4. Low confidence -> provide options
     return this.formatResult({
       suggested_agent: null,
       confidence: 'low',
       reason: decision.reason,
-      message: confirmationMessage || '어떤 에이전트가 도와드릴까요?',
+      message: confirmationMessage || 'Which agent would you like to help you?',
       available_agents: options?.map((opt) => ({
         agent: opt.agent,
         description: opt.description,
@@ -440,7 +440,7 @@ export class ToolHandlers {
   }
 
   /**
-   * 피드백/재시도 요청 처리
+   * Handle feedback/retry requests
    */
   private handleFeedbackRequest(
     feedbackType: 'retry_same' | 'retry_different' | 'modify' | undefined,
@@ -452,11 +452,11 @@ export class ToolHandlers {
         return this.formatResult({
           is_feedback_request: true,
           feedback_type: 'retry_same',
-          message: confirmationMessage || '이전과 같은 에이전트로 다시 시도합니다.',
-          recommendation: '이전 작업의 task_id를 사용하여 같은 에이전트에게 다시 요청하거나, 새로운 프롬프트로 background_task를 호출하세요.',
+          message: confirmationMessage || 'Retrying with the same agent.',
+          recommendation: 'Use the previous task_id to request again with the same agent, or call background_task with a new prompt.',
           actions: [
-            { label: '같은 프롬프트로 재시도', action: 'background_task(agent="<previous>", prompt="<same>")' },
-            { label: '수정된 프롬프트로 시도', action: 'background_task(agent="<previous>", prompt="<modified>")' },
+            { label: 'Retry with same prompt', action: 'background_task(agent="<previous>", prompt="<same>")' },
+            { label: 'Try with modified prompt', action: 'background_task(agent="<previous>", prompt="<modified>")' },
           ],
         });
 
@@ -464,31 +464,31 @@ export class ToolHandlers {
         return this.formatResult({
           is_feedback_request: true,
           feedback_type: 'retry_different',
-          message: confirmationMessage || '다른 에이전트로 시도해 볼까요?',
+          message: confirmationMessage || 'Would you like to try with a different agent?',
           available_agents: options || Object.entries(AGENT_METADATA).map(([role, meta]) => ({
             agent: role,
             description: getRoleDescription(role as AgentRole),
             cost: meta.cost,
           })),
-          recommendation: '아래 에이전트 중 하나를 선택하여 background_task를 호출하세요.',
+          recommendation: 'Select one of the agents below and call background_task.',
         });
 
       case 'modify':
         return this.formatResult({
           is_feedback_request: true,
           feedback_type: 'modify',
-          message: confirmationMessage || '이전 결과를 어떻게 수정할까요?',
-          recommendation: '수정 요청을 구체적으로 설명해주세요. 예: "더 자세히 설명해줘", "코드만 보여줘", "한국어로 번역해줘"',
+          message: confirmationMessage || 'How would you like to modify the previous result?',
+          recommendation: 'Please describe your modification request specifically. e.g., "explain in more detail", "show only the code", "translate to Korean"',
           actions: [
-            { label: '같은 에이전트에게 수정 요청', action: 'background_task(agent="<previous>", prompt="<수정 요청>")' },
-            { label: '다른 에이전트로 처리', action: 'suggest_agent로 다른 에이전트 추천받기' },
+            { label: 'Request modification from same agent', action: 'background_task(agent="<previous>", prompt="<modification request>")' },
+            { label: 'Process with different agent', action: 'Get recommendation with suggest_agent' },
           ],
         });
 
       default:
         return this.formatResult({
           is_feedback_request: true,
-          message: '어떤 도움이 필요하신가요?',
+          message: 'What kind of help do you need?',
           available_agents: Object.entries(AGENT_METADATA).map(([role, meta]) => ({
             agent: role,
             description: getRoleDescription(role as AgentRole),

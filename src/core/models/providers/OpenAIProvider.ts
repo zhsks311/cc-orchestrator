@@ -43,7 +43,7 @@ export class OpenAIProvider {
     maxTokens?: number;
   }): Promise<ModelResponse> {
     try {
-      // GPT-5+ 시리즈는 max_completion_tokens 사용
+      // GPT-5+ series uses max_completion_tokens
       const isGpt5Series = params.model.startsWith('gpt-5');
       const tokenParam = isGpt5Series
         ? { max_completion_tokens: params.maxTokens ?? 4000 }

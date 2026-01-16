@@ -1,15 +1,15 @@
-# cc-orch
+# cc-orchestrator
 
-One-line installer for [CC Orchestrator](https://github.com/zhsks311/cc-orchestrator) - Multi-model orchestration for Claude Code.
+One-line installer for [CC Orchestrator](https://github.com/zhsks311/cc-orchestratorestrator) - Multi-model orchestration for Claude Code.
 
 ## Quick Start
 
 ```bash
-npx cc-orch
+npx cc-orchestrator
 ```
 
 That's it! The installer will:
-1. Clone the repository to `~/.cc-orchestrator`
+1. Clone the repository to `~/.cc-orchestratorestrator`
 2. Install dependencies
 3. Run the interactive setup wizard
 4. Configure Claude Code automatically
@@ -17,34 +17,34 @@ That's it! The installer will:
 ## Usage
 
 ```bash
-# Install to default location (~/.cc-orchestrator)
-npx cc-orch
+# Install to default location (~/.cc-orchestratorestrator)
+npx cc-orchestrator
 
 # Install to custom directory
-npx cc-orch ./my-cco
+npx cc-orchestrator ./my-cco
 
 # Update existing installation
-npx cc-orch --upgrade
+npx cc-orchestrator --upgrade
 
 # Force reinstall all components
-npx cc-orch --force
+npx cc-orchestrator --force
 ```
 
 ## After Installation
 
 1. **Restart Claude Code**
 2. Try using the orchestrator:
-   - `"oracle한테 이 프로젝트 리뷰해달라고 해"`
-   - `"librarian한테 React Query 사용법 찾아줘"`
+   - `"ask arch to review this project"`
+   - `"ask index to find React Query usage examples"`
 
 ## Update
 
 ```bash
 # Option 1: Use npx
-npx cc-orch --upgrade
+npx cc-orchestrator --upgrade
 
 # Option 2: Use npm script
-cd ~/.cc-orchestrator
+cd ~/.cc-orchestratorestrator
 npm run update
 ```
 

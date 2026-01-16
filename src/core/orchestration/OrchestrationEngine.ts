@@ -1,6 +1,6 @@
 /**
  * Orchestration Engine
- * DAG 기반 워크플로우 실행, 의존성 관리, 결과 집계
+ * DAG-based workflow execution, dependency management, result aggregation
  */
 
 import { IAgentManager } from '../agents/AgentManager.js';
@@ -56,7 +56,7 @@ export class OrchestrationEngine implements IOrchestrationEngine {
   async createOrchestration(params: OrchestrationParams): Promise<Orchestration> {
     const orchestrationId = `orch-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-    // 실행 계획 생성 (preferredRoles 또는 기본값 사용)
+    // Create execution plan (using preferredRoles or defaults)
     const executionPlan = this.createExecutionPlan(
       params.goal,
       params.preferredRoles,
@@ -96,12 +96,12 @@ export class OrchestrationEngine implements IOrchestrationEngine {
     orchestration.status = OrchestrationStatus.EXECUTING;
 
     try {
-      // DAG 기반 실행: 의존성 없는 스테이지들은 병렬 실행
+      // DAG-based execution: stages without dependencies run in parallel
       const executedStages = new Set<string>();
       const stageAgentMap = new Map<string, string>();
 
       while (executedStages.size < orchestration.executionPlan.stages.length) {
-        // 실행 가능한 스테이지 찾기 (모든 의존성이 완료된 것)
+        // Find executable stages (all dependencies completed)
         const readyStages = orchestration.executionPlan.stages.filter(
           (stage) =>
             !executedStages.has(stage.id) &&
@@ -112,7 +112,7 @@ export class OrchestrationEngine implements IOrchestrationEngine {
           throw new Error('Circular dependency detected in execution plan');
         }
 
-        // 준비된 스테이지들 병렬 실행
+        // Execute ready stages in parallel
         const stagePromises = readyStages.map(async (stage) => {
           const result = await this.executeStage(orchestration, stage, stageAgentMap);
           executedStages.add(stage.id);
@@ -121,14 +121,14 @@ export class OrchestrationEngine implements IOrchestrationEngine {
 
         const results = await Promise.all(stagePromises);
 
-        // 결과 저장
+        // Save results
         const resultsMap = this.stageResults.get(orchestrationId)!;
         for (const result of results) {
           resultsMap.set(result.stageId, result);
           orchestration.agentIds.push(result.agentId);
           stageAgentMap.set(result.stageId, result.agentId);
 
-          // 컨텍스트에 스테이지 결과 공유 (다음 스테이지에서 사용 가능)
+          // Share stage result to context (available for next stages)
           if (result.result) {
             await this.contextStore.set({
               key: `stage_result:${result.stageId}`,
@@ -141,7 +141,7 @@ export class OrchestrationEngine implements IOrchestrationEngine {
         }
       }
 
-      // 최종 결과 집계
+      // Aggregate final results
       orchestration.status = OrchestrationStatus.COMPLETED;
       orchestration.completedAt = new Date();
       orchestration.totalExecutionTimeMs = Date.now() - startTime;
@@ -193,7 +193,7 @@ export class OrchestrationEngine implements IOrchestrationEngine {
       role: stage.role,
     });
 
-    // 이전 스테이지 결과를 컨텍스트로 수집
+    // Collect previous stage results as context
     const dependencyResults: Record<string, unknown> = {};
     for (const depId of stage.dependsOn) {
       const resultsMap = this.stageResults.get(orchestration.id);
@@ -203,7 +203,7 @@ export class OrchestrationEngine implements IOrchestrationEngine {
       }
     }
 
-    // 에이전트 생성 및 실행
+    // Create and execute agent
     const agent = await this.agentManager.createAgent({
       role: stage.role,
       task: stage.task,
@@ -218,7 +218,7 @@ export class OrchestrationEngine implements IOrchestrationEngine {
       sessionId: orchestration.sessionId,
     });
 
-    // 완료 대기
+    // Wait for completion
     const waitResult = await this.agentManager.waitForCompletion(agent.id, 300000);
 
     return {
@@ -242,7 +242,7 @@ export class OrchestrationEngine implements IOrchestrationEngine {
       throw new Error(`Orchestration not found: ${orchestrationId}`);
     }
 
-    // 모든 실행 중인 에이전트 취소
+    // Cancel all running agents
     for (const agentId of orchestration.agentIds) {
       try {
         await this.agentManager.cancelAgent(agentId);
@@ -271,10 +271,10 @@ export class OrchestrationEngine implements IOrchestrationEngine {
     let stages: Stage[];
 
     if (preferredRoles && preferredRoles.length > 0) {
-      // 사용자 지정 역할 사용 (병렬 실행)
+      // Use user-specified roles (parallel execution)
       stages = preferredRoles.map((role, index) => ({
         id: `stage-${index + 1}`,
-        name: `${getRoleDescription(role)} 실행`,
+        name: `${getRoleDescription(role)} execution`,
         role,
         task: goal,
         dependsOn: [],
@@ -282,10 +282,10 @@ export class OrchestrationEngine implements IOrchestrationEngine {
         priority: Priority.MEDIUM,
       }));
     } else {
-      // 기본: Arch만 사용
+      // Default: use Arch only
       stages = [{
         id: 'stage-1',
-        name: 'Arch 분석',
+        name: 'Arch analysis',
         role: AgentRole.ARCH,
         task: goal,
         dependsOn: [],
@@ -294,9 +294,9 @@ export class OrchestrationEngine implements IOrchestrationEngine {
       }];
     }
 
-    // 품질 레벨에 따른 조정
+    // Adjust based on quality level
     if (qualityLevel === 'thorough') {
-      // thorough 모드: 모든 스테이지를 순차 실행으로 변경
+      // Thorough mode: convert all stages to sequential execution
       stages = stages.map((stage, index) => {
         const prevStage = index > 0 ? stages[index - 1] : null;
         return {
@@ -333,7 +333,7 @@ export class OrchestrationEngine implements IOrchestrationEngine {
       thorough: 30000,
     };
 
-    // 병렬 실행 가능한 스테이지 그룹 수 계산
+    // Calculate number of parallelizable stage groups
     const parallelGroups = this.countParallelGroups(stages);
     return parallelGroups * baseTimePerStage[qualityLevel];
   }

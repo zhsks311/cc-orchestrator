@@ -8,30 +8,30 @@ import { AgentRole, AgentStatus, Priority, ContextScope } from '../../types/inde
 
 // background_task (was spawn_agent)
 export const BackgroundTaskInputSchema = z.object({
-  agent: z.nativeEnum(AgentRole).describe('실행할 에이전트 (arch, index, canvas, quill, lens, scout)'),
-  prompt: z.string().min(1).max(10000).describe('에이전트에게 전달할 작업 프롬프트'),
-  description: z.string().min(1).max(200).optional().describe('작업에 대한 짧은 설명 (추적용)'),
-  priority: z.nativeEnum(Priority).optional().default(Priority.MEDIUM).describe('작업 우선순위'),
+  agent: z.nativeEnum(AgentRole).describe('Agent to execute (arch, index, canvas, quill, lens, scout)'),
+  prompt: z.string().min(1).max(10000).describe('Task prompt to send to the agent'),
+  description: z.string().min(1).max(200).optional().describe('Short description of the task (for tracking)'),
+  priority: z.nativeEnum(Priority).optional().default(Priority.MEDIUM).describe('Task priority'),
 });
 
 export type BackgroundTaskInput = z.infer<typeof BackgroundTaskInputSchema>;
 
 // background_output (was wait_agent + check_agent merged)
 export const BackgroundOutputInputSchema = z.object({
-  task_id: z.string().uuid().describe('확인할 작업 ID'),
-  block: z.boolean().optional().default(false).describe('true: 완료까지 대기, false: 즉시 현재 상태 반환 (기본값)'),
-  timeout_ms: z.number().min(1000).max(600000).optional().default(300000).describe('block=true일 때 최대 대기 시간 (ms)'),
+  task_id: z.string().uuid().describe('Task ID to check'),
+  block: z.boolean().optional().default(false).describe('true: wait until completion, false: return current status immediately (default)'),
+  timeout_ms: z.number().min(1000).max(600000).optional().default(300000).describe('Maximum wait time when block=true (ms)'),
 });
 
 export type BackgroundOutputInput = z.infer<typeof BackgroundOutputInputSchema>;
 
 // background_cancel (was cancel_agent)
 export const BackgroundCancelInputSchema = z.object({
-  task_id: z.string().uuid().optional().describe('취소할 특정 작업 ID'),
-  all: z.boolean().optional().default(false).describe('true: 모든 실행 중인 작업 취소'),
+  task_id: z.string().uuid().optional().describe('Specific task ID to cancel'),
+  all: z.boolean().optional().default(false).describe('true: cancel all running tasks'),
 }).refine(
   (data) => data.task_id || data.all,
-  { message: 'task_id 또는 all=true 중 하나는 필수입니다' }
+  { message: 'Either task_id or all=true is required' }
 );
 
 export type BackgroundCancelInput = z.infer<typeof BackgroundCancelInputSchema>;
@@ -46,20 +46,20 @@ export const ListTasksInputSchema = z.object({
 
 export type ListTasksInput = z.infer<typeof ListTasksInputSchema>;
 
-// share_context (유지)
+// share_context (maintained)
 export const ShareContextInputSchema = z.object({
-  key: z.string().min(1).max(256).describe('컨텍스트 키'),
-  value: z.unknown().describe('저장할 값'),
-  scope: z.nativeEnum(ContextScope).optional().default(ContextScope.SESSION).describe('공유 범위'),
-  ttl_seconds: z.number().min(60).max(86400).optional().describe('만료 시간 (초)'),
+  key: z.string().min(1).max(256).describe('Context key'),
+  value: z.unknown().describe('Value to store'),
+  scope: z.nativeEnum(ContextScope).optional().default(ContextScope.SESSION).describe('Sharing scope'),
+  ttl_seconds: z.number().min(60).max(86400).optional().describe('Expiration time (seconds)'),
 });
 
 export type ShareContextInput = z.infer<typeof ShareContextInputSchema>;
 
 // get_context (was get_shared_context)
 export const GetContextInputSchema = z.object({
-  key: z.string().min(1).max(256).describe('조회할 컨텍스트 키'),
-  scope: z.nativeEnum(ContextScope).optional().default(ContextScope.SESSION).describe('조회 범위'),
+  key: z.string().min(1).max(256).describe('Context key to retrieve'),
+  scope: z.nativeEnum(ContextScope).optional().default(ContextScope.SESSION).describe('Query scope'),
 });
 
 export type GetContextInput = z.infer<typeof GetContextInputSchema>;

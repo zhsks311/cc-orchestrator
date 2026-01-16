@@ -40,14 +40,16 @@ class AutoRecoveryEngine:
 
         조건:
         1. max_age_hours 이내에 업데이트됨
-        2. 같은 작업 디렉토리 (있는 경우)
+        2. 같은 작업 디렉토리 우선 (있는 경우)
+        3. 의미있는 컨텐츠가 있는 세션만
         """
         sessions = self.manager.list_sessions()
         if not sessions:
             return None
 
         cutoff = datetime.now() - timedelta(hours=max_age_hours)
-        candidates = []
+        same_cwd_candidates = []
+        other_candidates = []
 
         for session_id in sessions:
             context = self.manager.load(session_id)
@@ -55,29 +57,45 @@ class AutoRecoveryEngine:
                 continue
 
             # 업데이트 시간 확인
-            if context.updated_at:
-                try:
-                    updated = datetime.fromisoformat(context.updated_at)
-                    if updated < cutoff:
-                        continue
-                except ValueError:
+            if not context.updated_at:
+                continue
+            try:
+                updated = datetime.fromisoformat(context.updated_at)
+                if updated < cutoff:
                     continue
+            except ValueError:
+                continue
 
-            # 작업 디렉토리 매칭 (있는 경우)
+            # 의미있는 컨텐츠가 있는지 확인
+            has_meaningful_content = bool(
+                context.user_intent or
+                context.key_decisions or
+                context.pending_tasks or
+                context.active_files
+            )
+            if not has_meaningful_content:
+                continue
+
+            # 작업 디렉토리 매칭 여부에 따라 분류
+            candidate = (session_id, context, updated)
             if current_cwd and context.working_directory:
                 if self._normalize_path(context.working_directory) == self._normalize_path(current_cwd):
-                    # 같은 디렉토리면 높은 우선순위
-                    candidates.insert(0, (session_id, context))
+                    same_cwd_candidates.append(candidate)
                 else:
-                    candidates.append((session_id, context))
+                    other_candidates.append(candidate)
             else:
-                candidates.append((session_id, context))
+                other_candidates.append(candidate)
 
-        if not candidates:
-            return None
+        # updated_at 기준 내림차순 정렬 (최신 먼저)
+        same_cwd_candidates.sort(key=lambda x: x[2], reverse=True)
+        other_candidates.sort(key=lambda x: x[2], reverse=True)
 
-        # 가장 최근 업데이트된 세션 반환
-        return candidates[0][0]
+        # 같은 CWD 세션 우선, 없으면 다른 세션
+        if same_cwd_candidates:
+            return same_cwd_candidates[0][0]
+        if other_candidates:
+            return other_candidates[0][0]
+        return None
 
     def _normalize_path(self, path: str) -> str:
         """경로 정규화"""

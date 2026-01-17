@@ -131,7 +131,7 @@ function removeLocalFiles() {
   if (deleteFolderRecursive(path.join(rootDir, 'node_modules'))) console.log('  Removed: node_modules/');
 }
 
-function removeClaudeConfig() {
+function removeClaudeConfig(removeSerenaFlag = false) {
   // IMPORTANT: Clean settings.json FIRST to prevent hook errors
   console.log('\n[Settings] Cleaning hooks from settings.json...');
   if (cleanSettingsJson()) {
@@ -190,6 +190,7 @@ function removeClaudeConfig() {
       const content = fs.readFileSync(claudeDesktopConfigPath, 'utf8');
       const cfg = JSON.parse(content);
       let removed = false;
+      let serenaRemoved = false;
       if (cfg.mcpServers) {
         if (cfg.mcpServers['cc-orchestrator']) {
           delete cfg.mcpServers['cc-orchestrator'];
@@ -199,10 +200,16 @@ function removeClaudeConfig() {
           delete cfg.mcpServers['ccmo'];
           removed = true;
         }
+        // Also remove Serena if it was installed by us
+        if (cfg.mcpServers['serena'] && removeSerenaFlag) {
+          delete cfg.mcpServers['serena'];
+          serenaRemoved = true;
+        }
       }
-      if (removed) {
+      if (removed || serenaRemoved) {
         fs.writeFileSync(claudeDesktopConfigPath, JSON.stringify(cfg, null, 2));
-        console.log('  Removed: cc-orchestrator/ccmo from desktop config');
+        if (removed) console.log('  Removed: cc-orchestrator/ccmo from desktop config');
+        if (serenaRemoved) console.log('  Removed: serena from desktop config');
       } else {
         console.log('  Not found: cc-orchestrator in desktop config');
       }
@@ -212,11 +219,26 @@ function removeClaudeConfig() {
   }
 }
 
+// Check if Serena is installed
+function checkSerenaInstalled() {
+  try {
+    if (fs.existsSync(claudeDesktopConfigPath)) {
+      const cfg = JSON.parse(fs.readFileSync(claudeDesktopConfigPath, 'utf8'));
+      return !!(cfg.mcpServers?.serena);
+    }
+  } catch (e) { }
+  return false;
+}
+
 async function main() {
   console.log('\n=== CC Orchestrator Uninstall ===\n');
 
   let removeLocal = false;
   let removeClaudeConfigFlag = false;
+  let removeSerena = false;
+
+  // Check if Serena is installed
+  const serenaInstalled = checkSerenaInstalled();
 
   if (forceMode) {
     // Non-interactive mode
@@ -226,10 +248,12 @@ async function main() {
       console.log('Mode: Local only');
     } else if (claudeOnly) {
       removeClaudeConfigFlag = true;
+      removeSerena = serenaInstalled; // Remove Serena too in force mode
       console.log('Mode: Claude config only');
     } else {
       removeLocal = true;
       removeClaudeConfigFlag = true;
+      removeSerena = serenaInstalled; // Remove Serena too in force mode
       console.log('Mode: Full uninstall');
     }
   } else {
@@ -239,7 +263,12 @@ async function main() {
     console.log('  2. Hooks: ~/.claude/hooks/ (CC Orchestrator files)');
     console.log('  3. Skills: ~/.claude/skills/orchestrate/');
     console.log('  4. Settings: ~/.claude/settings.json (CC Orchestrator hooks)');
-    console.log('  5. Desktop Config: cc-orchestrator entry\n');
+    console.log('  5. Desktop Config: cc-orchestrator entry');
+    if (serenaInstalled) {
+      console.log('  6. Serena MCP: serena entry (optional)\n');
+    } else {
+      console.log('');
+    }
 
     console.log('Options:');
     console.log('  1. Full uninstall (all components)');
@@ -256,6 +285,12 @@ async function main() {
       default: console.log('\nCancelled.\n'); rl.close(); return;
     }
 
+    // Ask about Serena removal if it's installed and we're removing Claude config
+    if (serenaInstalled && removeClaudeConfigFlag) {
+      const serenaChoice = await question('\nAlso remove Serena MCP? (y/N): ');
+      removeSerena = serenaChoice.toLowerCase() === 'y';
+    }
+
     const confirm = await question('\nProceed? (yes/no): ');
     if (confirm.toLowerCase() !== 'yes' && confirm.toLowerCase() !== 'y') {
       console.log('\nCancelled.\n');
@@ -269,7 +304,7 @@ async function main() {
   // IMPORTANT: Remove Claude config FIRST (settings before hooks)
   // This prevents hook errors during uninstall
   if (removeClaudeConfigFlag) {
-    removeClaudeConfig();
+    removeClaudeConfig(removeSerena);
   }
 
   if (removeLocal) {

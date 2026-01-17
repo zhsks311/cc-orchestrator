@@ -63,9 +63,14 @@ def is_frontend_file(file_path: str, config: Dict[str, Any]) -> bool:
 
     # Check excluded directories
     path_lower = file_path.lower().replace('\\', '/')
+    # Normalize path: strip leading slash for consistent matching
+    path_normalized = path_lower.lstrip('/')
     exclude_dirs = config.get("file_patterns", {}).get("exclude_dirs", EXCLUDED_DIRS)
     for excluded in exclude_dirs:
-        if f"/{excluded}/" in path_lower or path_lower.startswith(f"{excluded}/"):
+        excluded_lower = excluded.lower()
+        if (f"/{excluded_lower}/" in path_lower or
+            path_normalized.startswith(f"{excluded_lower}/") or
+            path_normalized == excluded_lower):
             return False
 
     # Check file extension patterns
@@ -82,18 +87,29 @@ def is_frontend_file(file_path: str, config: Dict[str, Any]) -> bool:
 
 def is_port_open(host: str, port: int, timeout_ms: int = 500) -> bool:
     """Quick TCP port check"""
+    sock = None
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.settimeout(timeout_ms / 1000)
         result = sock.connect_ex((host, port))
-        sock.close()
         return result == 0
     except Exception:
         return False
+    finally:
+        if sock:
+            try:
+                sock.close()
+            except Exception:
+                pass
 
 
 def detect_dev_server(cwd: str, config: Dict[str, Any]) -> Optional[str]:
-    """Detect running dev server URL"""
+    """Detect running dev server URL.
+
+    Args:
+        cwd: Working directory (reserved for future package.json detection)
+        config: Configuration dict with dev_server settings
+    """
     dev_config = config.get("dev_server", {})
 
     # Check explicit URL first
@@ -178,13 +194,33 @@ def build_qa_instruction(file_path: str, dev_url: str, config: Dict[str, Any]) -
 
 
 def check_debounce(session_id: str, config: Dict[str, Any]) -> bool:
-    """Check if we should skip due to debounce (returns True if should skip)"""
+    """Check if we should skip due to debounce or max triggers (returns True if should skip)"""
     auto_config = config.get("auto_trigger", {})
     if not auto_config.get("enabled", True):
         return True
 
+    # Check max triggers per session
+    max_triggers = auto_config.get("max_triggers_per_session", 0)
+    if max_triggers > 0:
+        counter_file = HOOKS_DIR / "logs" / f".ui_qa_counter_{session_id[:8]}"
+        try:
+            counter_file.parent.mkdir(parents=True, exist_ok=True)
+            current_count = 0
+            if counter_file.exists():
+                current_count = int(counter_file.read_text().strip() or "0")
+
+            if current_count >= max_triggers:
+                log(f"Max triggers reached: {current_count}/{max_triggers}")
+                return True
+
+            # Increment counter (will be written after debounce check passes)
+        except Exception as e:
+            log(f"Counter error: {e}")
+
     debounce_seconds = auto_config.get("debounce_seconds", 5)
     if debounce_seconds <= 0:
+        # Still increment counter if max_triggers is set
+        _increment_trigger_counter(session_id, config)
         return False
 
     # Simple file-based debounce
@@ -203,7 +239,29 @@ def check_debounce(session_id: str, config: Dict[str, Any]) -> bool:
     except Exception as e:
         log(f"Debounce error: {e}")
 
+    # Increment counter after successful debounce check
+    _increment_trigger_counter(session_id, config)
+
     return False
+
+
+def _increment_trigger_counter(session_id: str, config: Dict[str, Any]) -> None:
+    """Increment the session trigger counter"""
+    auto_config = config.get("auto_trigger", {})
+    max_triggers = auto_config.get("max_triggers_per_session", 0)
+    if max_triggers <= 0:
+        return
+
+    counter_file = HOOKS_DIR / "logs" / f".ui_qa_counter_{session_id[:8]}"
+    try:
+        counter_file.parent.mkdir(parents=True, exist_ok=True)
+        current_count = 0
+        if counter_file.exists():
+            current_count = int(counter_file.read_text().strip() or "0")
+        counter_file.write_text(str(current_count + 1))
+        log(f"Trigger count: {current_count + 1}/{max_triggers}")
+    except Exception as e:
+        log(f"Counter increment error: {e}")
 
 
 def main():

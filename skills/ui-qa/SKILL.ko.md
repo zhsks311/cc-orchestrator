@@ -12,7 +12,7 @@ tags: [ui, qa, visual-testing, accessibility, browser, claude-in-chrome]
 
 ## 사용법
 
-```
+```text
 /ui-qa [url]
 ```
 
@@ -22,7 +22,7 @@ tags: [ui, qa, visual-testing, accessibility, browser, claude-in-chrome]
 
 ## 예시
 
-```
+```text
 /ui-qa
 /ui-qa http://localhost:3000
 /ui-qa http://localhost:5173/dashboard
@@ -55,7 +55,7 @@ tags: [ui, qa, visual-testing, accessibility, browser, claude-in-chrome]
 
 ### 3단계: 브라우저 탭 획득
 
-```
+```text
 mcp__claude-in-chrome__tabs_context_mcp 호출:
   createIfEmpty: true
 ```
@@ -64,7 +64,7 @@ mcp__claude-in-chrome__tabs_context_mcp 호출:
 
 ### 4단계: URL로 이동
 
-```
+```text
 mcp__claude-in-chrome__navigate 호출:
   url: <감지된 또는 제공된 URL>
   tabId: <3단계에서 획득>
@@ -72,7 +72,7 @@ mcp__claude-in-chrome__navigate 호출:
 
 ### 5단계: 페이지 로드 대기
 
-```
+```text
 mcp__claude-in-chrome__computer 호출:
   action: "wait"
   duration: 3
@@ -81,7 +81,7 @@ mcp__claude-in-chrome__computer 호출:
 
 ### 6단계: 스크린샷 촬영
 
-```
+```text
 mcp__claude-in-chrome__computer 호출:
   action: "screenshot"
   tabId: <3단계에서 획득>
@@ -91,7 +91,7 @@ mcp__claude-in-chrome__computer 호출:
 
 ### 7단계: 멀티모달 에이전트로 UI 분석
 
-```
+```text
 mcp__ccmo__background_task 호출:
   agent: "multimodal-analyzer"
   description: "UI QA 분석"
@@ -109,7 +109,7 @@ mcp__ccmo__background_task 호출:
 
 ### 8단계: 분석 결과 대기
 
-```
+```text
 mcp__ccmo__background_output 호출:
   task_id: <7단계에서 획득>
   block: true
@@ -184,12 +184,12 @@ UI QA 기능은 `~/.claude/hooks/ui_qa_config.json`에서 설정할 수 있습�
 ## 팁
 
 1. **특정 페이지 테스트**: 전체 URL을 제공하여 특정 라우트 테스트
-   ```
+   ```text
    /ui-qa http://localhost:3000/login
    ```
 
 2. **변경 후 검증**: 시각적 변경 후 UI QA를 실행하여 확인
-   ```
+   ```text
    /ui-qa
    ```
 

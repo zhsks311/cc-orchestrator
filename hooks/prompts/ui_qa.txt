@@ -46,6 +46,9 @@ Provide your analysis in this structure:
 ### Accessibility
 - [List findings or "No issues found"]
 
+### Responsive Design
+- [List findings or "No issues found"]
+
 ### Recommendations
 1. [Priority recommendation]
 2. [Secondary recommendation]

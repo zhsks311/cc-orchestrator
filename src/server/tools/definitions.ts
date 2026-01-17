@@ -188,6 +188,84 @@ Recommended to use all=true for cleanup after task completion.`,
       required: ['query'],
     },
   },
+  {
+    name: 'ast_search',
+    description: `Search code using AST (Abstract Syntax Tree) patterns. More precise than text search.
+
+Pattern syntax:
+- Literal code: "console.log($MSG)" matches any console.log call
+- $VAR: Matches a single AST node (variable, expression, etc.)
+- $$$: Matches zero or more nodes (for arguments, statements)
+
+Examples:
+- "function $NAME($$$ARGS) { $$$BODY }" - Find all function declarations
+- "if ($COND) { $$$BODY }" - Find all if statements
+- "$OBJ.$METHOD($$$)" - Find all method calls
+
+Supported languages: typescript, javascript, python, rust, go, java, c, cpp, ruby, swift, kotlin, and more.`,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        pattern: {
+          type: 'string',
+          description: 'AST pattern to search for (use $VAR for wildcards, $$$ for multiple nodes)',
+        },
+        path: {
+          type: 'string',
+          description: 'File or directory path to search in',
+        },
+        language: {
+          type: 'string',
+          description: 'Programming language (auto-detected from file extension if not specified)',
+        },
+        max_results: {
+          type: 'number',
+          description: 'Maximum number of results to return (default: 100)',
+        },
+      },
+      required: ['pattern', 'path'],
+    },
+  },
+  {
+    name: 'ast_replace',
+    description: `Replace code using AST patterns. Safer than text replacement - respects code structure.
+
+Pattern syntax (same as ast_search):
+- $VAR: Captured node, can be used in replacement
+- $$$: Multiple nodes
+
+Examples:
+- pattern: "console.log($MSG)", replacement: "logger.info($MSG)"
+- pattern: "var $NAME = $VAL", replacement: "const $NAME = $VAL"
+
+Use dry_run=true to preview changes without modifying files.`,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        pattern: {
+          type: 'string',
+          description: 'AST pattern to match',
+        },
+        replacement: {
+          type: 'string',
+          description: 'Replacement code (can use $VAR to reference captured nodes)',
+        },
+        path: {
+          type: 'string',
+          description: 'File or directory path',
+        },
+        language: {
+          type: 'string',
+          description: 'Programming language (auto-detected if not specified)',
+        },
+        dry_run: {
+          type: 'boolean',
+          description: 'Preview changes without writing to files (default: true)',
+        },
+      },
+      required: ['pattern', 'replacement', 'path'],
+    },
+  },
 ];
 
 export function getToolDefinitions(): Tool[] {

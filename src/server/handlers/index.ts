@@ -21,7 +21,10 @@ import {
   ShareContextInputSchema,
   GetContextInputSchema,
   SuggestAgentInputSchema,
+  AstSearchInputSchema,
+  AstReplaceInputSchema,
 } from '../tools/schemas.js';
+import { getAstGrepService } from '../../core/ast/index.js';
 import {
   getRoleDescription,
   AGENT_METADATA,
@@ -75,6 +78,10 @@ export class ToolHandlers {
           return await this.handleGetContext(args);
         case 'suggest_agent':
           return await this.handleSuggestAgent(args);
+        case 'ast_search':
+          return await this.handleAstSearch(args);
+        case 'ast_replace':
+          return await this.handleAstReplace(args);
         default:
           throw new ValidationError(`Unknown tool: ${name}`);
       }
@@ -496,6 +503,67 @@ export class ToolHandlers {
           })),
         });
     }
+  }
+
+  /**
+   * AST-based code search
+   */
+  private async handleAstSearch(args: unknown): Promise<ToolResult> {
+    const input = AstSearchInputSchema.parse(args);
+    const astService = getAstGrepService();
+
+    const results = await astService.search(input.pattern, {
+      path: input.path,
+      language: input.language,
+      maxResults: input.max_results,
+    });
+
+    return this.formatResult({
+      pattern: input.pattern,
+      path: input.path,
+      language: input.language || 'auto-detected',
+      total_matches: results.length,
+      matches: results.map((r) => ({
+        file: r.file,
+        line: r.line,
+        column: r.column,
+        matched_text: r.matchedText,
+        context: r.context,
+      })),
+    });
+  }
+
+  /**
+   * AST-based code replacement
+   */
+  private async handleAstReplace(args: unknown): Promise<ToolResult> {
+    const input = AstReplaceInputSchema.parse(args);
+    const astService = getAstGrepService();
+
+    const results = await astService.replace(input.pattern, input.replacement, {
+      path: input.path,
+      language: input.language,
+      dryRun: input.dry_run,
+    });
+
+    const totalReplacements = results.reduce((sum, r) => sum + r.replacements, 0);
+
+    return this.formatResult({
+      pattern: input.pattern,
+      replacement: input.replacement,
+      path: input.path,
+      dry_run: input.dry_run,
+      total_files_modified: results.length,
+      total_replacements: totalReplacements,
+      files: results.map((r) => ({
+        file: r.file,
+        replacements: r.replacements,
+        preview: r.preview,
+      })),
+      message: input.dry_run
+        ? `Dry run: ${totalReplacements} replacement(s) would be made in ${results.length} file(s). Set dry_run=false to apply.`
+        : `Applied ${totalReplacements} replacement(s) in ${results.length} file(s).`,
+    });
   }
 
   private formatResult(data: unknown): ToolResult {

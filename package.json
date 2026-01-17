@@ -33,6 +33,7 @@
   "homepage": "https://github.com/zhsks311/cc-orchestrator#readme",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
+    "@ast-grep/napi": "^0.31.0",
     "@google/generative-ai": "^0.21.0",
     "@modelcontextprotocol/sdk": "^1.0.0",
     "dotenv": "^17.2.3",

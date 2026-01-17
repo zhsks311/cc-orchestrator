@@ -8,8 +8,25 @@ from dataclasses import dataclass
 from typing import List, Dict, Any, Optional
 from pathlib import Path
 import json
+import sys
+import hashlib
 
-from state_manager import get_state_manager, StateManager
+
+def _log_error(message: str) -> None:
+    """Log error to stderr (non-blocking)"""
+    try:
+        print(f"[TodoEnforcer] {message}", file=sys.stderr)
+    except Exception:
+        pass
+
+
+def _get_session_hash(session_id: str) -> str:
+    """Generate filesystem-safe hash from session_id to avoid collisions.
+
+    Uses SHA256 and takes first 16 chars for sufficient uniqueness
+    while keeping filenames reasonable.
+    """
+    return hashlib.sha256(session_id.encode()).hexdigest()[:16]
 
 
 @dataclass
@@ -40,8 +57,8 @@ class TodoEnforcer:
     BLOCK_COMPACT_THRESHOLD = 0  # Block compact if any incomplete tasks
     WARNING_THRESHOLD = 0  # Warn if any incomplete tasks
 
-    def __init__(self, state_manager: StateManager = None):
-        self.state_manager = state_manager or get_state_manager()
+    def __init__(self):
+        pass
 
     def analyze_todos(self, session_id: str, todos: List[Dict[str, Any]]) -> IncompleteTasksReport:
         """
@@ -157,27 +174,30 @@ class TodoEnforcer:
         in_progress: List[str]
     ):
         """Save incomplete task state for recovery"""
-        state_file = Path(__file__).parent / "state" / f"incomplete_{session_id[:8]}.json"
+        session_hash = _get_session_hash(session_id)
+        state_file = Path(__file__).parent / "state" / f"incomplete_{session_hash}.json"
         state_file.parent.mkdir(parents=True, exist_ok=True)
 
         try:
             state = {
                 "session_id": session_id,
+                "session_hash": session_hash,
                 "pending_tasks": pending,
                 "in_progress_tasks": in_progress,
                 "total_incomplete": len(pending) + len(in_progress)
             }
             with open(state_file, "w", encoding="utf-8") as f:
                 json.dump(state, f, ensure_ascii=False, indent=2)
-        except Exception:
-            pass  # Non-critical operation
+        except Exception as e:
+            _log_error(f"Failed to save incomplete state: {e}")
 
     def get_recovery_prompt(self, session_id: str) -> Optional[str]:
         """
         Get recovery prompt for incomplete tasks from previous session
         Used by SessionStart hook to restore context
         """
-        state_file = Path(__file__).parent / "state" / f"incomplete_{session_id[:8]}.json"
+        session_hash = _get_session_hash(session_id)
+        state_file = Path(__file__).parent / "state" / f"incomplete_{session_hash}.json"
 
         if not state_file.exists():
             return None
@@ -215,19 +235,28 @@ class TodoEnforcer:
 
             return "\n".join(lines)
 
-        except Exception:
+        except Exception as e:
+            _log_error(f"Failed to get recovery prompt: {e}")
             return None
 
     def clear_incomplete_state(self, session_id: str):
         """Clear incomplete state after all tasks are completed"""
-        state_file = Path(__file__).parent / "state" / f"incomplete_{session_id[:8]}.json"
+        session_hash = _get_session_hash(session_id)
+        state_file = Path(__file__).parent / "state" / f"incomplete_{session_hash}.json"
         try:
             if state_file.exists():
                 state_file.unlink()
-        except Exception:
-            pass
+        except Exception as e:
+            _log_error(f"Failed to clear incomplete state: {e}")
+
+
+# Singleton instance
+_enforcer_instance: Optional[TodoEnforcer] = None
 
 
 def get_todo_enforcer() -> TodoEnforcer:
     """Get singleton TodoEnforcer instance"""
-    return TodoEnforcer()
+    global _enforcer_instance
+    if _enforcer_instance is None:
+        _enforcer_instance = TodoEnforcer()
+    return _enforcer_instance

@@ -226,7 +226,9 @@ function checkSerenaInstalled() {
       const cfg = JSON.parse(fs.readFileSync(claudeDesktopConfigPath, 'utf8'));
       return !!(cfg.mcpServers?.serena);
     }
-  } catch (e) { }
+  } catch (e) {
+    console.log('  Warning: Could not read desktop config:', e.message);
+  }
   return false;
 }
 
@@ -288,7 +290,7 @@ async function main() {
     // Ask about Serena removal if it's installed and we're removing Claude config
     if (serenaInstalled && removeClaudeConfigFlag) {
       const serenaChoice = await question('\nAlso remove Serena MCP? (y/N): ');
-      removeSerena = serenaChoice.toLowerCase() === 'y';
+      removeSerena = ['y', 'yes'].includes(serenaChoice.toLowerCase());
     }
 
     const confirm = await question('\nProceed? (yes/no): ');

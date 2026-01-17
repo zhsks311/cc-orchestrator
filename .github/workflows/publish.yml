@@ -42,15 +42,16 @@ jobs:
 
       - name: Bump version
         id: version
-        working-directory: installer
         run: |
-          npm version ${{ inputs.version }} -m "chore: release v%s"
+          # Bump both package.json files
+          cd installer && npm version ${{ inputs.version }} --no-git-tag-version && cd ..
+          npm version ${{ inputs.version }} --no-git-tag-version
           echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
 
       - name: Commit and push
         run: |
-          git add installer/package.json
-          git commit -m "chore: release cc-orchestrator v${{ steps.version.outputs.version }}"
+          git add package.json installer/package.json
+          git commit -m "chore: release v${{ steps.version.outputs.version }}"
           git tag -a "v${{ steps.version.outputs.version }}" -m "Release v${{ steps.version.outputs.version }}"
           git push
           git push --tags

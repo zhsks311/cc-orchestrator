@@ -625,7 +625,8 @@ async function main() {
 
   // Skip if already up-to-date and no corruption
   const hasCorruption = status.hooks.corrupted || status.skills.corrupted;
-  if (installMode.mode === 'current' && !forceMode && !hasCorruption) {
+  const needsBuild = !status.dist;
+  if (installMode.mode === 'current' && !forceMode && !hasCorruption && !needsBuild) {
     console.log(`✅ CC Orchestrator v${CURRENT_VERSION} is already up to date.`);
     console.log('   To reinstall: npm run setup -- --force\n');
     rl.close();

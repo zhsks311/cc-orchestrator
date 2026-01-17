@@ -371,7 +371,7 @@ function detectInstallMode() {
   const skillsExist = fs.existsSync(claudeSkillsDir) &&
     fs.readdirSync(claudeSkillsDir).length > 0;
 
-  // 1. cc-orchestrator가 설치되어 있고 버전이 다름 → upgrade
+  // 1. cc-orchestrator installed with different version → upgrade
   if (hooksManifest?.name === 'cc-orchestrator' && hooksManifest.version !== CURRENT_VERSION) {
     return {
       mode: 'upgrade',
@@ -380,7 +380,7 @@ function detectInstallMode() {
     };
   }
 
-  // 2. cc-orchestrator가 설치되어 있고 버전이 같음 → current
+  // 2. cc-orchestrator installed with same version → current
   if (hooksManifest?.name === 'cc-orchestrator' && hooksManifest.version === CURRENT_VERSION) {
     return {
       mode: 'current',
@@ -388,7 +388,7 @@ function detectInstallMode() {
     };
   }
 
-  // 3. 다른 프로젝트 파일이 있음 (manifest 없음) → conflict
+  // 3. Other project files exist (no manifest) → conflict
   if ((hooksExist && !hooksManifest) || (skillsExist && !skillsManifest)) {
     return {
       mode: 'conflict',
@@ -397,7 +397,7 @@ function detectInstallMode() {
     };
   }
 
-  // 4. 완전히 새로운 설치 → fresh
+  // 4. Fresh installation
   return { mode: 'fresh' };
 }
 
@@ -746,40 +746,40 @@ async function main() {
   }
 
   if (!yesMode) {
-    const confirm = await question('\n설치를 진행하시겠습니까? (Y/n): ');
+    const confirm = await question('\nProceed with installation? (Y/n): ');
     if (confirm.toLowerCase() === 'n') {
-      console.log('\n설치가 취소되었습니다.\n');
+      console.log('\nInstallation cancelled.\n');
       rl.close();
       return;
     }
   }
 
   console.log('\n' + '═'.repeat(60));
-  console.log('설치 시작...\n');
+  console.log('Starting installation...\n');
 
   // 1. npm install
   if (!status.nodeModules || forceMode) {
-    console.log('[1/7] 의존성 설치 (npm install)...');
+    console.log('[1/7] Installing dependencies (npm install)...');
     try {
       execSync('npm install', { cwd: rootDir, stdio: 'inherit' });
-      console.log('      ✓ 완료');
+      console.log('      ✓ Done');
     } catch (error) {
-      console.error('      ✗ 실패');
+      console.error('      ✗ Failed');
       rl.close();
       process.exit(1);
     }
   } else {
-    console.log('[1/7] node_modules: 이미 존재 (건너뜀)');
+    console.log('[1/7] node_modules: Already exists (skipped)');
   }
 
   // 2. Build
   if (!status.dist || forceMode) {
-    console.log('[2/7] 빌드 (npm run build)...');
+    console.log('[2/7] Building (npm run build)...');
     try {
       execSync('npm run build', { cwd: rootDir, stdio: 'inherit' });
-      console.log('      ✓ 완료');
+      console.log('      ✓ Done');
     } catch (error) {
-      console.error('      ✗ 실패');
+      console.error('      ✗ Failed');
       rl.close();
       process.exit(1);
     }

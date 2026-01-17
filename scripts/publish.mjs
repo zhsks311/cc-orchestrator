@@ -85,10 +85,6 @@ function checkPrerequisites() {
     log(`On branch: ${branch}`, 'success');
   }
 
-  // 4. Check private flag
-  if (packageJson.private) {
-    log('package.json has "private": true - will be removed for publishing', 'warn');
-  }
 }
 
 function runTests() {
@@ -128,31 +124,11 @@ function bumpVersion(type) {
   }
 }
 
-function preparePackageJson() {
-  log('Preparing package.json for publish...');
-
-  const publishPackageJson = { ...packageJson };
-
-  // Remove private flag
-  delete publishPackageJson.private;
-
-  // Ensure required fields
-  if (!publishPackageJson.name) {
+function checkPackageJson() {
+  if (!packageJson.name) {
     log('package.json missing "name" field', 'error');
     process.exit(1);
   }
-
-  // Write modified package.json
-  fs.writeFileSync(packageJsonPath, JSON.stringify(publishPackageJson, null, 2) + '\n');
-  log('Removed "private" flag from package.json', 'success');
-
-  return publishPackageJson;
-}
-
-function restorePackageJson() {
-  // Restore original package.json
-  fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2) + '\n');
-  log('Restored original package.json');
 }
 
 function publish() {
@@ -217,13 +193,9 @@ async function main() {
     console.log('');
   }
 
-  // Step 5: Prepare and publish
-  try {
-    preparePackageJson();
-    publish();
-  } finally {
-    restorePackageJson();
-  }
+  // Step 5: Publish
+  checkPackageJson();
+  publish();
   console.log('');
 
   // Step 6: Create git tag (if version was bumped)
@@ -244,6 +216,5 @@ async function main() {
 
 main().catch((error) => {
   log(`Unexpected error: ${error.message}`, 'error');
-  restorePackageJson();
   process.exit(1);
 });

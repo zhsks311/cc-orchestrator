@@ -3,6 +3,7 @@
   "hooks": {
     "SessionStart": [
       {
+        "id": "cco:session-recovery",
         "matcher": "startup",
         "hooks": [
           {
@@ -18,6 +19,7 @@
     ],
     "PreCompact": [
       {
+        "id": "cco:pre-compact-summary",
         "matcher": "",
         "hooks": [
           {
@@ -25,10 +27,21 @@
             "command": "{{PYTHON}} {{HOOKS_PATH}}/summary_saver_wrapper.py"
           }
         ]
+      },
+      {
+        "id": "cco:todo-enforcer",
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{PYTHON}} {{HOOKS_PATH}}/todo_enforcer_wrapper.py"
+          }
+        ]
       }
     ],
     "SessionEnd": [
       {
+        "id": "cco:session-end-summary",
         "matcher": "",
         "hooks": [
           {
@@ -40,24 +53,37 @@
     ],
     "PostToolUse": [
       {
+        "id": "cco:edit-context",
         "matcher": "Edit",
         "hooks": [
           {
             "type": "command",
             "command": "{{PYTHON}} {{HOOKS_PATH}}/context_saver_wrapper.py"
+          },
+          {
+            "type": "command",
+            "command": "{{PYTHON}} {{HOOKS_PATH}}/ui_qa_wrapper.py",
+            "timeout": 10
           }
         ]
       },
       {
+        "id": "cco:write-context",
         "matcher": "Write",
         "hooks": [
           {
             "type": "command",
             "command": "{{PYTHON}} {{HOOKS_PATH}}/context_saver_wrapper.py"
+          },
+          {
+            "type": "command",
+            "command": "{{PYTHON}} {{HOOKS_PATH}}/ui_qa_wrapper.py",
+            "timeout": 10
           }
         ]
       },
       {
+        "id": "cco:todo-review",
         "matcher": "TodoWrite",
         "hooks": [
           {
@@ -72,6 +98,7 @@
         ]
       },
       {
+        "id": "cco:bash-test-review",
         "matcher": "Bash",
         "hooks": [
           {

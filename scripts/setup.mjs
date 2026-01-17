@@ -265,6 +265,42 @@ function saveConfig(config) {
   }
 }
 
+// ============================================================
+// Serena MCP installation helpers
+// ============================================================
+
+function checkUvxInstalled() {
+  try {
+    execSync('uvx --version', { stdio: 'ignore' });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function checkPipxInstalled() {
+  try {
+    execSync('pipx --version', { stdio: 'ignore' });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function getSerenaCommand() {
+  if (checkUvxInstalled()) {
+    return { command: 'uvx', args: ['serena'] };
+  }
+  if (checkPipxInstalled()) {
+    return { command: 'pipx', args: ['run', 'serena'] };
+  }
+  return null;
+}
+
+function checkSerenaInstalled(cfg) {
+  return !!(cfg?.mcpServers?.serena);
+}
+
 function copyDirRecursive(src, dest, exclude = []) {
   if (!fs.existsSync(dest)) fs.mkdirSync(dest, { recursive: true });
   const copiedFiles = [];
@@ -374,7 +410,8 @@ function verifyInstallation() {
     mcp: { ok: false, message: '' },
     hooks: { ok: false, message: '', count: 0 },
     skills: { ok: false, message: '', count: 0 },
-    config: { ok: false, message: '' }
+    config: { ok: false, message: '' },
+    serena: { ok: false, message: '', optional: true }
   };
 
   // MCP Server
@@ -440,6 +477,13 @@ function verifyInstallation() {
       } else {
         results.config = { ok: false, message: 'MCP server not registered' };
       }
+
+      // Serena check
+      if (cfg.mcpServers?.['serena']) {
+        results.serena = { ok: true, message: 'Registered', optional: true };
+      } else {
+        results.serena = { ok: false, message: 'Not installed (optional)', optional: true };
+      }
     } catch {
       results.config = { ok: false, message: 'Failed to read config file' };
     }
@@ -453,12 +497,16 @@ function verifyInstallation() {
 function printVerificationResults(results) {
   console.log('\n[Verify] Checking installation status...');
 
-  const icon = (ok) => ok ? '✓' : '✗';
+  const icon = (ok, optional = false) => {
+    if (ok) return '✓';
+    return optional ? '○' : '✗';
+  };
 
-  console.log(`      MCP Server:   ${icon(results.mcp.ok)} ${results.mcp.message}`);
-  console.log(`      Hooks:        ${icon(results.hooks.ok)} ${results.hooks.message}${results.hooks.count ? ` (${results.hooks.count} files)` : ''}`);
-  console.log(`      Skills:       ${icon(results.skills.ok)} ${results.skills.message}${results.skills.count ? ` (${results.skills.count} files)` : ''}`);
+  console.log(`      MCP Server:     ${icon(results.mcp.ok)} ${results.mcp.message}`);
+  console.log(`      Hooks:          ${icon(results.hooks.ok)} ${results.hooks.message}${results.hooks.count ? ` (${results.hooks.count} files)` : ''}`);
+  console.log(`      Skills:         ${icon(results.skills.ok)} ${results.skills.message}${results.skills.count ? ` (${results.skills.count} files)` : ''}`);
   console.log(`      Desktop Config: ${icon(results.config.ok)} ${results.config.message}`);
+  console.log(`      Serena MCP:     ${icon(results.serena.ok, true)} ${results.serena.message}`);
 
   const allOk = results.mcp.ok && results.hooks.ok && results.skills.ok && results.config.ok;
 
@@ -660,6 +708,42 @@ async function main() {
   };
   showAgentAvailability(currentKeys);
 
+  // Serena MCP installation option
+  let installSerena = false;
+  const serenaCmd = getSerenaCommand();
+
+  // Check if Serena is already installed
+  let existingCfg = { mcpServers: {} };
+  if (fs.existsSync(claudeDesktopConfigPath)) {
+    try {
+      existingCfg = JSON.parse(fs.readFileSync(claudeDesktopConfigPath, 'utf8'));
+    } catch (e) { }
+  }
+  const serenaAlreadyInstalled = checkSerenaInstalled(existingCfg);
+
+  if (!yesMode && !serenaAlreadyInstalled) {
+    console.log('\n─'.repeat(60));
+    console.log('\nSerena MCP - LSP Integration (Optional)\n');
+    console.log('  Serena provides Language Server Protocol tools for:');
+    console.log('  • Symbol search (find definitions, references)');
+    console.log('  • Code navigation (go to definition)');
+    console.log('  • 30+ language support\n');
+
+    if (serenaCmd) {
+      console.log(`  ✓ ${serenaCmd.command} detected - ready to install`);
+      const serenaChoice = await question('\nInstall Serena MCP? (y/N): ');
+      installSerena = serenaChoice.toLowerCase() === 'y';
+    } else {
+      console.log('  ⚠ uvx or pipx required for Serena installation');
+      console.log('    Install with: pip install uv  (recommended)');
+      console.log('    Or: pip install pipx');
+      console.log('    You can add Serena later by re-running setup.\n');
+    }
+  } else if (serenaAlreadyInstalled) {
+    console.log('\n  Serena MCP: Already installed ✓');
+    installSerena = true; // Keep existing installation
+  }
+
   if (!yesMode) {
     const confirm = await question('\n설치를 진행하시겠습니까? (Y/n): ');
     if (confirm.toLowerCase() === 'n') {
@@ -774,9 +858,38 @@ async function main() {
       merged.hooks = merged.hooks || {};
       for (const [event, hooks] of Object.entries(resolved.hooks)) {
         merged.hooks[event] = merged.hooks[event] || [];
+
+        // Clean up old cco hooks without ID (migration from old versions)
+        // Remove hooks that contain .claude/hooks/ path but have no ID
+        merged.hooks[event] = merged.hooks[event].filter(h => {
+          if (h.id && h.id.startsWith('cco:')) return true; // Keep ID-based cco hooks
+          if (!h.id) {
+            // Check if this is an old cco hook (contains .claude/hooks/ path)
+            const hasClaudeHooksPath = h.hooks?.some(cmd =>
+              cmd.command && cmd.command.includes('.claude/hooks/')
+            );
+            if (hasClaudeHooksPath) return false; // Remove old cco hooks without ID
+          }
+          return true; // Keep non-cco hooks
+        });
+
+        // ID-based upsert for new hooks
         for (const newHook of hooks) {
-          if (!merged.hooks[event].some(h => JSON.stringify(h.hooks) === JSON.stringify(newHook.hooks))) {
-            merged.hooks[event].push(newHook);
+          if (newHook.id) {
+            // ID-based: find existing hook with same ID
+            const existingIndex = merged.hooks[event].findIndex(h => h.id === newHook.id);
+            if (existingIndex >= 0) {
+              // Update existing hook
+              merged.hooks[event][existingIndex] = newHook;
+            } else {
+              // Add new hook
+              merged.hooks[event].push(newHook);
+            }
+          } else {
+            // No ID: use legacy logic (for backwards compatibility)
+            if (!merged.hooks[event].some(h => JSON.stringify(h.hooks) === JSON.stringify(newHook.hooks))) {
+              merged.hooks[event].push(newHook);
+            }
           }
         }
       }
@@ -817,6 +930,18 @@ async function main() {
         ANTHROPIC_API_KEY: anthropicKey
       }
     };
+
+    // Add Serena MCP if requested
+    if (installSerena && serenaCmd) {
+      cfg.mcpServers['serena'] = {
+        command: serenaCmd.command,
+        args: serenaCmd.args
+      };
+      console.log('      ✓ Serena MCP registered');
+    } else if (serenaAlreadyInstalled) {
+      // Keep existing Serena configuration
+      console.log('      ✓ Serena MCP preserved');
+    }
 
     fs.mkdirSync(path.dirname(claudeDesktopConfigPath), { recursive: true });
     fs.writeFileSync(claudeDesktopConfigPath, JSON.stringify(cfg, null, 2));

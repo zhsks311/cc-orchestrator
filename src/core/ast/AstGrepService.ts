@@ -287,20 +287,32 @@ export class AstGrepService implements IAstGrepService {
           // Handle meta-variables in replacement
           let finalReplacement = replacement;
 
-          // Extract captured meta-variables (e.g., $VAR, $ARGS)
+          // Collect all metavariable values first to avoid recursive replacement issues
+          // and use callback-based replacement to prevent special pattern interpretation
+          const metaVarCaptures = new Map<string, string>();
           const metaVarPattern = /\$([A-Z_][A-Z0-9_]*)/g;
           let metaMatch;
+
           while ((metaMatch = metaVarPattern.exec(replacement)) !== null) {
             const varName = metaMatch[1];
-            if (!varName) continue;
+            if (!varName || metaVarCaptures.has(varName)) continue;
             const captured = match.getMatch(varName);
             if (captured) {
-              finalReplacement = finalReplacement.replace(
-                new RegExp(`\\$${varName}`, 'g'),
-                captured.text()
-              );
+              metaVarCaptures.set(varName, captured.text());
             }
           }
+
+          // Single-pass replacement with callback to avoid:
+          // 1. Recursive replacement (content from $A affecting $B replacement)
+          // 2. Special pattern interpretation ($&, $$, etc. in captured text)
+          finalReplacement = replacement.replace(
+            /\$([A-Z_][A-Z0-9_]*)/g,
+            (fullMatch, varName) => {
+              return metaVarCaptures.has(varName)
+                ? metaVarCaptures.get(varName)!
+                : fullMatch;
+            }
+          );
 
           newContent =
             newContent.slice(0, range.start.index) +

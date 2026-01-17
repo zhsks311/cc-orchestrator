@@ -1,0 +1,48 @@
+{
+  "enabled": true,
+  "auto_trigger": {
+    "enabled": true,
+    "debounce_seconds": 5,
+    "max_triggers_per_session": 10
+  },
+  "dev_server": {
+    "explicit_url": null,
+    "port_scan_range": [3000, 3001, 5173, 5174, 8080, 8081, 4200, 4321],
+    "connection_timeout_ms": 500
+  },
+  "file_patterns": {
+    "include": [
+      "\\.tsx$",
+      "\\.jsx$",
+      "\\.vue$",
+      "\\.svelte$",
+      "\\.css$",
+      "\\.scss$",
+      "\\.sass$",
+      "\\.less$"
+    ],
+    "exclude_dirs": [
+      "node_modules",
+      "dist",
+      "build",
+      ".next",
+      ".nuxt",
+      ".svelte-kit",
+      "coverage"
+    ]
+  },
+  "qa_settings": {
+    "screenshot_delay_ms": 2000,
+    "analysis_timeout_ms": 60000,
+    "check_aspects": [
+      "visual_consistency",
+      "layout_issues",
+      "accessibility",
+      "responsive_design"
+    ]
+  },
+  "agent": {
+    "name": "multimodal-analyzer",
+    "priority": "medium"
+  }
+}

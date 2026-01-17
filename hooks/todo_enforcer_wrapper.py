@@ -168,7 +168,8 @@ def main():
 
         # Use TodoEnforcer for analysis (avoid code duplication)
         enforcer = get_todo_enforcer()
-        report = enforcer.analyze_todos(session_id, todos)
+        save_state = config.get("save_incomplete_state", True)
+        report = enforcer.analyze_todos(session_id, todos, save_state=save_state)
 
         # Output result
         result = {"continue": True}

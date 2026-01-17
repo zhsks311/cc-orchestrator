@@ -60,13 +60,19 @@ class TodoEnforcer:
     def __init__(self):
         pass
 
-    def analyze_todos(self, session_id: str, todos: List[Dict[str, Any]]) -> IncompleteTasksReport:
+    def analyze_todos(
+        self,
+        session_id: str,
+        todos: List[Dict[str, Any]],
+        save_state: bool = True
+    ) -> IncompleteTasksReport:
         """
         Analyze todo list for incomplete tasks
 
         Args:
             session_id: Session identifier
             todos: List of todo items with 'content' and 'status' keys
+            save_state: Whether to save incomplete state for recovery (default: True)
 
         Returns:
             IncompleteTasksReport with analysis results
@@ -113,8 +119,9 @@ class TodoEnforcer:
         # Determine if compact should be blocked
         should_block = incomplete_count > self.BLOCK_COMPACT_THRESHOLD
 
-        # Save state for recovery
-        self._save_incomplete_state(session_id, pending_tasks, in_progress_tasks)
+        # Save state for recovery (if enabled)
+        if save_state and has_incomplete:
+            self._save_incomplete_state(session_id, pending_tasks, in_progress_tasks)
 
         return IncompleteTasksReport(
             has_incomplete=has_incomplete,

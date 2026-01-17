@@ -15,7 +15,7 @@ Available agents:
 - index (Claude Sonnet 4.5): Documentation search, codebase analysis, implementation research
 - canvas (Gemini 3 Pro): UI/UX design, frontend implementation
 - quill (Gemini 3 Pro): Technical documentation, README, API docs
-- lens (Gemini 3 Flash): Image, PDF analysis
+- lens (Gemini 3 Pro): Image, PDF analysis
 - scout (Claude Sonnet): Codebase exploration, file/function search, structure analysis (Free)
 
 Parallel execution recommended:

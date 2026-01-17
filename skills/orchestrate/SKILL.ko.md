@@ -140,7 +140,7 @@ background_cancel(all=true)  // 모든 백그라운드 작업 취소
 | `index` | Claude Sonnet | 문서 검색, 외부 API, 사례 조사 | 낮음 | 모르는 라이브러리, 외부 문서 |
 | `canvas` | Gemini Pro | UI/UX, 스타일링, 컴포넌트 | 중간 | Visual 변경, CSS, 애니메이션 |
 | `quill` | Gemini Pro | 기술 문서, README, API 문서 | 중간 | 문서화 요청 |
-| `lens` | Gemini Flash | 이미지, PDF, 스크린샷 분석 | 낮음 | 시각 자료 분석 |
+| `lens` | Gemini 3 Pro | 이미지, PDF, 스크린샷 분석 | 중간 | 시각 자료 분석 |
 
 ### 위임 테이블
 

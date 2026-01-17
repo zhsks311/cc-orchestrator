@@ -140,7 +140,7 @@ background_cancel(all=true)  // Cancel all background tasks
 | `index` | Claude Sonnet | Doc search, external API, case studies | Low | Unknown libraries, external docs |
 | `canvas` | Gemini Pro | UI/UX, styling, components | Medium | Visual changes, CSS, animations |
 | `quill` | Gemini Pro | Technical docs, README, API docs | Medium | Documentation requests |
-| `lens` | Gemini Flash | Image, PDF, screenshot analysis | Low | Visual asset analysis |
+| `lens` | Gemini 3 Pro | Image, PDF, screenshot analysis | Medium | Visual asset analysis |
 
 ### Delegation Table
 

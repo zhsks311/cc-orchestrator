@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * CC Orchestrator Publish Script
- * Publishes package to npm registry
+ * Publishes installer package to npm registry
  *
  * Usage:
  *   npm run publish              # Publish current version
@@ -19,8 +19,10 @@ import { execSync, spawnSync } from 'child_process';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '..');
+const installerDir = path.join(rootDir, 'installer');
 
-const packageJsonPath = path.join(rootDir, 'package.json');
+const packageJsonPath = path.join(installerDir, 'package.json');
+const rootPackageJsonPath = path.join(rootDir, 'package.json');
 const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
 
 // Parse args
@@ -41,7 +43,7 @@ function log(message, type = 'info') {
 function exec(cmd, options = {}) {
   try {
     return execSync(cmd, {
-      cwd: rootDir,
+      cwd: options.cwd || installerDir,
       encoding: 'utf8',
       stdio: options.silent ? 'pipe' : 'inherit',
       ...options,
@@ -64,8 +66,8 @@ function checkPrerequisites() {
     process.exit(1);
   }
 
-  // 2. Check git status
-  const gitStatus = exec('git status --porcelain', { silent: true, stdio: 'pipe' });
+  // 2. Check git status (from root)
+  const gitStatus = exec('git status --porcelain', { cwd: rootDir, silent: true, stdio: 'pipe' });
   if (gitStatus && gitStatus.trim()) {
     log('Working directory has uncommitted changes:', 'warn');
     console.log(gitStatus);
@@ -77,8 +79,8 @@ function checkPrerequisites() {
     log('Git working directory is clean', 'success');
   }
 
-  // 3. Check if on main branch
-  const branch = exec('git branch --show-current', { silent: true, stdio: 'pipe' }).trim();
+  // 3. Check if on main branch (from root)
+  const branch = exec('git branch --show-current', { cwd: rootDir, silent: true, stdio: 'pipe' }).trim();
   if (branch !== 'main' && branch !== 'master') {
     log(`Current branch is '${branch}', not main/master`, 'warn');
   } else {
@@ -90,7 +92,7 @@ function checkPrerequisites() {
 function runTests() {
   log('Running tests...');
   try {
-    exec('npm test');
+    exec('npm test', { cwd: rootDir });
     log('All tests passed', 'success');
   } catch {
     log('Tests failed', 'error');
@@ -101,7 +103,7 @@ function runTests() {
 function runBuild() {
   log('Building project...');
   try {
-    exec('npm run build');
+    exec('npm run build', { cwd: rootDir });
     log('Build completed', 'success');
   } catch {
     log('Build failed', 'error');
@@ -114,9 +116,17 @@ function bumpVersion(type) {
 
   log(`Bumping ${type} version...`);
   try {
+    // Bump installer/package.json
     exec(`npm version ${type} --no-git-tag-version`, { silent: true, stdio: 'pipe' });
     const newPackageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+
+    // Sync version to root package.json
+    const rootPackageJson = JSON.parse(fs.readFileSync(rootPackageJsonPath, 'utf8'));
+    rootPackageJson.version = newPackageJson.version;
+    fs.writeFileSync(rootPackageJsonPath, JSON.stringify(rootPackageJson, null, 2) + '\n');
+
     log(`Version bumped: ${packageJson.version} -> ${newPackageJson.version}`, 'success');
+    log(`Synced version to root package.json`, 'success');
     return newPackageJson.version;
   } catch (error) {
     log(`Failed to bump version: ${error.message}`, 'error');
@@ -154,9 +164,9 @@ function createGitTag(version) {
 
   log(`Creating git tag v${version}...`);
   try {
-    exec(`git add package.json`);
-    exec(`git commit -m "chore: release v${version}"`);
-    exec(`git tag -a v${version} -m "Release v${version}"`);
+    exec(`git add package.json installer/package.json`, { cwd: rootDir });
+    exec(`git commit -m "chore: release v${version}"`, { cwd: rootDir });
+    exec(`git tag -a v${version} -m "Release v${version}"`, { cwd: rootDir });
     log(`Created tag v${version}`, 'success');
     log('Push with: git push && git push --tags', 'info');
   } catch (error) {
@@ -167,6 +177,7 @@ function createGitTag(version) {
 async function main() {
   console.log('\n' + '='.repeat(60));
   console.log('  CC Orchestrator - Publish Script');
+  console.log('  Target: installer/ -> npm cc-orchestrator');
   console.log('='.repeat(60) + '\n');
 
   if (dryRun) {

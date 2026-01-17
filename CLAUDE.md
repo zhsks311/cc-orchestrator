@@ -185,6 +185,27 @@ npm run setup --force  # 강제 재설치
 | `skills/` | `~/.claude/skills/` | Skill 정의 |
 | `hooks/config.json` | `~/.claude/settings.json` (merge) | Hook 설정 |
 
+## npm 배포
+
+```bash
+# 현재 버전으로 배포
+npm run publish
+
+# 버전 범프 + 배포 (한 번에)
+npm run publish -- patch     # 버그 수정: 0.1.1 → 0.1.2
+npm run publish -- minor     # 새 기능: 0.1.1 → 0.2.0
+npm run publish -- major     # 호환성 변경: 0.1.1 → 1.0.0
+
+# 미리보기 (실제 배포 없음)
+npm run publish -- --dry-run
+```
+
+스크립트가 자동으로 처리하는 것:
+- npm 로그인/git 상태 확인
+- 테스트 및 빌드 실행
+- `private: true` 제거 후 배포
+- git 태그 생성 (버전 범프 시)
+
 ## 새 기능 추가
 
 ### 에이전트 추가

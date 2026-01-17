@@ -55,7 +55,7 @@ Each agent has exactly one job. They're very good at it. They will not shut up a
 | **Canvas** | Gemini 3 Pro | 🎨 The artist. Believes every button deserves a 47ms cubic-bezier transition |
 | **Index** | Claude Sonnet 4.5 | 📚 The librarian. Has read every documentation page. Will cite sources. Cannot be stopped |
 | **Quill** | Gemini 3 Pro | ✍️ The poet. Writes README files so beautiful they make developers cry |
-| **Lens** | Gemini 3 Flash | 👁️ The detective. Stares at your screenshots and PDFs until they confess their secrets |
+| **Lens** | Gemini 3 Pro | 👁️ The detective. Stares at your screenshots and PDFs until they confess their secrets |
 | **Scout** | Claude Sonnet | 🔍 The intern. Fast, free, and surprisingly competent at finding things. We don't pay them |
 
 ### ⚡ Parallel Execution
@@ -101,11 +101,11 @@ Talk to your agents naturally. They're listening. (Not in a creepy way.)
 | Mention | Who answers |
 |---------|-------------|
 | `@arch` or `@architect` | The overthinker arrives |
-| `@canvas`, `@ui`, `@frontend` | The pixel perfectionist |
+| `@canvas`, `@ui`, `@frontend`, `@ux`, `@designer` | The pixel perfectionist |
 | `@index` or `@researcher` | The documentation hoarder |
 | `@quill`, `@docs`, `@writer` | The prose professional |
-| `@lens`, `@image`, `@pdf` | The visual investigator |
-| `@scout`, `@find`, `@search` | The speedy explorer |
+| `@lens`, `@image`, `@pdf`, `@analyzer` | The visual investigator |
+| `@scout`, `@find`, `@search`, `@explore` | The speedy explorer |
 
 ---
 
@@ -204,6 +204,23 @@ The orchestrator will:
 2. Assign each step to whoever's least likely to mess it up
 3. Report back like a responsible employee
 
+### More Skills
+
+**UI Quality Assurance:**
+```
+/ui-qa                              # Auto-detect dev server
+/ui-qa http://localhost:3000        # Test specific URL
+```
+
+Takes screenshots, analyzes with AI, reports visual issues, accessibility problems, and layout bugs.
+
+**Context Checkpoint:**
+```
+/checkpoint "Auth system done, JWT approach chosen"
+```
+
+Saves your conversation context. Survives `/compact`. Because losing context hurts.
+
 ### Direct Tool Calls (For Control Freaks)
 
 ```javascript
@@ -215,7 +232,46 @@ background_output({ task_id: "abc123", block: false })
 
 // Demand answers
 background_output({ task_id: "abc123", block: true })
+
+// Cancel when you've had enough
+background_cancel({ task_id: "abc123" })  // Cancel one
+background_cancel({ all: true })          // Cancel everything
+
+// List all tasks
+list_tasks({ filter: { status: ["running"] } })
+
+// Share context between agents
+share_context({ key: "api_research", value: { findings: "..." } })
+get_context({ key: "api_research" })
+
+// Get agent recommendation
+suggest_agent({ query: "I need to review this architecture" })
 ```
+
+### AST-Powered Code Search (The Smart Way)
+
+Forget grep. Search code by structure, not text.
+
+```javascript
+// Find all console.log calls
+ast_search({ pattern: "console.log($MSG)", path: "./src" })
+
+// Find all function declarations
+ast_search({ pattern: "function $NAME($$$ARGS) { $$$BODY }", path: "./src" })
+
+// Find all if statements
+ast_search({ pattern: "if ($COND) { $$$BODY }", path: "./src" })
+
+// Replace var with const (preview first)
+ast_replace({
+  pattern: "var $NAME = $VAL",
+  replacement: "const $NAME = $VAL",
+  path: "./src",
+  dry_run: true
+})
+```
+
+Supports TypeScript, JavaScript, Python, Rust, Go, Java, and more.
 
 ---
 
@@ -293,13 +349,49 @@ cc-orchestrator/
 │   ├── core/               # Business logic (MCP-free zone)
 │   │   ├── agents/         # Where agents live
 │   │   ├── models/         # Model routing & provider wrangling
+│   │   ├── ast/            # AST search/replace engine
+│   │   ├── context/        # Context sharing between agents
 │   │   └── orchestration/  # The conductor's baton
 │   ├── server/             # MCP protocol stuff
 │   └── types/              # Types. So many types.
 ├── hooks/                  # Python automation (spicy)
+│   ├── context_resilience/ # Context recovery system
+│   ├── adapters/           # Multi-model adapters (Gemini, Copilot, etc.)
+│   └── prompts/            # Prompt templates
 ├── skills/                 # Claude Code skills (extra spicy)
 └── scripts/                # Setup scripts (mild)
 ```
+
+---
+
+## 🪝 Hooks System
+
+Automation that runs behind the scenes. Like a helpful ghost.
+
+| Hook | What it does |
+|------|--------------|
+| `context_resilience` | Auto-recovers context after `/compact`. Your memory, preserved |
+| `todo_enforcer` | Reminds you (aggressively) to use the todo list |
+| `review_orchestrator` | Coordinates multi-model code reviews |
+| `quota_monitor` | Tracks API usage before your wallet cries |
+
+Hooks live in `~/.claude/hooks/` after installation.
+
+---
+
+## 🧰 Full Tool Reference
+
+| Tool | Description |
+|------|-------------|
+| `background_task` | Launch agent in background |
+| `background_output` | Get task status/results |
+| `background_cancel` | Cancel running tasks |
+| `list_tasks` | List all tasks in session |
+| `share_context` | Share data between agents |
+| `get_context` | Retrieve shared data |
+| `suggest_agent` | Get agent recommendation for a query |
+| `ast_search` | Search code by AST pattern |
+| `ast_replace` | Replace code by AST pattern |
 
 ---
 

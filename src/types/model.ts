@@ -128,8 +128,8 @@ export const ROLE_MODEL_MAPPING: Record<AgentRole, ModelConfig> = {
   },
   [AgentRole.LENS]: {
     provider: ModelProvider.GOOGLE,
-    model: 'gemini-3-flash-preview',
-    fallbackModel: 'gemini-3-pro-image-preview',
+    model: 'gemini-3-pro-preview',
+    fallbackModel: 'gemini-3-flash-preview',
     providerFallbacks: [
       { provider: ModelProvider.ANTHROPIC, model: 'claude-sonnet-4-20250514', fallbackModel: 'claude-3-5-sonnet-latest' },
       { provider: ModelProvider.OPENAI, model: 'gpt-4o', fallbackModel: 'gpt-4o-mini' },

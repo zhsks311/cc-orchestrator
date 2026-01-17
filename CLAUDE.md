@@ -144,6 +144,47 @@ src/infrastructure/ # 로깅, 공통 유틸
 
 `core/`는 `server/`를 import하면 안 됨 (단방향 의존).
 
+## 확장 기능 개발 워크플로우
+
+Hook, Skill, Agent, MCP 등 Claude Code 확장 기능 개발 시 반드시 아래 순서를 따른다:
+
+### 1. 프로젝트 내 개발 (Source of Truth)
+
+```
+oh-my-claudecode/
+├── hooks/          # Hook 스크립트 개발
+├── skills/         # Skill 정의 개발
+├── src/            # MCP 서버/Agent 개발
+└── scripts/        # 설치/배포 스크립트
+```
+
+**모든 코드는 이 프로젝트에서 먼저 작성하고 테스트한다.**
+
+### 2. 개발자 환경에 설치
+
+```bash
+npm run setup        # ~/.claude/에 설치
+npm run setup --force  # 강제 재설치
+```
+
+설치 스크립트가 프로젝트 파일을 개발자 환경(`~/.claude/`)에 복사/링크한다.
+
+### 3. 개발 사이클
+
+```
+[프로젝트에서 수정] → [npm run setup] → [Claude Code에서 테스트] → [커밋]
+```
+
+**절대 `~/.claude/`에서 직접 수정하지 않는다.** 항상 프로젝트가 원본이다.
+
+### 디렉토리 매핑
+
+| 프로젝트 | 설치 위치 | 용도 |
+|----------|-----------|------|
+| `hooks/` | `~/.claude/hooks/` | Hook 스크립트 |
+| `skills/` | `~/.claude/skills/` | Skill 정의 |
+| `hooks/config.json` | `~/.claude/settings.json` (merge) | Hook 설정 |
+
 ## 새 기능 추가
 
 ### 에이전트 추가

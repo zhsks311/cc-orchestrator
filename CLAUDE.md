@@ -1,32 +1,38 @@
-# CC Orchestrator 개발 가이드
+# CC Orchestrator Development Guide
 
-Claude Code에서 멀티 LLM 오케스트레이션을 위한 MCP 서버.
+MCP server for multi-LLM orchestration in Claude Code.
 
-## 핵심 제약
+## Core Constraints
 
-### MCP 프로토콜
+### Language Rule
+
+**All code, comments, commit messages, and documentation must be written in English.**
+
+Exception: Language-specific README files (README.ko.md, etc.)
+
+### MCP Protocol
 
 ```
-stdout = MCP JSON-RPC 전용 (절대 console.log 금지)
-stderr = 로깅 전용 (Logger 클래스 사용)
+stdout = MCP JSON-RPC only (never use console.log)
+stderr = logging only (use Logger class)
 ```
 
-`console.log`를 쓰면 MCP 프로토콜이 깨진다. 반드시 `Logger`를 사용할 것.
+Using `console.log` breaks the MCP protocol. Always use `Logger`.
 
-### 비동기 실행 패턴
+### Async Execution Pattern
 
-에이전트 실행은 **fire-and-forget** 패턴:
+Agent execution follows **fire-and-forget** pattern:
 
 ```typescript
-// createAgent()는 즉시 반환
+// createAgent() returns immediately
 const agent = await this.agentManager.createAgent(params);
-// 실행은 백그라운드에서 진행
-// executionPromises Map에서 Promise 추적
+// Execution runs in background
+// Track Promise in executionPromises Map
 ```
 
-Claude Code가 블로킹되면 안 됨. 사용자가 `block=true`로 명시적 대기 가능.
+Claude Code must not block. Users can explicitly wait with `block=true`.
 
-### 터미널 상태
+### Terminal States
 
 ```typescript
 private isTerminalStatus(status: AgentStatus): boolean {
@@ -34,26 +40,26 @@ private isTerminalStatus(status: AgentStatus): boolean {
 }
 ```
 
-터미널 상태인 에이전트는 취소/수정 불가. 항상 체크 후 작업.
+Agents in terminal state cannot be cancelled/modified. Always check before operating.
 
-## 코드 컨벤션
+## Code Conventions
 
-### 인터페이스 우선
+### Interface First
 
 ```typescript
-// 항상 인터페이스 먼저 정의
+// Always define interface first
 export interface IAgentManager {
   createAgent(params: CreateAgentParams): Promise<Agent>;
 }
 
-// 클래스는 인터페이스 구현
+// Class implements interface
 export class AgentManager implements IAgentManager {
 ```
 
-### 에러 클래스 계층
+### Error Class Hierarchy
 
 ```typescript
-CCOError (추상 베이스)
+CCOError (abstract base)
 ├── Client Errors (4xx, retryable=false)
 │   ├── ValidationError (400)
 │   ├── AgentNotFoundError (404)
@@ -64,38 +70,38 @@ CCOError (추상 베이스)
     └── RateLimitError (429)
 ```
 
-`retryable` 플래그로 재시도 가능 여부 표시.
+Use `retryable` flag to indicate retry eligibility.
 
 ```typescript
-// 좋음: 구체적인 에러 클래스
+// Good: specific error class
 throw new AgentNotFoundError(agentId);
 
-// 나쁨: 일반 Error
+// Bad: generic Error
 throw new Error(`Agent ${agentId} not found`);
 ```
 
-### Zod 스키마 검증
+### Zod Schema Validation
 
-모든 tool 입력은 핸들러 첫 줄에서 검증:
+Validate all tool inputs at first line of handler:
 
 ```typescript
 private async handleBackgroundTask(args: unknown): Promise<ToolResult> {
-  const input = BackgroundTaskInputSchema.parse(args);  // 첫 줄
+  const input = BackgroundTaskInputSchema.parse(args);  // first line
   // ...
 }
 ```
 
-### Tool 응답 포맷
+### Tool Response Format
 
 ```typescript
-// 성공
+// Success
 return this.formatResult({ task_id: agent.id, status: 'running' });
 
-// 실패 (isError: true 포함)
+// Failure (includes isError: true)
 return this.formatError(error);
 ```
 
-### 로깅
+### Logging
 
 ```typescript
 this.logger.info('Agent created', {
@@ -103,139 +109,139 @@ this.logger.info('Agent created', {
   role: agent.role,
   sessionId: agent.sessionId,
 });
-// 민감 정보(apiKey, password, token, secret)는 자동 마스킹
+// Sensitive info (apiKey, password, token, secret) is auto-masked
 ```
 
-### 네이밍
+### Naming
 
-| 종류 | 규칙 | 예시 |
-|------|------|------|
-| 클래스 | PascalCase | `AgentManager` |
-| 인터페이스 | I + PascalCase | `IAgentManager` |
-| 메서드 | camelCase | `createAgent` |
-| 상수 | UPPER_SNAKE | `AgentStatus.RUNNING` |
-| 파일명 | PascalCase.ts | `AgentManager.ts` |
+| Type | Convention | Example |
+|------|------------|---------|
+| Class | PascalCase | `AgentManager` |
+| Interface | I + PascalCase | `IAgentManager` |
+| Method | camelCase | `createAgent` |
+| Constant | UPPER_SNAKE | `AgentStatus.RUNNING` |
+| Filename | PascalCase.ts | `AgentManager.ts` |
 
-### import 순서
+### Import Order
 
 ```typescript
-// 1. 외부 패키지
+// 1. External packages
 import { v4 as uuidv4 } from 'uuid';
 
-// 2. 내부 타입/에러
+// 2. Internal types/errors
 import { Agent, AgentStatus } from '../../types/index.js';
 import { AgentNotFoundError } from '../../types/errors.js';
 
-// 3. 내부 모듈
+// 3. Internal modules
 import { ModelRouter } from '../models/ModelRouter.js';
 import { Logger } from '../../infrastructure/Logger.js';
 ```
 
-**ESM이므로 `.js` 확장자 필수.**
+**ESM requires `.js` extension.**
 
-## 디렉토리 구조
+## Directory Structure
 
 ```
-src/core/           # 순수 비즈니스 로직 (MCP 의존성 없음)
-src/server/         # MCP 프로토콜 처리
-src/types/          # 타입 + 에러 정의
-src/infrastructure/ # 로깅, 공통 유틸
+src/core/           # Pure business logic (no MCP dependency)
+src/server/         # MCP protocol handling
+src/types/          # Types + error definitions
+src/infrastructure/ # Logging, common utilities
 ```
 
-`core/`는 `server/`를 import하면 안 됨 (단방향 의존).
+`core/` must not import from `server/` (unidirectional dependency).
 
-## 확장 기능 개발 워크플로우
+## Extension Development Workflow
 
-Hook, Skill, Agent, MCP 등 Claude Code 확장 기능 개발 시 반드시 아래 순서를 따른다:
+When developing Claude Code extensions (Hook, Skill, Agent, MCP), follow this order:
 
-### 1. 프로젝트 내 개발 (Source of Truth)
+### 1. Develop in Project (Source of Truth)
 
 ```
 oh-my-claudecode/
-├── hooks/          # Hook 스크립트 개발
-├── skills/         # Skill 정의 개발
-├── src/            # MCP 서버/Agent 개발
-└── scripts/        # 설치/배포 스크립트
+├── hooks/          # Hook scripts
+├── skills/         # Skill definitions
+├── src/            # MCP server/Agent
+└── scripts/        # Install/deploy scripts
 ```
 
-**모든 코드는 이 프로젝트에서 먼저 작성하고 테스트한다.**
+**All code is written and tested in this project first.**
 
-### 2. 개발자 환경에 설치
+### 2. Install to Developer Environment
 
 ```bash
-npm run setup        # ~/.claude/에 설치
-npm run setup --force  # 강제 재설치
+npm run setup        # Install to ~/.claude/
+npm run setup --force  # Force reinstall
 ```
 
-설치 스크립트가 프로젝트 파일을 개발자 환경(`~/.claude/`)에 복사/링크한다.
+Setup script copies/links project files to developer environment (`~/.claude/`).
 
-### 3. 개발 사이클
+### 3. Development Cycle
 
 ```
-[프로젝트에서 수정] → [npm run setup] → [Claude Code에서 테스트] → [커밋]
+[Edit in project] → [npm run setup] → [Test in Claude Code] → [Commit]
 ```
 
-**절대 `~/.claude/`에서 직접 수정하지 않는다.** 항상 프로젝트가 원본이다.
+**Never edit directly in `~/.claude/`.** Project is always the source of truth.
 
-### 디렉토리 매핑
+### Directory Mapping
 
-| 프로젝트 | 설치 위치 | 용도 |
-|----------|-----------|------|
-| `hooks/` | `~/.claude/hooks/` | Hook 스크립트 |
-| `skills/` | `~/.claude/skills/` | Skill 정의 |
-| `hooks/config.json` | `~/.claude/settings.json` (merge) | Hook 설정 |
+| Project | Install Location | Purpose |
+|---------|------------------|---------|
+| `hooks/` | `~/.claude/hooks/` | Hook scripts |
+| `skills/` | `~/.claude/skills/` | Skill definitions |
+| `hooks/config.json` | `~/.claude/settings.json` (merge) | Hook settings |
 
-## npm 배포
+## npm Publishing
 
 ```bash
-# 현재 버전으로 배포
+# Publish current version
 npm run publish
 
-# 버전 범프 + 배포 (한 번에)
-npm run publish -- patch     # 버그 수정: 0.1.1 → 0.1.2
-npm run publish -- minor     # 새 기능: 0.1.1 → 0.2.0
-npm run publish -- major     # 호환성 변경: 0.1.1 → 1.0.0
+# Bump version + publish (one step)
+npm run publish -- patch     # Bug fix: 0.1.1 → 0.1.2
+npm run publish -- minor     # New feature: 0.1.1 → 0.2.0
+npm run publish -- major     # Breaking change: 0.1.1 → 1.0.0
 
-# 미리보기 (실제 배포 없음)
+# Preview (no actual publish)
 npm run publish -- --dry-run
 ```
 
-스크립트가 자동으로 처리하는 것:
-- npm 로그인/git 상태 확인
-- 테스트 및 빌드 실행
-- `private: true` 제거 후 배포
-- git 태그 생성 (버전 범프 시)
+Script automatically handles:
+- npm login/git status check
+- Run tests and build
+- Remove `private: true` before publish
+- Create git tag (on version bump)
 
-## 새 기능 추가
+## Adding New Features
 
-### 에이전트 추가
+### Adding an Agent
 
 1. `src/types/agent.ts` → `AgentRole` enum
 2. `src/types/model.ts` → `ROLE_MODEL_MAPPING`
-3. `src/core/agents/prompts.ts` → 시스템 프롬프트 + `AGENT_METADATA`
+3. `src/core/agents/prompts.ts` → System prompt + `AGENT_METADATA`
 
-### Tool 추가
+### Adding a Tool
 
-1. `src/server/tools/definitions.ts` → tool 정의
-2. `src/server/tools/schemas.ts` → Zod 스키마
-3. `src/server/handlers/index.ts` → switch case + 핸들러 메서드
+1. `src/server/tools/definitions.ts` → Tool definition
+2. `src/server/tools/schemas.ts` → Zod schema
+3. `src/server/handlers/index.ts` → Switch case + handler method
 
-## 디버깅
+## Debugging
 
 ```bash
 LOG_LEVEL=debug npm run dev
 ```
 
-| 증상 | 원인 | 해결 |
-|------|------|------|
-| MCP 연결 안됨 | stdout 오염 | console.log 제거 |
-| 에이전트 실패 | API 키 누락 | .env 확인 |
-| 타임아웃 | 느린 응답 | CCO_TIMEOUT_SECONDS 증가 |
+| Symptom | Cause | Solution |
+|---------|-------|----------|
+| MCP connection fails | stdout pollution | Remove console.log |
+| Agent fails | Missing API key | Check .env |
+| Timeout | Slow response | Increase CCO_TIMEOUT_SECONDS |
 
-## 비용 참고
+## Cost Reference
 
-- `scout`: 무료 (Claude 3.5 Sonnet)
-- `index`: 저렴 (Claude Sonnet 4.5)
-- `arch`: 비쌈 (GPT-5.2)
+- `scout`: Free (Claude 3.5 Sonnet)
+- `index`: Cheap (Claude Sonnet 4.5)
+- `arch`: Expensive (GPT-5.2)
 
-개발 중에는 `scout` 사용 권장.
+Use `scout` during development.

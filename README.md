@@ -5,22 +5,17 @@
 
 **[한국어 문서 (Korean)](./README.ko.md)**
 
-> *"Why settle for one AI when you can have an entire orchestra?"*
+> *"Why use one AI when you can summon an entire orchestra and make them fight over your code?"*
 
-**CC Orchestrator** turns Claude Code into a conductor, directing multiple AI models to work together in harmony. Think of it as your personal AI symphony — GPT-5.2 handles the architecture, Gemini crafts the UI, and Claude researches the docs. All at once. In parallel.
+**CC Orchestrator** transforms Claude Code into a maestro conducting a symphony of AI models. GPT-5.2 argues about architecture, Gemini obsesses over pixels, and Claude dives into documentation rabbit holes. All at the same time. Because waiting is for people who enjoy watching loading spinners.
 
 ---
 
-## 🎭 The Concept
+## 🎭 The Pitch
 
-Imagine you're building a complex feature. You need:
-- **Strategic thinking** for architecture decisions
-- **Creative flair** for UI/UX design
-- **Deep research** into documentation and best practices
+Picture this: You need to build something complex. Traditionally, you'd ask one AI to be an architect, designer, researcher, and writer all at once. That's like asking your dentist to also fix your car.
 
-Traditionally, you'd ask one AI to do everything. But what if each task went to the *specialist* best suited for it?
-
-**That's CC Orchestrator.**
+**CC Orchestrator** says: *"What if we just... hired specialists?"*
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -35,127 +30,128 @@ Traditionally, you'd ask one AI to do everything. But what if each task went to 
 │   └────┬─────┘   └────┬─────┘   └────┬─────┘               │
 │        │              │              │                      │
 │        ▼              ▼              ▼                      │
-│   "Here's the    "Here's a      "Here are                  │
-│    architecture"  beautiful UI"   Stripe docs"              │
+│   "Here's why     "Here's a      "Here's every            │
+│    microservices   gorgeous UI"   Stripe doc ever          │
+│    are a trap"                    written"                 │
 │                                                             │
 │   ══════════════════════════════════════════                │
 │              All running in parallel! ⚡                     │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-Inspired by [Oh My OpenCode](https://github.com/code-yeongyu/oh-my-opencode), this project brings multi-model orchestration to the Claude Code ecosystem.
+Inspired by [Oh My OpenCode](https://github.com/code-yeongyu/oh-my-opencode). We stole the idea and made it work with Claude Code. Innovation!
 
 ---
 
-## ✨ Key Features
+## ✨ Features (The Good Stuff)
 
 ### 🎯 Specialized Agents
 
-Each agent is optimized for what they do best:
+Each agent has exactly one job. They're very good at it. They will not shut up about it.
 
-| Agent | Model | Superpower |
-|-------|-------|------------|
-| **Arch** | GPT-5.2 | 🧠 The architect. Strategic decisions, code review, system design |
-| **Canvas** | Gemini 3 Pro | 🎨 The artist. Beautiful UIs, pixel-perfect components |
-| **Index** | Claude Sonnet 4.5 | 📚 The scholar. Documentation hunter, codebase analyst |
-| **Quill** | Gemini 3 Pro | ✍️ The writer. README, API docs, technical writing |
-| **Lens** | Gemini 2.5 Flash | 👁️ The observer. Images, PDFs, screenshots |
-| **Scout** | Claude Sonnet | 🔍 The scout. Quick codebase exploration (FREE!) |
+| Agent | Model | Personality |
+|-------|-------|-------------|
+| **Arch** | GPT-5.2 | 🧠 The overthinker. Will write 3 pages about why your variable name is "technically correct but philosophically questionable" |
+| **Canvas** | Gemini 3 Pro | 🎨 The artist. Believes every button deserves a 47ms cubic-bezier transition |
+| **Index** | Claude Sonnet 4.5 | 📚 The librarian. Has read every documentation page. Will cite sources. Cannot be stopped |
+| **Quill** | Gemini 3 Pro | ✍️ The poet. Writes README files so beautiful they make developers cry |
+| **Lens** | Gemini 3 Flash | 👁️ The detective. Stares at your screenshots and PDFs until they confess their secrets |
+| **Scout** | Claude Sonnet | 🔍 The intern. Fast, free, and surprisingly competent at finding things. We don't pay them |
 
 ### ⚡ Parallel Execution
 
-Why wait when you can run everything at once?
+Why do things one at a time like some kind of single-threaded peasant?
 
 ```
-Traditional:  Task A → Task B → Task C  (Sequential, slow 🐌)
-              ════════════════════════
+The old way:    Task A → Task B → Task C    (3 hours of your life, gone)
 
-CC Orchestrator:  Task A ─┐
-                  Task B ─┼→ All done! (Parallel, fast 🚀)
-                  Task C ─┘
+The new way:    Task A ─┐
+                Task B ─┼→ Done!            (They raced. Everyone won)
+                Task C ─┘
 ```
 
-### 🔄 Smart Fallbacks
+### 🔄 Fallback System (The Safety Net)
 
-API key missing? Provider down? No problem.
+APIs go down. It happens. We're prepared.
 
 ```
-Arch needs GPT-5.2, but OpenAI is unavailable?
-  → Falls back to Anthropic
-  → Still unavailable? Falls back to Google
-  → Your work continues uninterrupted ✓
+You: "Arch, review this code"
+Arch: *tries to call GPT-5.2*
+OpenAI: "lol no" (503)
+CC Orchestrator: "Fine, Claude can do it"
+Claude: "I was literally made for this"
 ```
 
-### 🎹 Keyword Triggers
+Automatic cross-provider fallbacks. Your work continues. Your deadline survives.
 
-Just type naturally and let the magic happen:
+### 🎹 Trigger Keywords
 
-| Say this... | ...and get this |
-|-------------|-----------------|
-| `ultrawork` or `ulw` | 🔥 Maximum parallel mode — all agents fire at once |
-| `search` or `찾아` | 📖 Index deep-dives into documentation |
-| `analyze` or `분석` | 🔬 Arch + Index work sequentially for deep analysis |
+Talk to your agents naturally. They're listening. (Not in a creepy way.)
 
-### 🧠 Context Resilience
+**Summon the whole squad:**
+| Say this... | What happens |
+|-------------|--------------|
+| `@all` | Everyone gets to work. Chaos ensues (productively) |
+| `@team` | Same energy, different vibe |
+| `parallel` | You want speed. We respect that |
+| `simultaneously` | For when you feel fancy |
+| `together` | Teamwork makes the dream work |
 
-Ever used `/compact` and watched Claude forget everything? We fixed that.
-
-The Context Resilience Framework automatically:
-- **Saves** your decisions, resolved errors, and active files
-- **Detects** important moments ("decided to use JWT", "fixed the bug")
-- **Recovers** everything when you start a new session
-
-No more repeating yourself. No more lost context.
+**Call a specific agent:**
+| Mention | Who answers |
+|---------|-------------|
+| `@arch` or `@architect` | The overthinker arrives |
+| `@canvas`, `@ui`, `@frontend` | The pixel perfectionist |
+| `@index` or `@researcher` | The documentation hoarder |
+| `@quill`, `@docs`, `@writer` | The prose professional |
+| `@lens`, `@image`, `@pdf` | The visual investigator |
+| `@scout`, `@find`, `@search` | The speedy explorer |
 
 ---
 
 ## 🚀 Installation
 
-### For Humans: The One-Liner
+### The Easy Way (For Humans)
 
 ```bash
-npx cc-orch
+npx cc-orchestrator@latest
 ```
 
-That's it. The interactive installer handles everything:
-- ✅ API key configuration
-- ✅ Claude Code integration
-- ✅ Python hooks installation
-- ✅ Skills registration
+That's it. The installer will:
+- ✅ Ask you politely for API keys
+- ✅ Configure everything automagically
+- ✅ Not judge your messy home directory
 
-Just answer a few questions and you're ready to orchestrate.
+### The Hard Way (For Claude Code)
 
----
-
-### For Claude Code: Manual Installation
-
-When Claude Code is setting this up autonomously, use the manual approach:
+When Claude Code is doing this autonomously (hello, robot friend):
 
 ```bash
-# 1. Clone the repository
+# 1. Clone it
 git clone https://github.com/zhsks311/cc-orchestrator.git
 cd cc-orchestrator
 
-# 2. Install dependencies
+# 2. Install the things
 npm install
 
-# 3. Create environment file
+# 3. Create secrets file
 cat > .env << 'EOF'
-# Add your API keys (at least one required)
+# Add at least one. More is better. All three is showing off.
 OPENAI_API_KEY=sk-...
 GOOGLE_API_KEY=AIza...
 ANTHROPIC_API_KEY=sk-ant-...
 
-# Optional: Timeout settings
+# For the patient among us
 CCO_TIMEOUT_SECONDS=300
 EOF
 
-# 4. Build the project
+# 4. Build it
 npm run build
 
-# 5. Register with Claude Desktop
-# Add to ~/.claude/claude_desktop_config.json:
+# 5. Tell Claude Desktop about it
 ```
+
+Add to `~/.claude/claude_desktop_config.json`:
 
 ```json
 {
@@ -174,56 +170,50 @@ npm run build
 ```
 
 ```bash
-# 6. (Optional) Install Python hooks for advanced features
+# 6. Optional: Install the fancy extras
 cp -r hooks/* ~/.claude/hooks/
-
-# 7. (Optional) Install skills
 cp -r skills/* ~/.claude/skills/
 
-# 8. Restart Claude Code
+# 7. Restart Claude Code and feel powerful
 ```
 
 ---
 
 ## 🎮 Usage
 
-### Talk to Your Agents
-
-Just ask naturally:
+### Just... Talk To Them
 
 ```
-"Hey Arch, review this architecture for security issues"
+"Hey Arch, is this architecture going to haunt me in 6 months?"
 
-"Canvas, create a dark mode toggle component"
+"Canvas, make this login page not look like it was designed in 2003"
 
-"Index, find me examples of rate limiting in Express"
+"Index, find me every Express middleware gotcha ever documented"
 ```
 
-### Use the Orchestrate Skill
+### The Orchestrate Skill
 
-For complex multi-step tasks:
+For when you want to feel like a project manager:
 
 ```
 /orchestrate Implement user authentication with JWT
 ```
 
 The orchestrator will:
-1. Break down the task into steps
-2. Assign each step to the best agent
-3. Track progress and report back
+1. Break your vague request into actual steps
+2. Assign each step to whoever's least likely to mess it up
+3. Report back like a responsible employee
 
-### Direct Tool Calls
-
-For precise control:
+### Direct Tool Calls (For Control Freaks)
 
 ```javascript
-// Spawn an agent in the background
-background_task({ agent: "arch", prompt: "Review this code..." })
+// Launch an agent into the void
+background_task({ agent: "arch", prompt: "Judge my life choices (the code ones)" })
 
-// Check on progress
+// Check if they're still thinking
 background_output({ task_id: "abc123", block: false })
 
-// Get the final result
+// Demand answers
 background_output({ task_id: "abc123", block: true })
 ```
 
@@ -231,33 +221,33 @@ background_output({ task_id: "abc123", block: true })
 
 ## 💡 Pro Tips
 
-### 1. Start with Scout (It's Free!)
+### 1. Scout Is Free. Abuse This.
 
-The `scout` agent uses your existing Claude quota — no extra API costs. Perfect for:
-- Quick codebase navigation
-- Finding files and functions
-- Understanding project structure
+The `scout` agent uses your existing Claude quota. Zero extra cost. Perfect for:
+- "Where the heck is that file?"
+- "Who wrote this and why?"
+- "Show me the project structure so I can pretend I understand it"
 
-### 2. Use Arch Wisely
+### 2. Arch Is Expensive. Use Wisely.
 
-GPT-5.2 is powerful but pricey. Save it for:
-- Critical architecture decisions
-- Complex code reviews
-- Strategic planning
+GPT-5.2 bills by the existential crisis. Save it for:
+- Architecture decisions you'll regret later anyway
+- Security reviews that make you lose sleep
+- When you've tried fixing a bug 3 times and it's personal now
 
 ### 3. Parallelize Everything
 
-Instead of:
+Instead of this:
 ```
-"First research the API, then design the component, then review"
-```
-
-Try:
-```
-"ultrawork: Research Stripe API, design payment form, review security"
+"Research the API, then design the component, then review it"
 ```
 
-All three agents work simultaneously!
+Try this:
+```
+"@all Research Stripe API, design payment form, review for security holes"
+```
+
+Three agents. One request. They'll figure it out.
 
 ---
 
@@ -265,7 +255,7 @@ All three agents work simultaneously!
 
 ### Provider Priority
 
-Customize which providers to prefer in `~/.cco/config.json`:
+Customize who gets called first in `~/.cco/config.json`:
 
 ```json
 {
@@ -283,13 +273,13 @@ Customize which providers to prefer in `~/.cco/config.json`:
 ### Environment Variables
 
 ```bash
-# Global provider priority
+# "Call Anthropic first, then Google, then OpenAI"
 export CCO_PROVIDER_PRIORITY=anthropic,google,openai
 
-# Role-specific priority
+# "Arch specifically should try OpenAI, then Anthropic"
 export CCO_ARCH_PROVIDERS=openai,anthropic
 
-# Timeout (seconds)
+# "I have patience" (timeout in seconds)
 export CCO_TIMEOUT_SECONDS=300
 ```
 
@@ -299,47 +289,60 @@ export CCO_TIMEOUT_SECONDS=300
 
 ```
 cc-orchestrator/
-├── src/                    # TypeScript source
-│   ├── core/               # Business logic (MCP-agnostic)
-│   │   ├── agents/         # Agent management
-│   │   ├── models/         # Model routing & providers
-│   │   └── orchestration/  # DAG-based orchestration
-│   ├── server/             # MCP protocol handling
-│   └── types/              # Type definitions & errors
-├── hooks/                  # Python automation hooks
-├── skills/                 # Claude Code skills
-└── scripts/                # Setup & maintenance scripts
+├── src/                    # The TypeScript jungle
+│   ├── core/               # Business logic (MCP-free zone)
+│   │   ├── agents/         # Where agents live
+│   │   ├── models/         # Model routing & provider wrangling
+│   │   └── orchestration/  # The conductor's baton
+│   ├── server/             # MCP protocol stuff
+│   └── types/              # Types. So many types.
+├── hooks/                  # Python automation (spicy)
+├── skills/                 # Claude Code skills (extra spicy)
+└── scripts/                # Setup scripts (mild)
 ```
 
 ---
 
 ## 🗑️ Uninstallation
 
+Changed your mind? No hard feelings.
+
 ```bash
 npm run uninstall
 ```
 
-Choose what to remove:
-1. **Everything** — Local files + Claude configuration
-2. **Local only** — .env, dist, node_modules
-3. **Claude config only** — Hooks, skills, desktop config
+Options:
+1. **Everything** — Nuclear option. Gone.
+2. **Local only** — Keep Claude config, delete project files
+3. **Claude config only** — Keep project, remove from Claude
+
+---
+
+## 🐛 Troubleshooting
+
+| Problem | Cause | Solution |
+|---------|-------|----------|
+| MCP won't connect | Someone used `console.log` | Find it. Delete it. Never speak of this. |
+| Agent stuck | API being dramatic | Check your keys. Check their status page. Curse. |
+| Timeout | Model is "thinking" | Increase `CCO_TIMEOUT_SECONDS`. Get coffee. |
+| No response | You broke it | `LOG_LEVEL=debug npm run dev`, then panic |
 
 ---
 
 ## 🙏 Credits
 
-- [Oh My OpenCode](https://github.com/code-yeongyu/oh-my-opencode) — The original inspiration
-- [Model Context Protocol](https://modelcontextprotocol.io/) — The foundation
-- [Claude Code](https://claude.ai/claude-code) — The platform
+- [Oh My OpenCode](https://github.com/code-yeongyu/oh-my-opencode) — We borrowed generously from their genius
+- [Model Context Protocol](https://modelcontextprotocol.io/) — Making this chaos possible
+- [Claude Code](https://claude.ai/claude-code) — The stage for our little orchestra
 
 ---
 
 ## 📄 License
 
-MIT — Use it, modify it, share it. Go wild.
+MIT — Do whatever you want. We're not your parents.
 
 ---
 
 <p align="center">
-  <i>Stop asking one AI to do everything.<br>Start conducting an orchestra.</i>
+  <i>Stop asking one AI to be everything.<br>Start conducting an orchestra.<br><br>🎼 May your builds be fast and your agents cooperative. 🎼</i>
 </p>

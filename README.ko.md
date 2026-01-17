@@ -3,318 +3,258 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![npm version](https://img.shields.io/npm/v/cc-orchestrator.svg)](https://www.npmjs.com/package/cc-orchestrator)
 
-**Claude Code에서 여러 LLM을 병렬로 활용하는 MCP 서버**
+**[English Documentation](./README.md)**
 
-> [Oh My OpenCode](https://github.com/code-yeongyu/oh-my-opencode)의 멀티모델 오케스트레이션 개념을 Claude Code 환경에 맞게 구현한 프로젝트입니다.
+> *"AI 하나로 버티지 말고, 오케스트라를 소환해서 코드 앞에서 싸우게 하자"*
 
----
-
-## 목차
-
-- [개요](#개요)
-- [주요 기능](#주요-기능)
-- [에이전트 시스템](#에이전트-시스템)
-- [빠른 시작](#빠른-시작)
-- [사용 방법](#사용-방법)
-- [Python Hooks](#python-hooks)
-- [Context Resilience Framework](#context-resilience-framework)
-- [도구 목록](#도구-목록)
-- [프로젝트 구조](#프로젝트-구조)
-- [설정](#설정)
-- [제거](#제거)
+**CC Orchestrator**는 Claude Code를 지휘자로 만들어 AI 모델들의 심포니를 이끌게 합니다. GPT-5.2가 아키텍처로 논쟁하고, Gemini가 픽셀에 집착하고, Claude가 문서의 토끼굴로 뛰어드는 동안... 당신은 커피나 마시면 됩니다. 로딩 스피너 구경하는 게 취미가 아니라면요.
 
 ---
 
-## 개요
+## 🎭 왜 필요한가
 
-CC Orchestrator는 Claude Code 환경에서 GPT-5.2, Gemini 3 Pro, Claude Sonnet 4.5 등 다양한 LLM을 **병렬로 활용**할 수 있게 해주는 MCP(Model Context Protocol) 서버입니다.
+상상해보세요: 복잡한 기능을 만들어야 합니다. 보통은 하나의 AI에게 아키텍트, 디자이너, 리서처, 작가 역할을 동시에 시킵니다. 그건 마치 치과의사에게 자동차 수리도 맡기는 것과 같습니다.
 
-### 왜 필요한가?
-
-- **단일 모델의 한계**: 하나의 LLM으로 모든 작업을 처리하면 각 모델의 강점을 활용하지 못함
-- **병렬 처리의 필요성**: 복잡한 작업을 여러 모델에 동시에 위임하면 효율성 향상
-- **전문화의 이점**: 아키텍처 설계에는 GPT, UI 작업에는 Gemini, 문서 검색에는 Claude가 각각 최적화됨
-
----
-
-## 주요 기능
-
-| 기능 | 설명 |
-|------|------|
-| **멀티모델 병렬 실행** | GPT, Gemini, Claude를 동시에 활용 |
-| **전문 에이전트 시스템** | 역할별 최적화된 모델 자동 선택 |
-| **Cross-Provider Fallback** | API 키 누락/장애 시 다른 제공자로 자동 전환 |
-| **DAG 기반 오케스트레이션** | 의존성 관리 및 자동 워크플로우 |
-| **키워드 트리거** | `ultrawork`, `분석`, `찾아` 등으로 자동 실행 |
-| **컨텍스트 공유** | 에이전트 간 결과 전달 |
-| **Python Hooks** | 코드 리뷰, 완료 오케스트레이션 자동화 |
-| **Orchestrate Skill** | `/orchestrate` 명령으로 복잡한 작업 위임 |
-| **Context Resilience** | `/compact` 후 문맥 손실 방지 및 자동 복구 |
-
----
-
-## 에이전트 시스템
-
-### 역할-모델 매핑
-
-| 역할 | 기본 모델 | Fallback | 용도 |
-|------|----------|----------|------|
-| **arch** | GPT-5.2 | GPT-4o | 아키텍처 설계, 전략적 의사결정, 코드 리뷰 |
-| **canvas** | Gemini 3 Pro | Gemini 2.5 Flash | UI/UX 디자인, 프론트엔드 구현 |
-| **index** | Claude Sonnet 4.5 | Claude Sonnet 4 | 문서 검색, 코드베이스 분석, 구현 사례 조사 |
-| **quill** | Gemini 3 Pro | Gemini 2.5 Flash | 기술 문서 작성, README, API 문서 |
-| **lens** | Gemini 2.5 Flash | Gemini 2.0 Flash | 이미지, PDF, 스크린샷 분석 |
-| **scout** | Claude Sonnet | - | 코드베이스 탐색 (무료) |
-
-### Cross-Provider Fallback
-
-API 키가 없거나 제공자 장애 시 **다른 제공자로 자동 전환**됩니다:
-
-```
-arch:   OpenAI → Anthropic → Google
-index:  Anthropic → Google → OpenAI
-canvas: Google → Anthropic → OpenAI
-quill:  Google → Anthropic → OpenAI
-lens:   Google → Anthropic → OpenAI
-scout:  Anthropic (무료, Claude Sonnet)
-```
-
-**예시:** OpenAI API 키만 있는 경우
-- `arch` → OpenAI 사용 ✓
-- `index` → Anthropic 없음 → OpenAI로 fallback ⚠
-- `canvas` → Google 없음 → OpenAI로 fallback ⚠
-
----
-
-## 빠른 시작
-
-### 1. 설치 (원라인)
-
-```bash
-npx cc-orch
-```
-
-또는 수동 설치:
-
-```bash
-git clone https://github.com/zhsks311/cc-orchestrator.git
-cd cc-orchestrator
-npm run setup
-```
-
-대화형 설치 스크립트가 다음을 자동으로 수행합니다:
-- API 키 입력 (OpenAI, Google, Anthropic)
-- `.env` 파일 생성
-- 의존성 설치 및 빌드
-- **Python Hooks** 설치 (`~/.claude/hooks/`)
-- **Skills** 설치 (`~/.claude/skills/`)
-- **Settings** 업데이트 (`~/.claude/settings.json`)
-- **Claude Desktop Config** 자동 등록
-
-### 2. Claude Code 재시작
-
-설치 완료 후 Claude Code를 재시작하면 모든 기능을 사용할 수 있습니다.
-
-### 설치 및 업데이트 옵션
-
-```bash
-# 원라인 설치
-npx cc-orch
-
-# 수동 설치 (미설치 항목만)
-npm run setup
-
-# 모든 항목 재설치
-npm run setup -- --force
-
-# 업데이트 (최신 버전으로)
-npm run update
-
-# 업데이트 확인만
-npm run update -- --check
-
-# npx로 업데이트
-npx cc-orch --upgrade
-```
-
----
-
-## 사용 방법
-
-### 개별 에이전트 호출
-
-자연어로 에이전트를 호출할 수 있습니다:
-
-```
-"arch한테 이 프로젝트 아키텍처 리뷰해달라고 해"
-"canvas한테 로그인 폼 컴포넌트 만들어줘"
-"index한테 React Query 사용법 찾아줘"
-```
-
-### 자동 오케스트레이션 (키워드 트리거)
-
-특정 키워드를 사용하면 자동으로 오케스트레이션이 실행됩니다:
-
-| 키워드 | 동작 | 실행 에이전트 |
-|--------|------|---------------|
-| `ultrawork` 또는 `ulw` | 최대 병렬 모드 | arch + canvas + index 동시 |
-| `search` 또는 `찾아` | 검색 집중 모드 | index 단독 |
-| `analyze` 또는 `분석` | 심층 분석 모드 | arch → index 순차 |
-
-### Orchestrate Skill
-
-`/orchestrate` 명령으로 복잡한 작업을 단계별로 위임:
-
-```
-/orchestrate 새로운 결제 기능 구현
-```
-
-스킬이 자동으로:
-1. 작업을 분석하고 단계별로 분해
-2. 적절한 에이전트에게 각 단계 할당
-3. 진행 상황 추적 및 보고
-
----
-
-## Python Hooks
-
-`~/.claude/hooks/`에 설치되는 Python 기반 자동화 훅:
-
-| 훅 | 트리거 | 기능 |
-|----|--------|------|
-| `collect_project_context.py` | SessionStart | 프로젝트 컨텍스트 자동 수집 |
-| `recovery_wrapper.py` | SessionStart | 이전 세션 컨텍스트 복구 + 데이터 정리 |
-| `context_saver_wrapper.py` | PostToolUse | 파일 수정, Todo 변경 시 컨텍스트 저장 |
-| `checkpoint_wrapper.py` | /checkpoint 스킬 | 수동 체크포인트 생성 |
-| `review_completion_wrapper.py` | PostToolUse (TodoWrite) | 작업 완료 시 Gemini로 코드 리뷰 |
-| `review_test_wrapper.py` | PostToolUse (Bash) | 테스트 실행 후 결과 분석 |
-| `completion_orchestrator.py` | - | 완료 작업 오케스트레이션 |
-| `quota_monitor.py` | - | API 사용량 모니터링 |
-
-### API 키 설정 (Hooks용)
-
-Hooks가 외부 모델을 호출하려면 `~/.claude/hooks/api_keys.json` 파일에 API 키를 설정하세요:
-
-```json
-{
-  "GEMINI_API_KEY": "your-gemini-api-key"
-}
-```
-
----
-
-## Context Resilience Framework
-
-`/compact` 명령 후 발생하는 문맥 손실 문제를 해결합니다.
-
-### 문제점
-
-Claude Code에서 `/compact`를 실행하면 대화 내역이 요약되면서 다음 정보들이 손실됩니다:
-
-| 문제 | 증상 | 영향 |
-|------|------|------|
-| **Skills 망각** | CLAUDE.md, SKILL.md 내용을 잊음 | 프로젝트 규칙/컨벤션 무시 |
-| **파일 경로 손실** | 어떤 파일을 수정 중이었는지 모름 | 작업 연속성 단절 |
-| **실수 반복** | 이미 해결한 에러를 다시 범함 | 시간 낭비, 코드 품질 저하 |
-| **결정사항 무시** | 합의한 설계 방향을 잊음 | 일관성 없는 구현 |
-
-### 해결 전략 (3단계 계층)
+**CC Orchestrator**의 제안: *"그냥... 전문가를 각각 고용하면 안 될까요?"*
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  Layer 1: Protected Context (자동)                          │
-│  - 작업 디렉토리, 스킬 경로, 수정 파일 등 시스템 정보 보호      │
+│                     🎼 CC Orchestrator                      │
 ├─────────────────────────────────────────────────────────────┤
-│  Layer 2: Semantic Anchors (자동)                           │
-│  - "결정했어", "해결됨" 등 중요 순간 자동 감지 및 저장          │
-├─────────────────────────────────────────────────────────────┤
-│  Layer 3: Auto Recovery (자동)                              │
-│  - 세션 시작 시 이전 컨텍스트 자동 복구 (14일 이내)            │
+│                                                             │
+│   나: "결제 시스템 만들어줘"                                   │
+│                                                             │
+│   ┌──────────┐   ┌──────────┐   ┌──────────┐               │
+│   │   Arch   │   │  Canvas  │   │  Index   │               │
+│   │ (GPT-5.2)│   │ (Gemini) │   │ (Claude) │               │
+│   └────┬─────┘   └────┬─────┘   └────┬─────┘               │
+│        │              │              │                      │
+│        ▼              ▼              ▼                      │
+│   "마이크로서비스는  "예쁜 UI요"    "Stripe 문서                │
+│    함정입니다"                      전부 읽었어요"             │
+│                                                             │
+│   ══════════════════════════════════════════                │
+│              전부 동시에 실행! ⚡                              │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### Layer 1: Protected Context
+[Oh My OpenCode](https://github.com/code-yeongyu/oh-my-opencode)에서 아이디어를 ~~훔쳐~~영감을 받아 Claude Code용으로 만들었습니다. 혁신이란 이런 것!
 
-Claude가 도구를 사용할 때마다 자동으로 핵심 정보를 파일에 저장합니다.
+---
 
-**저장되는 정보:**
-- `working_directory` - 현재 프로젝트 경로
-- `active_skills` - 로드된 SKILL.md 경로 목록
-- `active_files` - 수정 중인 파일 경로 (최대 30개)
-- `pending_tasks` - 미완료 작업 목록 (최대 20개)
-- `key_decisions` - 핵심 결정사항 (최대 20개)
-- `resolved_errors` - 해결한 에러 요약 (최대 10개)
+## ✨ 주요 기능 (쓸모있는 것들)
 
-### Layer 2: Semantic Anchors
+### 🎯 전문 에이전트
 
-대화 내용에서 중요한 순간을 자동으로 감지하여 저장합니다.
+각 에이전트는 딱 한 가지만 합니다. 그것만 아주 잘합니다. 그리고 그것에 대해 끊임없이 떠들 겁니다.
 
-| 앵커 타입 | 감지 키워드 (한국어) | 감지 키워드 (영어) |
-|----------|---------------------|-------------------|
-| **DECISION** | 결정, 선택, 이렇게 하자 | decided, choose, let's go with |
-| **ERROR_RESOLVED** | 해결, 수정 완료, 고침 | fixed, resolved, working now |
-| **USER_EXPLICIT** | 기억해, 중요:, 잊지 마 | remember, important:, note: |
-| **FILE_MODIFIED** | (자동) 파일 생성/수정 시 | (자동) Edit/Write 도구 사용 시 |
-| **CHECKPOINT** | /checkpoint 명령 또는 Todo 전체 완료 시 | 자동 생성 |
+| 에이전트 | 모델 | 성격 |
+|----------|------|------|
+| **Arch** | GPT-5.2 | 🧠 과대망상형. 변수명 하나에 "기술적으로는 맞지만 철학적으로 의문"이라며 3페이지 쓸 사람 |
+| **Canvas** | Gemini 3 Pro | 🎨 예술가형. 버튼 하나에 47ms cubic-bezier 트랜지션이 필요하다고 믿는 사람 |
+| **Index** | Claude Sonnet 4.5 | 📚 사서형. 모든 문서를 읽었고, 출처를 남기고, 멈출 수 없는 사람 |
+| **Quill** | Gemini 3 Pro | ✍️ 시인형. 개발자를 울리는 README를 쓰는 사람 |
+| **Lens** | Gemini 3 Flash | 👁️ 탐정형. 스크린샷과 PDF를 뚫어지게 쳐다보며 비밀을 캐내는 사람 |
+| **Scout** | Claude Sonnet | 🔍 인턴형. 빠르고, 공짜고, 의외로 유능함. 월급은 안 줌 |
 
-### Layer 3: Auto Recovery
+### ⚡ 병렬 실행
 
-새 세션이 시작되면 자동으로 이전 컨텍스트를 복구합니다 (14일 이내).
-
-### /checkpoint 스킬
-
-중요한 시점에 명시적으로 컨텍스트를 저장:
+왜 싱글스레드 평민처럼 하나씩 해요?
 
 ```
-/checkpoint "인증 시스템 구현 완료, JWT + refresh token 방식"
+옛날 방식:    작업 A → 작업 B → 작업 C    (인생의 3시간, 안녕)
+
+새로운 방식:  작업 A ─┐
+              작업 B ─┼→ 끝!            (경쟁시켰더니 다 이김)
+              작업 C ─┘
+```
+
+### 🔄 폴백 시스템 (안전망)
+
+API는 죽습니다. 그런 겁니다. 우리는 대비했습니다.
+
+```
+나: "Arch, 이 코드 리뷰해줘"
+Arch: *GPT-5.2 호출 시도*
+OpenAI: "ㅋㅋ 안됨" (503)
+CC Orchestrator: "됐고, Claude가 할게"
+Claude: "이것을 위해 태어났다"
+```
+
+프로바이더간 자동 폴백. 작업은 계속됩니다. 데드라인은 살아남습니다.
+
+### 🎹 트리거 키워드
+
+자연스럽게 말하세요. 듣고 있어요. (소름끼치는 방식은 아님)
+
+**전체 소환:**
+| 이렇게 말하면... | 이런 일이 |
+|------------------|----------|
+| `@all` | 전원 출동. 생산적인 혼돈 |
+| `@team` | 비슷한 에너지, 다른 느낌 |
+| `parallel` / `병렬` | 속도를 원하시는군요. 존중합니다 |
+| `simultaneously` / `동시에` | 폼 잡을 때 |
+| `together` / `함께` | 팀워크가 꿈을 이룬다 |
+
+**특정 에이전트 호출:**
+| 멘션 | 누가 답함 |
+|------|----------|
+| `@arch` 또는 `@architect` | 과대망상가 등장 |
+| `@canvas`, `@ui`, `@frontend` | 픽셀 완벽주의자 |
+| `@index` 또는 `@researcher` | 문서 수집광 |
+| `@quill`, `@docs`, `@writer` | 산문의 전문가 |
+| `@lens`, `@image`, `@pdf` | 시각 수사관 |
+| `@scout`, `@find`, `@search` | 빠른 탐험가 |
+
+---
+
+## 🚀 설치
+
+### 쉬운 방법 (인간용)
+
+```bash
+npx cc-orchestrator@latest
+```
+
+끝. 설치 프로그램이:
+- ✅ API 키를 정중하게 물어봄
+- ✅ 알아서 다 설정함
+- ✅ 지저분한 홈 디렉토리를 판단하지 않음
+
+### 어려운 방법 (Claude Code용)
+
+Claude Code가 자동으로 할 때 (안녕, 로봇 친구):
+
+```bash
+# 1. 클론
+git clone https://github.com/zhsks311/cc-orchestrator.git
+cd cc-orchestrator
+
+# 2. 설치
+npm install
+
+# 3. 비밀 파일 생성
+cat > .env << 'EOF'
+# 최소 하나는 넣으세요. 많을수록 좋음. 셋 다 있으면 자랑임.
+OPENAI_API_KEY=sk-...
+GOOGLE_API_KEY=AIza...
+ANTHROPIC_API_KEY=sk-ant-...
+
+# 인내심 있는 분들을 위해
+CCO_TIMEOUT_SECONDS=300
+EOF
+
+# 4. 빌드
+npm run build
+
+# 5. Claude Desktop에 등록
+```
+
+`~/.claude/claude_desktop_config.json`에 추가:
+
+```json
+{
+  "mcpServers": {
+    "cc-orchestrator": {
+      "command": "node",
+      "args": ["/절대/경로/cc-orchestrator/dist/index.js"],
+      "env": {
+        "OPENAI_API_KEY": "sk-...",
+        "GOOGLE_API_KEY": "AIza...",
+        "ANTHROPIC_API_KEY": "sk-ant-..."
+      }
+    }
+  }
+}
+```
+
+```bash
+# 6. 선택: 멋진 추가 기능 설치
+cp -r hooks/* ~/.claude/hooks/
+cp -r skills/* ~/.claude/skills/
+
+# 7. Claude Code 재시작하고 파워풀해지기
 ```
 
 ---
 
-## 도구 목록
+## 🎮 사용법
 
-| 도구 | 설명 |
-|------|------|
-| `background_task` | 백그라운드에서 전문 에이전트 실행 |
-| `background_output` | 에이전트 상태 확인 및 결과 조회 |
-| `background_cancel` | 에이전트 취소 |
-| `list_tasks` | 전체 에이전트 조회 |
-| `share_context` | 컨텍스트 공유 |
-| `get_context` | 공유 컨텍스트 조회 |
-| `suggest_agent` | 작업에 적합한 에이전트 추천 |
+### 그냥... 말하세요
+
+```
+"Arch, 이 아키텍처 6개월 후에 나를 괴롭힐까?"
+
+"Canvas, 이 로그인 페이지 2003년에 디자인된 것처럼 안 보이게 해줘"
+
+"Index, Express 미들웨어 함정 문서화된 거 다 찾아줘"
+```
+
+### Orchestrate 스킬
+
+프로젝트 매니저 느낌 내고 싶을 때:
+
+```
+/orchestrate JWT로 사용자 인증 구현해줘
+```
+
+오케스트레이터가:
+1. 모호한 요청을 실제 단계로 분해
+2. 각 단계를 망칠 확률이 가장 낮은 에이전트에게 할당
+3. 책임감 있는 직원처럼 보고
+
+### 직접 도구 호출 (컨트롤 프릭용)
+
+```javascript
+// 에이전트를 허공으로 발사
+background_task({ agent: "arch", prompt: "내 인생 선택을 판단해줘 (코드 관련으로)" })
+
+// 아직 생각 중인지 확인
+background_output({ task_id: "abc123", block: false })
+
+// 답을 요구
+background_output({ task_id: "abc123", block: true })
+```
 
 ---
 
-## 프로젝트 구조
+## 💡 프로 팁
 
+### 1. Scout는 공짜. 맘껏 써도 됨
+
+`scout` 에이전트는 기존 Claude 할당량을 씀. 추가 비용 0원. 이럴 때 좋음:
+- "그 파일 어디 있어?"
+- "이거 누가 왜 이렇게 짰어?"
+- "프로젝트 구조 보여줘, 이해한 척 할 거야"
+
+### 2. Arch는 비쌈. 현명하게 쓸 것
+
+GPT-5.2는 존재론적 위기당 과금됨. 이럴 때만 쓰세요:
+- 어차피 나중에 후회할 아키텍처 결정
+- 잠 못 들게 하는 보안 리뷰
+- 버그 3번 고쳐봤는데 이제 개인적인 감정이 생겼을 때
+
+### 3. 뭐든 병렬화
+
+이렇게 말고:
 ```
-cc-orchestrator/
-├── src/                         # TypeScript 소스
-│   ├── core/                    # 순수 비즈니스 로직
-│   │   ├── agents/              # 에이전트 관리
-│   │   ├── models/              # 모델 라우팅 및 프로바이더
-│   │   ├── context/             # 컨텍스트 저장소
-│   │   ├── orchestration/       # 오케스트레이션 엔진
-│   │   └── prompts/             # 동적 프롬프트 빌더
-│   ├── server/                  # MCP 프로토콜 처리
-│   │   ├── tools/               # 도구 정의 및 스키마
-│   │   └── handlers/            # 요청 핸들러
-│   ├── types/                   # 타입 및 에러 정의
-│   └── infrastructure/          # 로깅, 설정 로더
-├── hooks/                       # Python Hooks (→ ~/.claude/hooks/)
-├── skills/                      # Skills (→ ~/.claude/skills/)
-├── templates/                   # 설정 템플릿
-├── scripts/                     # 설치/삭제 스크립트
-└── dist/                        # 빌드 결과
+"API 조사하고, 그 다음 컴포넌트 디자인하고, 그 다음 리뷰해"
 ```
+
+이렇게:
+```
+"@all Stripe API 조사, 결제 폼 디자인, 보안 허점 리뷰"
+```
+
+에이전트 셋. 요청 하나. 알아서 할 거예요.
 
 ---
 
-## 설정
+## 🔧 설정
 
-### Provider 우선순위 설정
+### 프로바이더 우선순위
 
-`~/.cco/config.json` 파일로 제공자 우선순위를 커스터마이징할 수 있습니다:
+누가 먼저 호출될지 `~/.cco/config.json`에서 커스터마이징:
 
 ```json
 {
@@ -323,82 +263,100 @@ cc-orchestrator/
   },
   "roles": {
     "arch": {
-      "providers": ["anthropic", "openai"]
-    },
-    "index": {
-      "providers": ["google", "anthropic"]
+      "providers": ["openai", "anthropic"]
     }
   }
 }
 ```
 
-환경 변수로도 설정 가능:
+### 환경 변수
 
 ```bash
-# 전역 우선순위
+# "Anthropic 먼저, 그 다음 Google, 그 다음 OpenAI"
 export CCO_PROVIDER_PRIORITY=anthropic,google,openai
 
-# 역할별 우선순위
-export CCO_ARCH_PROVIDERS=anthropic,openai
-```
+# "Arch는 특별히 OpenAI 먼저, 그 다음 Anthropic"
+export CCO_ARCH_PROVIDERS=openai,anthropic
 
-### Context Resilience 설정
-
-`~/.claude/hooks/config.json`:
-
-```json
-{
-  "context_resilience": {
-    "enabled": true,
-    "auto_save": true,
-    "auto_recover": true,
-    "max_anchors": 50,
-    "recovery_message_max_length": 2000,
-    "cleanup": {
-      "enabled": true,
-      "session_retention_days": 14,
-      "max_anchors_per_session": 50,
-      "cleanup_interval_hours": 24
-    }
-  }
-}
+# "나 인내심 있음" (타임아웃, 초 단위)
+export CCO_TIMEOUT_SECONDS=300
 ```
 
 ---
 
-## 제거
+## 📦 프로젝트 구조
+
+```
+cc-orchestrator/
+├── src/                    # 타입스크립트 정글
+│   ├── core/               # 비즈니스 로직 (MCP 없는 구역)
+│   │   ├── agents/         # 에이전트들의 보금자리
+│   │   ├── models/         # 모델 라우팅 & 프로바이더 길들이기
+│   │   └── orchestration/  # 지휘자의 지휘봉
+│   ├── server/             # MCP 프로토콜 담당
+│   └── types/              # 타입. 수많은 타입.
+├── hooks/                  # Python 자동화 (매운맛)
+├── skills/                 # Claude Code 스킬 (아주 매운맛)
+└── scripts/                # 설정 스크립트 (순한맛)
+```
+
+---
+
+## 🗑️ 제거
+
+마음 바꿨어요? 섭섭하지 않아요.
 
 ```bash
 npm run uninstall
 ```
 
-삭제 옵션:
-1. **전체 삭제** - 로컬 + Claude 설정
-2. **로컬만 삭제** - .env + dist + node_modules
-3. **Claude 설정만 삭제** - hooks, skills, desktop config
+옵션:
+1. **전부** — 핵 옵션. 싹 다 사라짐.
+2. **로컬만** — Claude 설정 유지, 프로젝트 파일 삭제
+3. **Claude 설정만** — 프로젝트 유지, Claude에서 제거
 
 ---
 
-## 비용 참고
+## 🐛 문제 해결
 
-| 에이전트 | 비용 | 권장 용도 |
+| 문제 | 원인 | 해결 |
+|------|------|------|
+| MCP 연결 안 됨 | 누군가 `console.log` 씀 | 찾아서. 지워. 이 얘기는 없었던 거야. |
+| 에이전트 멈춤 | API가 드라마 중 | 키 확인. 상태 페이지 확인. 욕하기. |
+| 타임아웃 | 모델이 "생각 중" | `CCO_TIMEOUT_SECONDS` 올려. 커피 마셔. |
+| 응답 없음 | 네가 망가뜨렸어 | `LOG_LEVEL=debug npm run dev`, 그리고 패닉 |
+
+---
+
+## 💰 비용 참고
+
+| 에이전트 | 비용 | 추천 용도 |
 |----------|------|----------|
 | `scout` | 무료 | 개발 중 테스트, 코드베이스 탐색 |
 | `index` | 저렴 | 문서 검색, 구현 사례 조사 |
+| `lens` | 저렴 | 이미지/PDF 분석 |
+| `canvas` | 보통 | UI/UX 작업 |
+| `quill` | 보통 | 문서 작성 |
 | `arch` | 비쌈 | 아키텍처 설계, 중요 의사결정 |
 
-개발 중에는 `scout` 에이전트 사용을 권장합니다.
+개발 중에는 `scout` 써서 돈 아끼세요.
 
 ---
 
-## 참고 자료
+## 🙏 크레딧
 
-- [Oh My OpenCode](https://github.com/code-yeongyu/oh-my-opencode) - 영감을 준 프로젝트
-- [MCP Protocol](https://modelcontextprotocol.io/) - Model Context Protocol 공식 문서
-- [Claude Code](https://claude.ai/claude-code) - Claude Code 공식 페이지
+- [Oh My OpenCode](https://github.com/code-yeongyu/oh-my-opencode) — 그들의 천재성을 아낌없이 빌려왔습니다
+- [Model Context Protocol](https://modelcontextprotocol.io/) — 이 혼돈을 가능하게 해줌
+- [Claude Code](https://claude.ai/claude-code) — 우리 작은 오케스트라의 무대
 
 ---
 
-## 라이선스
+## 📄 라이선스
 
-MIT License - 자유롭게 사용, 수정, 배포할 수 있습니다.
+MIT — 마음대로 하세요. 우린 부모님이 아니에요.
+
+---
+
+<p align="center">
+  <i>AI 하나에게 모든 걸 시키지 마세요.<br>오케스트라를 지휘하세요.<br><br>🎼 빌드는 빠르고, 에이전트는 협조적이길. 🎼</i>
+</p>

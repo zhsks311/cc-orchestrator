@@ -5,9 +5,9 @@
  * One-line installer for CC Orchestrator
  *
  * Usage:
- *   npx cc-orchestrator              # Install
- *   npx cc-orchestrator --upgrade    # Update existing installation
- *   npx cc-orchestrator --help       # Show help
+ *   npx cc-orchestrator@latest              # Install
+ *   npx cc-orchestrator@latest --upgrade    # Update existing installation
+ *   npx cc-orchestrator@latest --help       # Show help
  */
 
 import * as fs from 'fs';
@@ -42,7 +42,7 @@ function printBanner() {
 function printHelp() {
   printBanner();
   console.log(`Usage:
-  npx cc-orchestrator [directory] [options]
+  npx cc-orchestrator@latest [directory] [options]
 
 Options:
   --upgrade, -u    Update existing installation
@@ -50,10 +50,10 @@ Options:
   --help, -h       Show this help message
 
 Examples:
-  npx cc-orchestrator                    # Install to ~/.cc-orchestratorestrator
-  npx cc-orchestrator ./my-cco           # Install to custom directory
-  npx cc-orchestrator --upgrade          # Update existing installation
-  npx cc-orchestrator --force            # Force reinstall
+  npx cc-orchestrator@latest                    # Install to ~/.cc-orchestrator
+  npx cc-orchestrator@latest ./my-cco           # Install to custom directory
+  npx cc-orchestrator@latest --upgrade          # Update existing installation
+  npx cc-orchestrator@latest --force            # Force reinstall
 
 After installation:
   1. Restart Claude Code
@@ -110,7 +110,7 @@ async function install(installDir) {
       const answer = await question('⚠️  Already installed. Overwrite? (y/N): ');
       if (answer.toLowerCase() !== 'y') {
         console.log('\nInstallation cancelled.');
-        console.log('To upgrade: npx cc-orchestrator --upgrade\n');
+        console.log('To upgrade: npx cc-orchestrator@latest --upgrade\n');
         process.exit(0);
       }
     }
@@ -156,7 +156,7 @@ async function install(installDir) {
 ║     npm run update                                         ║
 ║                                                            ║
 ║  Or:                                                       ║
-║     npx cc-orchestrator --upgrade                          ║
+║     npx cc-orchestrator@latest --upgrade                   ║
 ║                                                            ║
 ╚════════════════════════════════════════════════════════════╝
 `);

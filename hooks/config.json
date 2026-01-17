@@ -73,5 +73,12 @@
     "code": { "enabled": true, "max_retries": 3, "debounce": true },
     "test": { "enabled": true, "max_retries": 2, "debounce": false },
     "final": { "enabled": true, "max_retries": 2, "debounce": false }
+  },
+
+  "todo_enforcer": {
+    "enabled": true,
+    "warn_on_incomplete": true,
+    "save_incomplete_state": true,
+    "recover_on_session_start": true
   }
 }

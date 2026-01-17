@@ -33,7 +33,10 @@ coverage/
 hooks/api_keys.json
 hooks/logs/
 hooks/state/
-hooks/__pycache__/
+
+# Python cache (all directories)
+**/__pycache__/
+*.pyc
 
 # Temp files
 nul
@@ -41,3 +44,4 @@ nul
 
 # Git worktrees
 .worktrees/
+.claude/settings.local.json

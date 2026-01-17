@@ -16,8 +16,8 @@ import * as os from 'os';
 import * as readline from 'readline';
 import { execSync, spawn } from 'child_process';
 
-const REPO_URL = 'https://github.com/zhsks311/cc-orchestratorestrator.git';
-const DEFAULT_INSTALL_DIR = path.join(os.homedir(), '.cc-orchestratorestrator');
+const REPO_URL = 'https://github.com/zhsks311/cc-orchestrator.git';
+const DEFAULT_INSTALL_DIR = path.join(os.homedir(), '.cc-orchestrator');
 
 // Parse arguments
 const args = process.argv.slice(2);

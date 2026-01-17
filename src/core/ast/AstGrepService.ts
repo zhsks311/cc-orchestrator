@@ -7,6 +7,7 @@ import { Lang, parse, SgNode } from '@ast-grep/napi';
 import * as fs from 'fs';
 import * as path from 'path';
 import { Logger } from '../../infrastructure/Logger.js';
+import { ValidationError } from '../../types/errors.js';
 
 // Language mapping from file extension to ast-grep Lang
 const EXTENSION_TO_LANG: Record<string, Lang> = {
@@ -90,6 +91,7 @@ export interface IAstGrepService {
   search(pattern: string, options: AstSearchOptions): Promise<AstSearchResult[]>;
   replace(pattern: string, replacement: string, options: AstReplaceOptions): Promise<AstReplaceResult[]>;
   getSupportedLanguages(): string[];
+  isLanguageSupported(language: string): boolean;
 }
 
 export interface AstSearchOptions {
@@ -106,9 +108,43 @@ export interface AstReplaceOptions {
 
 export class AstGrepService implements IAstGrepService {
   private logger: Logger;
+  private workspaceRoot: string;
 
-  constructor() {
+  constructor(workspaceRoot?: string) {
     this.logger = new Logger('AstGrepService');
+    this.workspaceRoot = workspaceRoot || process.cwd();
+  }
+
+  /**
+   * Validate and resolve path to prevent path traversal
+   * Returns the resolved absolute path
+   */
+  private validatePath(inputPath: string): string {
+    // Resolve to absolute path
+    const resolvedPath = path.isAbsolute(inputPath)
+      ? path.normalize(inputPath)
+      : path.resolve(this.workspaceRoot, inputPath);
+
+    // Check if path exists
+    if (!fs.existsSync(resolvedPath)) {
+      throw new ValidationError(`Path does not exist: ${inputPath}`);
+    }
+
+    // Check for path traversal outside workspace (optional security measure)
+    const relativePath = path.relative(this.workspaceRoot, resolvedPath);
+    if (relativePath.startsWith('..') && !path.isAbsolute(inputPath)) {
+      this.logger.warn('Path traversal detected', {
+        inputPath,
+        resolvedPath,
+        workspaceRoot: this.workspaceRoot,
+      });
+      // Allow absolute paths but warn on relative path traversal
+      throw new ValidationError(
+        `Path traversal not allowed: ${inputPath} escapes workspace root`
+      );
+    }
+
+    return resolvedPath;
   }
 
   /**
@@ -161,7 +197,8 @@ export class AstGrepService implements IAstGrepService {
     const results: AstSearchResult[] = [];
     const maxResults = options.maxResults || 100;
 
-    const targetPath = options.path;
+    // Validate and resolve path
+    const targetPath = this.validatePath(options.path);
     const lang = options.language ? this.getLangFromName(options.language) : null;
 
     const stat = fs.statSync(targetPath);
@@ -216,7 +253,8 @@ export class AstGrepService implements IAstGrepService {
   ): Promise<AstReplaceResult[]> {
     const results: AstReplaceResult[] = [];
 
-    const targetPath = options.path;
+    // Validate and resolve path
+    const targetPath = this.validatePath(options.path);
     const lang = options.language ? this.getLangFromName(options.language) : null;
     const dryRun = options.dryRun ?? true;
 
@@ -295,6 +333,13 @@ export class AstGrepService implements IAstGrepService {
    */
   getSupportedLanguages(): string[] {
     return Object.keys(LANG_NAME_MAP);
+  }
+
+  /**
+   * Check if a language is supported
+   */
+  isLanguageSupported(language: string): boolean {
+    return this.getLangFromName(language) !== null;
   }
 }
 

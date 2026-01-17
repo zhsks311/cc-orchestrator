@@ -512,16 +512,29 @@ export class ToolHandlers {
     const input = AstSearchInputSchema.parse(args);
     const astService = getAstGrepService();
 
+    // Validate language if provided
+    let resolvedLanguage: string | undefined = input.language;
+    if (input.language && !astService.isLanguageSupported(input.language)) {
+      this.logger.warn('Unsupported language specified, falling back to auto-detection', {
+        language: input.language,
+        supported: astService.getSupportedLanguages(),
+      });
+      resolvedLanguage = undefined; // Fall back to auto-detection
+    }
+
     const results = await astService.search(input.pattern, {
       path: input.path,
-      language: input.language,
+      language: resolvedLanguage,
       maxResults: input.max_results,
     });
 
     return this.formatResult({
       pattern: input.pattern,
       path: input.path,
-      language: input.language || 'auto-detected',
+      language: resolvedLanguage || 'auto-detected',
+      language_warning: input.language && !resolvedLanguage
+        ? `Unsupported language '${input.language}', used auto-detection instead`
+        : undefined,
       total_matches: results.length,
       matches: results.map((r) => ({
         file: r.file,
@@ -540,9 +553,19 @@ export class ToolHandlers {
     const input = AstReplaceInputSchema.parse(args);
     const astService = getAstGrepService();
 
+    // Validate language if provided
+    let resolvedLanguage: string | undefined = input.language;
+    if (input.language && !astService.isLanguageSupported(input.language)) {
+      this.logger.warn('Unsupported language specified, falling back to auto-detection', {
+        language: input.language,
+        supported: astService.getSupportedLanguages(),
+      });
+      resolvedLanguage = undefined; // Fall back to auto-detection
+    }
+
     const results = await astService.replace(input.pattern, input.replacement, {
       path: input.path,
-      language: input.language,
+      language: resolvedLanguage,
       dryRun: input.dry_run,
     });
 
@@ -552,6 +575,10 @@ export class ToolHandlers {
       pattern: input.pattern,
       replacement: input.replacement,
       path: input.path,
+      language: resolvedLanguage || 'auto-detected',
+      language_warning: input.language && !resolvedLanguage
+        ? `Unsupported language '${input.language}', used auto-detection instead`
+        : undefined,
       dry_run: input.dry_run,
       total_files_modified: results.length,
       total_replacements: totalReplacements,

@@ -76,7 +76,7 @@ export const AstSearchInputSchema = z.object({
   pattern: z.string().min(1).max(1000).describe('AST pattern to search for'),
   path: z.string().min(1).describe('File or directory path to search in'),
   language: z.string().optional().describe('Programming language (auto-detected if not specified)'),
-  max_results: z.number().min(1).max(500).optional().default(100).describe('Maximum results'),
+  max_results: z.number().int().min(1).max(500).optional().default(100).describe('Maximum results'),
 });
 
 export type AstSearchInput = z.infer<typeof AstSearchInputSchema>;

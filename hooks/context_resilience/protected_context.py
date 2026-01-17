@@ -102,7 +102,7 @@ class ProtectedContextManager:
             try:
                 data = json.loads(path.read_text(encoding='utf-8'))
                 return ProtectedContext.from_dict(data)
-            except (json.JSONDecodeError, KeyError) as e:
+            except (json.JSONDecodeError, KeyError, UnicodeDecodeError) as e:
                 return None
 
     def save(self, context: ProtectedContext) -> None:

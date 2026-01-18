@@ -3,12 +3,22 @@
  * CC Orchestrator Publish Script
  * Publishes installer package to npm registry
  *
+ * Features:
+ *   - Runs tests and builds before publishing
+ *   - Syncs version between root and installer package.json
+ *   - Creates git tag and pushes to remote automatically
+ *   - Creates GitHub Release with auto-generated notes
+ *
  * Usage:
  *   npm run publish              # Publish current version
  *   npm run publish -- patch     # Bump patch version and publish
  *   npm run publish -- minor     # Bump minor version and publish
  *   npm run publish -- major     # Bump major version and publish
  *   npm run publish -- --dry-run # Preview without publishing
+ *
+ * Prerequisites:
+ *   - npm login (authenticated to npm registry)
+ *   - gh CLI (for GitHub Release creation)
  */
 
 import * as fs from 'fs';
@@ -168,9 +178,46 @@ function createGitTag(version) {
     exec(`git commit -m "chore: release v${version}"`, { cwd: rootDir });
     exec(`git tag -a v${version} -m "Release v${version}"`, { cwd: rootDir });
     log(`Created tag v${version}`, 'success');
-    log('Push with: git push && git push --tags', 'info');
   } catch (error) {
     log(`Failed to create git tag: ${error.message}`, 'warn');
+  }
+}
+
+function pushToRemote(version) {
+  if (dryRun) return;
+
+  log('Pushing to remote...');
+  try {
+    exec('git push', { cwd: rootDir });
+    exec('git push --tags', { cwd: rootDir });
+    log(`Pushed v${version} to remote`, 'success');
+  } catch (error) {
+    log(`Failed to push: ${error.message}`, 'warn');
+    log('Manual push required: git push && git push --tags', 'info');
+  }
+}
+
+function createGitHubRelease(version) {
+  if (dryRun) return;
+
+  log(`Creating GitHub Release v${version}...`);
+  try {
+    // Check if gh CLI is available
+    exec('gh --version', { cwd: rootDir, silent: true, stdio: 'pipe' });
+
+    // Create release with auto-generated notes
+    exec(
+      `gh release create v${version} --title "v${version}" --generate-notes --latest`,
+      { cwd: rootDir }
+    );
+    log(`GitHub Release v${version} created`, 'success');
+  } catch (error) {
+    if (error.message?.includes('gh')) {
+      log('gh CLI not found. Install: https://cli.github.com/', 'warn');
+    } else {
+      log(`Failed to create GitHub Release: ${error.message}`, 'warn');
+    }
+    log('Manual release: gh release create v' + version + ' --generate-notes --latest', 'info');
   }
 }
 
@@ -212,6 +259,14 @@ async function main() {
   // Step 6: Create git tag (if version was bumped)
   if (bumpType && !dryRun) {
     createGitTag(version);
+    console.log('');
+
+    // Step 7: Push to remote
+    pushToRemote(version);
+    console.log('');
+
+    // Step 8: Create GitHub Release
+    createGitHubRelease(version);
   }
 
   // Done

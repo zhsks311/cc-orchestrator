@@ -12,9 +12,17 @@ import {
   AgentResult,
   AgentError,
 } from '../../types/index.js';
-import { AgentNotFoundError, TimeoutError } from '../../types/errors.js';
+import {
+  AgentNotFoundError,
+  TimeoutError,
+  CCOError,
+} from '../../types/errors.js';
 import { ModelRouter, IModelRouter } from '../models/ModelRouter.js';
 import { Logger } from '../../infrastructure/Logger.js';
+import {
+  RetryStrategy,
+  RetryOptions,
+} from '../../infrastructure/RetryStrategy.js';
 
 export interface IAgentManager {
   createAgent(params: CreateAgentParams): Promise<Agent>;
@@ -36,14 +44,28 @@ export class AgentManager implements IAgentManager {
   private modelRouter: IModelRouter;
   private logger: Logger;
   private maxConcurrentAgents: number;
+  private retryStrategy: RetryStrategy;
+  private retryOptions: RetryOptions;
 
-  constructor(modelRouter?: IModelRouter) {
+  constructor(modelRouter?: IModelRouter, retryOptions?: Partial<RetryOptions>) {
     this.modelRouter = modelRouter ?? new ModelRouter();
     this.logger = new Logger('AgentManager');
     this.maxConcurrentAgents = parseInt(
       process.env.CCO_MAX_PARALLEL_AGENTS ?? '5',
       10
     );
+
+    // Configure retry strategy from environment or defaults
+    this.retryOptions = {
+      maxRetries: parseInt(process.env.CCO_MAX_RETRIES ?? '3', 10),
+      initialDelayMs: parseInt(process.env.CCO_RETRY_INITIAL_DELAY_MS ?? '1000', 10),
+      maxDelayMs: parseInt(process.env.CCO_RETRY_MAX_DELAY_MS ?? '30000', 10),
+      backoffMultiplier: parseFloat(process.env.CCO_RETRY_BACKOFF_MULTIPLIER ?? '2'),
+      jitter: true,
+      respectRetryable: true,
+      ...retryOptions,
+    };
+    this.retryStrategy = new RetryStrategy(this.retryOptions);
   }
 
   async createAgent(params: CreateAgentParams): Promise<Agent> {
@@ -209,11 +231,13 @@ export class AgentManager implements IAgentManager {
         startedAt: new Date(),
       });
 
-      // Execute agent using model router
-      const response = await this.modelRouter.executeWithFallback({
-        role: agent.role,
-        task: agent.task,
-        context: agent.context,
+      // Execute agent using model router with retry strategy
+      const response = await this.retryStrategy.execute(async () => {
+        return this.modelRouter.executeWithFallback({
+          role: agent.role,
+          task: agent.task,
+          context: agent.context,
+        });
       });
 
       await this.updateAgentStatus(agent.id, AgentStatus.COMPLETED, {
@@ -229,11 +253,14 @@ export class AgentManager implements IAgentManager {
         tokensUsed: response.tokensUsed,
       });
     } catch (error) {
+      // Properly extract retryable flag from CCOError
+      const isRetryable = error instanceof CCOError ? error.retryable : this.retryStrategy.isRetryable(error as Error);
+
       const agentError: AgentError = {
         code: error instanceof Error ? error.name : 'UNKNOWN_ERROR',
         message: error instanceof Error ? error.message : String(error),
         stack: error instanceof Error ? error.stack : undefined,
-        retryable: false,
+        retryable: isRetryable,
       };
 
       await this.updateAgentStatus(agent.id, AgentStatus.FAILED, {
@@ -244,6 +271,8 @@ export class AgentManager implements IAgentManager {
         agentId: agent.id,
         role: agent.role,
         error: agentError,
+        wasRetryable: isRetryable,
+        maxRetriesExhausted: isRetryable,
       });
     }
   }

@@ -170,52 +170,51 @@ cp -r skills/* ~/.claude/skills/
 
 ## 🎮 Usage
 
-### Native Agents (FREE)
+### Multi-Agent Orchestration
 
-Use Claude Code's built-in agents. No API cost, runs on your Claude Code quota.
+The main entry point. Let Claude Code coordinate multiple AI agents for complex tasks.
 
 ```bash
-# Codebase exploration with Scout (Haiku - fast & cheap)
-"Use scout agent to find all authentication-related files"
-"Use scout agent to trace the data flow from API to database"
-
-# External research with Index (Sonnet + WebSearch)
-"Use index agent to find Express middleware best practices"
-"Use index agent to research Stripe API integration patterns"
-```
-
-### MCP Agents (External APIs)
-
-For specialized tasks requiring external models.
-
-```javascript
-// Architecture review with GPT-5.2
-background_task({ agent: "arch", prompt: "Review this payment system architecture" })
-
-// UI/UX design with Gemini
-background_task({ agent: "canvas", prompt: "Design a modern login page component" })
-
-// Documentation with Gemini
-background_task({ agent: "quill", prompt: "Write API documentation for this module" })
-
-// Image/PDF analysis with Gemini
-background_task({ agent: "lens", prompt: "Analyze this wireframe screenshot" })
-```
-
-### The Orchestrate Skill
-
-For when you want to feel like a project manager:
-
-```
 /orchestrate Implement user authentication with JWT
 ```
 
 The orchestrator will:
-1. Break your vague request into actual steps
-2. Assign each step to whoever's least likely to mess it up
-3. Report back like a responsible employee
+1. Analyze your request and break it into steps
+2. Select the best agent for each step (arch, canvas, index, etc.)
+3. Run agents in parallel when possible
+4. Collect and integrate results
 
-### More Skills
+### Single Agent Usage
+
+For simpler tasks that only need one specialist.
+
+**Native Agents (FREE)** - Runs on your Claude Code quota:
+
+```bash
+# Codebase exploration with Scout (Haiku)
+"Use scout agent to find all authentication-related files"
+
+# External research with Index (Sonnet + WebSearch)
+"Use index agent to find Express middleware best practices"
+```
+
+**MCP Agents (External APIs)** - Requires API keys:
+
+```bash
+# Architecture review with Arch (GPT-5.2)
+"Use arch agent to review this payment system architecture"
+
+# UI/UX design with Canvas (Gemini)
+"Use canvas agent to design a login page component"
+
+# Documentation with Quill (Gemini)
+"Use quill agent to write API docs for this module"
+
+# Image analysis with Lens (Gemini)
+"Use lens agent to analyze this wireframe screenshot"
+```
+
+### Other Skills
 
 **UI Quality Assurance:**
 ```

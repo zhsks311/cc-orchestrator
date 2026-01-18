@@ -170,50 +170,49 @@ cp -r skills/* ~/.claude/skills/
 
 ## 🎮 사용법
 
-### 네이티브 에이전트 (무료)
+### 멀티 에이전트 오케스트레이션
 
-Claude Code의 내장 에이전트를 사용합니다. API 비용 없이 Claude Code 할당량으로 실행됩니다.
+메인 진입점입니다. Claude Code가 복잡한 작업을 위해 여러 AI 에이전트를 조율합니다.
 
 ```bash
-# Scout로 코드베이스 탐색 (Haiku - 빠르고 저렴)
-"Use scout agent to find all authentication-related files"
-"Use scout agent to trace the data flow from API to database"
-
-# Index로 외부 리서치 (Sonnet + WebSearch)
-"Use index agent to find Express middleware best practices"
-"Use index agent to research Stripe API integration patterns"
-```
-
-### MCP 에이전트 (외부 API)
-
-외부 모델이 필요한 전문 작업용입니다.
-
-```javascript
-// GPT-5.2로 아키텍처 리뷰
-background_task({ agent: "arch", prompt: "Review this payment system architecture" })
-
-// Gemini로 UI/UX 디자인
-background_task({ agent: "canvas", prompt: "Design a modern login page component" })
-
-// Gemini로 문서화
-background_task({ agent: "quill", prompt: "Write API documentation for this module" })
-
-// Gemini로 이미지/PDF 분석
-background_task({ agent: "lens", prompt: "Analyze this wireframe screenshot" })
-```
-
-### Orchestrate 스킬
-
-프로젝트 매니저 느낌 내고 싶을 때:
-
-```
 /orchestrate JWT로 사용자 인증 구현해줘
 ```
 
 오케스트레이터가:
-1. 모호한 요청을 실제 단계로 분해
-2. 각 단계를 망칠 확률이 가장 낮은 에이전트에게 할당
-3. 책임감 있는 직원처럼 보고
+1. 요청을 분석하고 단계별로 분해
+2. 각 단계에 최적의 에이전트 선택 (arch, canvas, index 등)
+3. 가능하면 에이전트를 병렬로 실행
+4. 결과를 수집하고 통합
+
+### 단일 에이전트 사용
+
+한 명의 전문가만 필요한 간단한 작업용.
+
+**네이티브 에이전트 (무료)** - Claude Code 할당량으로 실행:
+
+```bash
+# Scout로 코드베이스 탐색 (Haiku)
+"Use scout agent to find all authentication-related files"
+
+# Index로 외부 리서치 (Sonnet + WebSearch)
+"Use index agent to find Express middleware best practices"
+```
+
+**MCP 에이전트 (외부 API)** - API 키 필요:
+
+```bash
+# Arch로 아키텍처 리뷰 (GPT-5.2)
+"Use arch agent to review this payment system architecture"
+
+# Canvas로 UI/UX 디자인 (Gemini)
+"Use canvas agent to design a login page component"
+
+# Quill로 문서화 (Gemini)
+"Use quill agent to write API docs for this module"
+
+# Lens로 이미지 분석 (Gemini)
+"Use lens agent to analyze this wireframe screenshot"
+```
 
 ### 추가 스킬
 

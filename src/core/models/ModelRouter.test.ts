@@ -207,10 +207,12 @@ describe('ModelRouter', () => {
     it('should throw error when no provider is available', async () => {
       const router = new ModelRouter();
 
-      await expect(router.executeWithFallback({
-        role: AgentRole.ARCH,
-        task: 'Test task',
-      })).rejects.toThrow('No available provider');
+      await expect(
+        router.executeWithFallback({
+          role: AgentRole.ARCH,
+          task: 'Test task',
+        })
+      ).rejects.toThrow('No available provider');
     });
   });
 

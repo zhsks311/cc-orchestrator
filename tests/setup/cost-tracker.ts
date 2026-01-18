@@ -19,7 +19,7 @@ const TOKEN_COSTS: Record<string, { input: number; output: number }> = {
   'gpt-4o': { input: 2.5, output: 10 },
   'gpt-4o-mini': { input: 0.15, output: 0.6 },
   'gpt-4-turbo': { input: 10, output: 30 },
-  'o1': { input: 15, output: 60 },
+  o1: { input: 15, output: 60 },
   'o1-mini': { input: 3, output: 12 },
 
   // Anthropic
@@ -40,21 +40,14 @@ const TOKEN_COSTS: Record<string, { input: number; output: number }> = {
 /**
  * Estimate the cost of an API call
  */
-export function estimateAPICost(
-  model: string,
-  inputTokens: number,
-  outputTokens: number
-): number {
+export function estimateAPICost(model: string, inputTokens: number, outputTokens: number): number {
   const costs = TOKEN_COSTS[model];
   if (!costs) {
     console.warn(`Unknown model for cost estimation: ${model}`);
     return 0;
   }
 
-  return (
-    (inputTokens / 1_000_000) * costs.input +
-    (outputTokens / 1_000_000) * costs.output
-  );
+  return (inputTokens / 1_000_000) * costs.input + (outputTokens / 1_000_000) * costs.output;
 }
 
 /**

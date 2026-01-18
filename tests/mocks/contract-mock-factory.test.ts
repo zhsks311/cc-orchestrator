@@ -49,10 +49,7 @@ describe('ContractMock', () => {
     });
 
     it('should reject sequence with invalid response', () => {
-      const responses = [
-        createDefaultOpenAIResponse(),
-        { invalid: 'response' } as any,
-      ];
+      const responses = [createDefaultOpenAIResponse(), { invalid: 'response' } as any];
 
       expect(() => mock.respondWithSequence(...responses)).toThrow(/Response 2 violates/);
     });
@@ -209,10 +206,7 @@ describe('ContractMock', () => {
     });
 
     it('should throw errors in sequence', async () => {
-      const errors = [
-        new Error('First error'),
-        new Error('Second error'),
-      ];
+      const errors = [new Error('First error'), new Error('Second error')];
 
       mock.throwErrorSequence(...errors);
       const mockFn = mock.getMock();

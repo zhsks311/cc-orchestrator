@@ -55,7 +55,7 @@ export function createGoogleResponseWithFunctions(
     candidates: [
       {
         content: {
-          parts: functionCalls.map(call => ({
+          parts: functionCalls.map((call) => ({
             functionCall: {
               name: call.name,
               args: call.args,
@@ -113,7 +113,11 @@ export function createGoogleMockForModel(model: string, content?: string) {
 /**
  * Create a Google mock that returns an error
  */
-export function createGoogleMockWithError(errorMessage: string, errorCode: number = 400, status: string = 'INVALID_ARGUMENT') {
+export function createGoogleMockWithError(
+  errorMessage: string,
+  errorCode: number = 400,
+  status: string = 'INVALID_ARGUMENT'
+) {
   const mock = createContractMock(GoogleContract);
 
   mock.throwError({
@@ -167,7 +171,9 @@ export function createGoogleMockWithSafetyBlock(category: string = 'HARM_CATEGOR
 /**
  * Create a Google mock that simulates max tokens
  */
-export function createGoogleMockWithMaxTokens(partialText: string = 'This response was truncated because') {
+export function createGoogleMockWithMaxTokens(
+  partialText: string = 'This response was truncated because'
+) {
   return createGoogleMock().respondWith(
     createDefaultGoogleResponse({
       candidates: [
@@ -201,9 +207,5 @@ export function createGoogleMockWithTimeout() {
  * Create a Google mock that simulates service unavailable
  */
 export function createGoogleMockWithServiceUnavailable() {
-  return createGoogleMockWithError(
-    'The service is currently unavailable.',
-    503,
-    'UNAVAILABLE'
-  );
+  return createGoogleMockWithError('The service is currently unavailable.', 503, 'UNAVAILABLE');
 }

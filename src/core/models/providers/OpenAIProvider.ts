@@ -79,10 +79,7 @@ export class OpenAIProvider {
       };
     } catch (error) {
       if (error instanceof OpenAI.APIError) {
-        throw new ModelAPIError(
-          `OpenAI API error: ${error.message}`,
-          'openai'
-        );
+        throw new ModelAPIError(`OpenAI API error: ${error.message}`, 'openai');
       }
       throw error;
     }
@@ -118,11 +115,13 @@ export class OpenAIProvider {
 
       // Parse tool calls if present
       const toolCalls = message?.tool_calls
-        ? message.tool_calls.map((tc): ToolCall => ({
-            id: tc.id,
-            name: tc.function.name,
-            arguments: JSON.parse(tc.function.arguments || '{}'),
-          }))
+        ? message.tool_calls.map(
+            (tc): ToolCall => ({
+              id: tc.id,
+              name: tc.function.name,
+              arguments: JSON.parse(tc.function.arguments || '{}'),
+            })
+          )
         : null;
 
       return {
@@ -137,10 +136,7 @@ export class OpenAIProvider {
       };
     } catch (error) {
       if (error instanceof OpenAI.APIError) {
-        throw new ModelAPIError(
-          `OpenAI API error: ${error.message}`,
-          'openai'
-        );
+        throw new ModelAPIError(`OpenAI API error: ${error.message}`, 'openai');
       }
       throw error;
     }
@@ -197,9 +193,7 @@ export class OpenAIProvider {
     }));
   }
 
-  private mapFinishReason(
-    reason: string | undefined
-  ): ToolUseResponse['finishReason'] {
+  private mapFinishReason(reason: string | undefined): ToolUseResponse['finishReason'] {
     switch (reason) {
       case 'stop':
         return 'stop';

@@ -32,9 +32,7 @@ export class Logger {
   }
 
   private shouldLog(level: LogLevel): boolean {
-    return (
-      Logger.LOG_LEVELS[level] >= Logger.LOG_LEVELS[Logger.logLevel]
-    );
+    return Logger.LOG_LEVELS[level] >= Logger.LOG_LEVELS[Logger.logLevel];
   }
 
   private log(level: LogLevel, message: string, context?: LogContext): void {

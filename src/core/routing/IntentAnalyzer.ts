@@ -151,22 +151,40 @@ export class IntentAnalyzer implements IIntentAnalyzer {
 
     // Retry with same agent patterns
     const retrySamePatterns = [
-      'retry', 'again', 'try again', 'one more time',
-      'same agent', 'same one', 'do it again',
-      'redo', 'repeat',
+      'retry',
+      'again',
+      'try again',
+      'one more time',
+      'same agent',
+      'same one',
+      'do it again',
+      'redo',
+      'repeat',
     ];
 
     // Retry with different agent patterns
     const retryDifferentPatterns = [
-      'different agent', 'another agent', 'try another',
-      'different model', 'switch agent', 'change agent',
+      'different agent',
+      'another agent',
+      'try another',
+      'different model',
+      'switch agent',
+      'change agent',
     ];
 
     // Modify request patterns (patterns implying reference to previous result)
     const modifyPatterns = [
-      'modify it', 'change it', 'adjust it', 'fix it',
-      'more detail', 'more details', 'less detail', 'simpler',
-      'modify the result', 'change the result', 'update it',
+      'modify it',
+      'change it',
+      'adjust it',
+      'fix it',
+      'more detail',
+      'more details',
+      'less detail',
+      'simpler',
+      'modify the result',
+      'change the result',
+      'update it',
     ];
 
     // Pattern matching
@@ -261,9 +279,12 @@ export class IntentAnalyzer implements IIntentAnalyzer {
 
       // 2. Expertise keyword matching
       for (const expertise of metadata.expertise) {
-        const keywords = expertise.toLowerCase().split(/[\/\s,]+/);
+        const keywords = expertise.toLowerCase().split(/[/\s,]+/);
         for (const keyword of keywords) {
-          if (keyword.length > CONFIDENCE_THRESHOLDS.MIN_KEYWORD_LENGTH && lowerQuery.includes(keyword)) {
+          if (
+            keyword.length > CONFIDENCE_THRESHOLDS.MIN_KEYWORD_LENGTH &&
+            lowerQuery.includes(keyword)
+          ) {
             score += SCORING_WEIGHTS.EXPERTISE_KEYWORD;
             reasons.push(`Expertise keyword: ${keyword}`);
           }
@@ -272,9 +293,12 @@ export class IntentAnalyzer implements IIntentAnalyzer {
 
       // 3. useWhen pattern matching
       for (const useCase of metadata.useWhen) {
-        const keywords = useCase.toLowerCase().split(/[\/\s,]+/);
+        const keywords = useCase.toLowerCase().split(/[/\s,]+/);
         for (const keyword of keywords) {
-          if (keyword.length > CONFIDENCE_THRESHOLDS.MIN_KEYWORD_LENGTH && lowerQuery.includes(keyword)) {
+          if (
+            keyword.length > CONFIDENCE_THRESHOLDS.MIN_KEYWORD_LENGTH &&
+            lowerQuery.includes(keyword)
+          ) {
             score += SCORING_WEIGHTS.USE_CASE;
             reasons.push(`Use case match: ${keyword}`);
           }
@@ -287,7 +311,10 @@ export class IntentAnalyzer implements IIntentAnalyzer {
           const exampleWords = example.input.toLowerCase().split(/\s+/);
           let matchCount = 0;
           for (const word of exampleWords) {
-            if (word.length > CONFIDENCE_THRESHOLDS.MIN_KEYWORD_LENGTH && lowerQuery.includes(word)) {
+            if (
+              word.length > CONFIDENCE_THRESHOLDS.MIN_KEYWORD_LENGTH &&
+              lowerQuery.includes(word)
+            ) {
               matchCount++;
             }
           }
@@ -300,9 +327,12 @@ export class IntentAnalyzer implements IIntentAnalyzer {
 
       // 5. Deduct points if matches avoidWhen
       for (const avoidCase of metadata.avoidWhen) {
-        const keywords = avoidCase.toLowerCase().split(/[\/\s,]+/);
+        const keywords = avoidCase.toLowerCase().split(/[/\s,]+/);
         for (const keyword of keywords) {
-          if (keyword.length > CONFIDENCE_THRESHOLDS.MIN_KEYWORD_LENGTH && lowerQuery.includes(keyword)) {
+          if (
+            keyword.length > CONFIDENCE_THRESHOLDS.MIN_KEYWORD_LENGTH &&
+            lowerQuery.includes(keyword)
+          ) {
             score += SCORING_WEIGHTS.AVOID_CASE_PENALTY;
             reasons.push(`Avoid case match (penalty): ${keyword}`);
           }
@@ -324,7 +354,7 @@ export class IntentAnalyzer implements IIntentAnalyzer {
       };
     }
 
-    const topEntry = sortedScores[0]!;  // Safe due to length check above
+    const topEntry = sortedScores[0]!; // Safe due to length check above
     const topAgentRole = topEntry[0];
     const topAgentData = topEntry[1];
     const secondEntry = sortedScores.length > 1 ? sortedScores[1] : null;
@@ -368,7 +398,11 @@ export class IntentAnalyzer implements IIntentAnalyzer {
     };
 
     // Add alternatives (for medium/low confidence)
-    if (confidence !== 'high' && secondEntry && secondEntry[1].score > CONFIDENCE_THRESHOLDS.MIN_ALTERNATIVE_SCORE) {
+    if (
+      confidence !== 'high' &&
+      secondEntry &&
+      secondEntry[1].score > CONFIDENCE_THRESHOLDS.MIN_ALTERNATIVE_SCORE
+    ) {
       const secondReasons = secondEntry[1].reasons;
       const secondReason =
         secondReasons.length > 0 && secondReasons[0]

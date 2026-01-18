@@ -23,14 +23,14 @@ export function setupAPIGuard() {
       const url = typeof input === 'string' ? input : input.toString();
 
       // Check if this is a production API call
-      const isProductionAPI = PRODUCTION_APIS.some(api => url.includes(api));
+      const isProductionAPI = PRODUCTION_APIS.some((api) => url.includes(api));
 
       if (isProductionAPI) {
         const error = new Error(
           `🚨 BLOCKED: Real API call detected!\n` +
-          `URL: ${url}\n` +
-          `This would cost money. Use mocks instead.\n` +
-          `Hint: Check if your test properly mocks the provider.`
+            `URL: ${url}\n` +
+            `This would cost money. Use mocks instead.\n` +
+            `Hint: Check if your test properly mocks the provider.`
         );
 
         // In CI: fail hard
@@ -77,7 +77,7 @@ export function getBlockedAPICalls(): ReadonlyArray<{ url: string; timestamp: nu
  * Check if a URL would be blocked
  */
 export function wouldBeBlocked(url: string): boolean {
-  return PRODUCTION_APIS.some(api => url.includes(api));
+  return PRODUCTION_APIS.some((api) => url.includes(api));
 }
 
 // Auto-setup when imported as setupFile

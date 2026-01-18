@@ -8,7 +8,6 @@ import * as path from 'path';
 import * as os from 'os';
 import {
   CCOConfig,
-  ProviderPriorityConfig,
   RoleProviderConfig,
   ModelProvider,
   AgentRole,
@@ -221,15 +220,11 @@ export class ConfigLoader {
       };
 
       if (Array.isArray(roleConfig.providers)) {
-        parsedConfig.providers = this.parseProviderList(
-          roleConfig.providers as string[]
-        );
+        parsedConfig.providers = this.parseProviderList(roleConfig.providers as string[]);
       }
 
       if (roleConfig.models && typeof roleConfig.models === 'object') {
-        parsedConfig.models = roleConfig.models as Partial<
-          Record<ModelProvider, string>
-        >;
+        parsedConfig.models = roleConfig.models as Partial<Record<ModelProvider, string>>;
       }
 
       if (parsedConfig.providers.length > 0) {

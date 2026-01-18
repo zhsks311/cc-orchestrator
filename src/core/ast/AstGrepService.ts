@@ -3,7 +3,7 @@
  * Provides structural code search and replace using ast-grep
  */
 
-import { Lang, parse, SgNode } from '@ast-grep/napi';
+import { Lang, parse } from '@ast-grep/napi';
 import * as fs from 'fs';
 import * as path from 'path';
 import { Logger } from '../../infrastructure/Logger.js';
@@ -89,7 +89,11 @@ export interface AstReplaceResult {
 
 export interface IAstGrepService {
   search(pattern: string, options: AstSearchOptions): Promise<AstSearchResult[]>;
-  replace(pattern: string, replacement: string, options: AstReplaceOptions): Promise<AstReplaceResult[]>;
+  replace(
+    pattern: string,
+    replacement: string,
+    options: AstReplaceOptions
+  ): Promise<AstReplaceResult[]>;
   getSupportedLanguages(): string[];
   isLanguageSupported(language: string): boolean;
 }
@@ -139,9 +143,7 @@ export class AstGrepService implements IAstGrepService {
         workspaceRoot: this.workspaceRoot,
       });
       // Allow absolute paths but warn on relative path traversal
-      throw new ValidationError(
-        `Path traversal not allowed: ${inputPath} escapes workspace root`
-      );
+      throw new ValidationError(`Path traversal not allowed: ${inputPath} escapes workspace root`);
     }
 
     return resolvedPath;
@@ -175,10 +177,14 @@ export class AstGrepService implements IAstGrepService {
 
       // Skip common non-code directories
       if (entry.isDirectory()) {
-        if (['node_modules', '.git', 'dist', 'build', '__pycache__', '.venv', 'venv'].includes(entry.name)) {
+        if (
+          ['node_modules', '.git', 'dist', 'build', '__pycache__', '.venv', 'venv'].includes(
+            entry.name
+          )
+        ) {
           continue;
         }
-        files.push(...await this.getFilesRecursive(fullPath, lang));
+        files.push(...(await this.getFilesRecursive(fullPath, lang)));
       } else if (entry.isFile()) {
         const fileLang = this.getLangFromFile(fullPath);
         if (fileLang && (!lang || fileLang === lang)) {
@@ -305,14 +311,9 @@ export class AstGrepService implements IAstGrepService {
           // Single-pass replacement with callback to avoid:
           // 1. Recursive replacement (content from $A affecting $B replacement)
           // 2. Special pattern interpretation ($&, $$, etc. in captured text)
-          finalReplacement = replacement.replace(
-            /\$([A-Z_][A-Z0-9_]*)/g,
-            (fullMatch, varName) => {
-              return metaVarCaptures.has(varName)
-                ? metaVarCaptures.get(varName)!
-                : fullMatch;
-            }
-          );
+          finalReplacement = replacement.replace(/\$([A-Z_][A-Z0-9_]*)/g, (fullMatch, varName) => {
+            return metaVarCaptures.has(varName) ? metaVarCaptures.get(varName)! : fullMatch;
+          });
 
           newContent =
             newContent.slice(0, range.start.index) +

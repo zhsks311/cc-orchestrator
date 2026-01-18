@@ -10,7 +10,9 @@ import { AnthropicContract, type AnthropicResponse } from '../contracts/provider
 /**
  * Create a default Anthropic response
  */
-export function createDefaultAnthropicResponse(overrides?: Partial<AnthropicResponse>): AnthropicResponse {
+export function createDefaultAnthropicResponse(
+  overrides?: Partial<AnthropicResponse>
+): AnthropicResponse {
   return {
     id: `msg_${Date.now()}`,
     type: 'message',
@@ -85,7 +87,10 @@ export function createAnthropicMockForModel(model: string, content?: string) {
 /**
  * Create an Anthropic mock that returns an error
  */
-export function createAnthropicMockWithError(errorMessage: string, errorType: string = 'invalid_request_error') {
+export function createAnthropicMockWithError(
+  errorMessage: string,
+  errorType: string = 'invalid_request_error'
+) {
   const mock = createContractMock(AnthropicContract);
 
   mock.throwError({
@@ -113,10 +118,7 @@ export function createAnthropicMockWithRateLimit() {
  * Create an Anthropic mock that simulates overloaded API
  */
 export function createAnthropicMockWithOverload() {
-  return createAnthropicMockWithError(
-    'Overloaded. Please try again shortly.',
-    'overloaded_error'
-  );
+  return createAnthropicMockWithError('Overloaded. Please try again shortly.', 'overloaded_error');
 }
 
 /**
@@ -131,7 +133,9 @@ export function createAnthropicMockWithTimeout() {
 /**
  * Create an Anthropic mock that hits max_tokens
  */
-export function createAnthropicMockWithMaxTokens(partialText: string = 'This response was cut off due to') {
+export function createAnthropicMockWithMaxTokens(
+  partialText: string = 'This response was cut off due to'
+) {
   return createAnthropicMock().respondWith(
     createDefaultAnthropicResponse({
       content: [

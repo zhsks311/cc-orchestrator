@@ -39,9 +39,7 @@ export class ContextStore implements IContextStore {
       scope: params.scope,
       sessionId: params.sessionId,
       createdAt: now,
-      expiresAt: params.ttlSeconds
-        ? new Date(now.getTime() + params.ttlSeconds * 1000)
-        : undefined,
+      expiresAt: params.ttlSeconds ? new Date(now.getTime() + params.ttlSeconds * 1000) : undefined,
       accessCount: 0,
       lastAccessedAt: now,
     };
@@ -104,9 +102,7 @@ export class ContextStore implements IContextStore {
       }
     }
 
-    return entries.sort(
-      (a, b) => b.lastAccessedAt.getTime() - a.lastAccessedAt.getTime()
-    );
+    return entries.sort((a, b) => b.lastAccessedAt.getTime() - a.lastAccessedAt.getTime());
   }
 
   async cleanupExpired(): Promise<number> {

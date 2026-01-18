@@ -46,12 +46,7 @@ export class ContextNotFoundError extends CCOError {
 
 export class OrchestrationNotFoundError extends CCOError {
   constructor(orchestrationId: string) {
-    super(
-      `Orchestration ${orchestrationId} not found`,
-      'ORCHESTRATION_NOT_FOUND',
-      false,
-      404
-    );
+    super(`Orchestration ${orchestrationId} not found`, 'ORCHESTRATION_NOT_FOUND', false, 404);
   }
 }
 
@@ -73,12 +68,7 @@ export class ModelAPIError extends CCOError {
 
 export class TimeoutError extends CCOError {
   constructor(operation: string, timeoutMs: number) {
-    super(
-      `Operation ${operation} timed out after ${timeoutMs}ms`,
-      'TIMEOUT',
-      true,
-      504
-    );
+    super(`Operation ${operation} timed out after ${timeoutMs}ms`, 'TIMEOUT', true, 504);
   }
 }
 
@@ -90,12 +80,7 @@ export class ResourceExhaustedError extends CCOError {
 
 export class CircuitBreakerOpenError extends CCOError {
   constructor(provider: string) {
-    super(
-      `Circuit breaker is open for provider: ${provider}`,
-      'CIRCUIT_BREAKER_OPEN',
-      true,
-      503
-    );
+    super(`Circuit breaker is open for provider: ${provider}`, 'CIRCUIT_BREAKER_OPEN', true, 503);
   }
 }
 

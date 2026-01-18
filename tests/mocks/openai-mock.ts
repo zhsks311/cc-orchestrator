@@ -107,7 +107,10 @@ export function createOpenAIMockForModel(model: string, content?: string) {
 /**
  * Create an OpenAI mock that returns an error
  */
-export function createOpenAIMockWithError(errorMessage: string, errorType: string = 'invalid_request_error') {
+export function createOpenAIMockWithError(
+  errorMessage: string,
+  errorType: string = 'invalid_request_error'
+) {
   const mock = createContractMock(OpenAIContract);
 
   mock.throwError({

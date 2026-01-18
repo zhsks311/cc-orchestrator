@@ -16,20 +16,26 @@ export const OpenAIMessageSchema = z.object({
   role: z.enum(['system', 'user', 'assistant', 'tool']),
   content: z.union([
     z.string(),
-    z.array(z.object({
-      type: z.string(),
-      text: z.string().optional(),
-    })),
+    z.array(
+      z.object({
+        type: z.string(),
+        text: z.string().optional(),
+      })
+    ),
   ]),
   name: z.string().optional(),
-  tool_calls: z.array(z.object({
-    id: z.string(),
-    type: z.literal('function'),
-    function: z.object({
-      name: z.string(),
-      arguments: z.string(),
-    }),
-  })).optional(),
+  tool_calls: z
+    .array(
+      z.object({
+        id: z.string(),
+        type: z.literal('function'),
+        function: z.object({
+          name: z.string(),
+          arguments: z.string(),
+        }),
+      })
+    )
+    .optional(),
 });
 
 export const OpenAIRequestSchema = z.object({
@@ -37,14 +43,18 @@ export const OpenAIRequestSchema = z.object({
   messages: z.array(OpenAIMessageSchema),
   temperature: z.number().min(0).max(2).optional(),
   max_tokens: z.number().positive().optional(),
-  tools: z.array(z.object({
-    type: z.literal('function'),
-    function: z.object({
-      name: z.string(),
-      description: z.string().optional(),
-      parameters: z.record(z.any()).optional(),
-    }),
-  })).optional(),
+  tools: z
+    .array(
+      z.object({
+        type: z.literal('function'),
+        function: z.object({
+          name: z.string(),
+          description: z.string().optional(),
+          parameters: z.record(z.any()).optional(),
+        }),
+      })
+    )
+    .optional(),
   stream: z.boolean().optional(),
   top_p: z.number().min(0).max(1).optional(),
   frequency_penalty: z.number().min(-2).max(2).optional(),
@@ -56,23 +66,29 @@ export const OpenAIResponseSchema = z.object({
   object: z.literal('chat.completion'),
   created: z.number(),
   model: z.string(),
-  choices: z.array(z.object({
-    index: z.number(),
-    message: z.object({
-      role: z.literal('assistant'),
-      content: z.string().nullable(),
-      tool_calls: z.array(z.object({
-        id: z.string(),
-        type: z.literal('function'),
-        function: z.object({
-          name: z.string(),
-          arguments: z.string(),
-        }),
-      })).optional(),
-    }),
-    finish_reason: z.enum(['stop', 'length', 'tool_calls', 'content_filter', 'function_call']),
-    logprobs: z.any().nullable().optional(),
-  })),
+  choices: z.array(
+    z.object({
+      index: z.number(),
+      message: z.object({
+        role: z.literal('assistant'),
+        content: z.string().nullable(),
+        tool_calls: z
+          .array(
+            z.object({
+              id: z.string(),
+              type: z.literal('function'),
+              function: z.object({
+                name: z.string(),
+                arguments: z.string(),
+              }),
+            })
+          )
+          .optional(),
+      }),
+      finish_reason: z.enum(['stop', 'length', 'tool_calls', 'content_filter', 'function_call']),
+      logprobs: z.any().nullable().optional(),
+    })
+  ),
   usage: z.object({
     prompt_tokens: z.number(),
     completion_tokens: z.number(),
@@ -109,10 +125,7 @@ export const AnthropicContentBlockSchema = z.union([
 
 export const AnthropicMessageSchema = z.object({
   role: z.enum(['user', 'assistant']),
-  content: z.union([
-    z.string(),
-    z.array(AnthropicContentBlockSchema),
-  ]),
+  content: z.union([z.string(), z.array(AnthropicContentBlockSchema)]),
 });
 
 export const AnthropicRequestSchema = z.object({
@@ -121,17 +134,23 @@ export const AnthropicRequestSchema = z.object({
   system: z.string().optional(),
   max_tokens: z.number().positive(),
   temperature: z.number().min(0).max(1).optional(),
-  tools: z.array(z.object({
-    name: z.string(),
-    description: z.string().optional(),
-    input_schema: z.record(z.any()),
-  })).optional(),
+  tools: z
+    .array(
+      z.object({
+        name: z.string(),
+        description: z.string().optional(),
+        input_schema: z.record(z.any()),
+      })
+    )
+    .optional(),
   stream: z.boolean().optional(),
   top_p: z.number().min(0).max(1).optional(),
   top_k: z.number().positive().optional(),
-  metadata: z.object({
-    user_id: z.string().optional(),
-  }).optional(),
+  metadata: z
+    .object({
+      user_id: z.string().optional(),
+    })
+    .optional(),
 });
 
 export const AnthropicResponseSchema = z.object({
@@ -162,18 +181,24 @@ export const AnthropicErrorSchema = z.object({
 
 export const GooglePartSchema = z.object({
   text: z.string().optional(),
-  inlineData: z.object({
-    mimeType: z.string(),
-    data: z.string(),
-  }).optional(),
-  functionCall: z.object({
-    name: z.string(),
-    args: z.record(z.any()),
-  }).optional(),
-  functionResponse: z.object({
-    name: z.string(),
-    response: z.record(z.any()),
-  }).optional(),
+  inlineData: z
+    .object({
+      mimeType: z.string(),
+      data: z.string(),
+    })
+    .optional(),
+  functionCall: z
+    .object({
+      name: z.string(),
+      args: z.record(z.any()),
+    })
+    .optional(),
+  functionResponse: z
+    .object({
+      name: z.string(),
+      response: z.record(z.any()),
+    })
+    .optional(),
 });
 
 export const GoogleContentSchema = z.object({
@@ -183,51 +208,82 @@ export const GoogleContentSchema = z.object({
 
 export const GoogleRequestSchema = z.object({
   contents: z.array(GoogleContentSchema),
-  systemInstruction: z.object({
-    parts: z.array(GooglePartSchema),
-  }).optional(),
-  generationConfig: z.object({
-    temperature: z.number().min(0).max(2).optional(),
-    topP: z.number().min(0).max(1).optional(),
-    topK: z.number().positive().optional(),
-    maxOutputTokens: z.number().positive().optional(),
-    stopSequences: z.array(z.string()).optional(),
-  }).optional(),
-  safetySettings: z.array(z.object({
-    category: z.string(),
-    threshold: z.string(),
-  })).optional(),
-  tools: z.array(z.object({
-    functionDeclarations: z.array(z.object({
-      name: z.string(),
-      description: z.string(),
-      parameters: z.record(z.any()),
-    })),
-  })).optional(),
+  systemInstruction: z
+    .object({
+      parts: z.array(GooglePartSchema),
+    })
+    .optional(),
+  generationConfig: z
+    .object({
+      temperature: z.number().min(0).max(2).optional(),
+      topP: z.number().min(0).max(1).optional(),
+      topK: z.number().positive().optional(),
+      maxOutputTokens: z.number().positive().optional(),
+      stopSequences: z.array(z.string()).optional(),
+    })
+    .optional(),
+  safetySettings: z
+    .array(
+      z.object({
+        category: z.string(),
+        threshold: z.string(),
+      })
+    )
+    .optional(),
+  tools: z
+    .array(
+      z.object({
+        functionDeclarations: z.array(
+          z.object({
+            name: z.string(),
+            description: z.string(),
+            parameters: z.record(z.any()),
+          })
+        ),
+      })
+    )
+    .optional(),
 });
 
 export const GoogleResponseSchema = z.object({
-  candidates: z.array(z.object({
-    content: z.object({
-      parts: z.array(GooglePartSchema),
-      role: z.literal('model'),
-    }),
-    finishReason: z.enum(['STOP', 'MAX_TOKENS', 'SAFETY', 'RECITATION', 'OTHER', 'FINISH_REASON_UNSPECIFIED']),
-    index: z.number().optional(),
-    safetyRatings: z.array(z.object({
-      category: z.string(),
-      probability: z.string(),
-    })).optional(),
-  })),
-  usageMetadata: z.object({
-    promptTokenCount: z.number(),
-    candidatesTokenCount: z.number(),
-    totalTokenCount: z.number(),
-  }).optional(),
-  promptFeedback: z.object({
-    blockReason: z.string().optional(),
-    safetyRatings: z.array(z.any()).optional(),
-  }).optional(),
+  candidates: z.array(
+    z.object({
+      content: z.object({
+        parts: z.array(GooglePartSchema),
+        role: z.literal('model'),
+      }),
+      finishReason: z.enum([
+        'STOP',
+        'MAX_TOKENS',
+        'SAFETY',
+        'RECITATION',
+        'OTHER',
+        'FINISH_REASON_UNSPECIFIED',
+      ]),
+      index: z.number().optional(),
+      safetyRatings: z
+        .array(
+          z.object({
+            category: z.string(),
+            probability: z.string(),
+          })
+        )
+        .optional(),
+    })
+  ),
+  usageMetadata: z
+    .object({
+      promptTokenCount: z.number(),
+      candidatesTokenCount: z.number(),
+      totalTokenCount: z.number(),
+    })
+    .optional(),
+  promptFeedback: z
+    .object({
+      blockReason: z.string().optional(),
+      safetyRatings: z.array(z.any()).optional(),
+    })
+    .optional(),
 });
 
 export const GoogleErrorSchema = z.object({

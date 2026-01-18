@@ -3,12 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import {
-  estimateAPICost,
-  getCostBreakdown,
-  formatCost,
-  CostAccumulator,
-} from './cost-tracker.js';
+import { estimateAPICost, getCostBreakdown, formatCost, CostAccumulator } from './cost-tracker.js';
 
 describe('API Cost Tracker', () => {
   describe('estimateAPICost', () => {

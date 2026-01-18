@@ -1,7 +1,7 @@
 ---
 name: researcher
 description: Library and framework research expert. Use PROACTIVELY for external documentation, APIs, best practices, or "how to use X" questions.
-tools: Read, WebSearch, WebFetch, Bash
+tools: Read, WebSearch, WebFetch
 model: sonnet
 permissionMode: default
 ---

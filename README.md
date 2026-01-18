@@ -170,14 +170,36 @@ cp -r skills/* ~/.claude/skills/
 
 ## 🎮 Usage
 
-### Just... Talk To Them
+### Native Agents (FREE)
 
+Use Claude Code's built-in agents. No API cost, runs on your Claude Code quota.
+
+```bash
+# Codebase exploration with Scout (Haiku - fast & cheap)
+"Use scout agent to find all authentication-related files"
+"Use scout agent to trace the data flow from API to database"
+
+# External research with Index (Sonnet + WebSearch)
+"Use index agent to find Express middleware best practices"
+"Use index agent to research Stripe API integration patterns"
 ```
-"Hey Arch, is this architecture going to haunt me in 6 months?"
 
-"Canvas, make this login page not look like it was designed in 2003"
+### MCP Agents (External APIs)
 
-"Index, find me every Express middleware gotcha ever documented"
+For specialized tasks requiring external models.
+
+```javascript
+// Architecture review with GPT-5.2
+background_task({ agent: "arch", prompt: "Review this payment system architecture" })
+
+// UI/UX design with Gemini
+background_task({ agent: "canvas", prompt: "Design a modern login page component" })
+
+// Documentation with Gemini
+background_task({ agent: "quill", prompt: "Write API documentation for this module" })
+
+// Image/PDF analysis with Gemini
+background_task({ agent: "lens", prompt: "Analyze this wireframe screenshot" })
 ```
 
 ### The Orchestrate Skill

@@ -170,14 +170,36 @@ cp -r skills/* ~/.claude/skills/
 
 ## 🎮 사용법
 
-### 그냥... 말하세요
+### 네이티브 에이전트 (무료)
 
+Claude Code의 내장 에이전트를 사용합니다. API 비용 없이 Claude Code 할당량으로 실행됩니다.
+
+```bash
+# Scout로 코드베이스 탐색 (Haiku - 빠르고 저렴)
+"Use scout agent to find all authentication-related files"
+"Use scout agent to trace the data flow from API to database"
+
+# Index로 외부 리서치 (Sonnet + WebSearch)
+"Use index agent to find Express middleware best practices"
+"Use index agent to research Stripe API integration patterns"
 ```
-"Arch, 이 아키텍처 6개월 후에 나를 괴롭힐까?"
 
-"Canvas, 이 로그인 페이지 2003년에 디자인된 것처럼 안 보이게 해줘"
+### MCP 에이전트 (외부 API)
 
-"Index, Express 미들웨어 함정 문서화된 거 다 찾아줘"
+외부 모델이 필요한 전문 작업용입니다.
+
+```javascript
+// GPT-5.2로 아키텍처 리뷰
+background_task({ agent: "arch", prompt: "Review this payment system architecture" })
+
+// Gemini로 UI/UX 디자인
+background_task({ agent: "canvas", prompt: "Design a modern login page component" })
+
+// Gemini로 문서화
+background_task({ agent: "quill", prompt: "Write API documentation for this module" })
+
+// Gemini로 이미지/PDF 분석
+background_task({ agent: "lens", prompt: "Analyze this wireframe screenshot" })
 ```
 
 ### Orchestrate 스킬

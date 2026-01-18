@@ -111,10 +111,10 @@ Talk to your agents naturally. They're listening. (Not in a creepy way.)
 |---------|-------------|
 | `@arch` or `@architect` | The overthinker arrives |
 | `@canvas`, `@ui`, `@frontend`, `@ux`, `@designer` | The pixel perfectionist |
-| `@index` or `@researcher` | The documentation hoarder |
+| `@researcher`, `@index` | The documentation hoarder |
 | `@quill`, `@docs`, `@writer` | The prose professional |
 | `@lens`, `@image`, `@pdf`, `@analyzer` | The visual investigator |
-| `@scout`, `@find`, `@search`, `@explore` | The speedy explorer |
+| `@explorer`, `@find`, `@search`, `@scout` | The speedy explorer |
 
 ---
 
@@ -290,7 +290,7 @@ Supports TypeScript, JavaScript, Python, Rust, Go, Java, and more.
 
 The `explorer` and `researcher` agents live in `.claude/agents/` and use your Claude Code quota. Zero extra API cost.
 
-```
+```bash
 "Use explorer agent to find all authentication files"
 "Use researcher agent to find JWT best practices"
 ```

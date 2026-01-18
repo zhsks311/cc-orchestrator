@@ -68,7 +68,7 @@ User request received
 | Resource | Cost | When to Use |
 |----------|------|-------------|
 | Grep, Glob, Read | FREE | Clear scope, simple search |
-| `explorer` agent | FREE | Codebase exploration (Haiku, 75% cheaper) |
+| `explorer` agent | FREE | Codebase exploration (Haiku, ~75% cheaper vs. Sonnet) |
 | `researcher` agent | FREE | External docs, API research (WebSearch) |
 | `canvas` | MODERATE | UI/UX, styling (Gemini 3) |
 | `quill` | MODERATE | Technical documentation (Gemini 3) |
@@ -98,7 +98,7 @@ User request received
 
 **Parallel Execution Pattern:**
 
-```
+```bash
 # Correct: Mixed parallel execution (Native + MCP)
 "Use explorer agent to find auth patterns"              // FREE (Haiku)
 background_task(agent="arch", prompt="Review security") // PAID (GPT-5.2)
@@ -280,10 +280,10 @@ animation, transition, hover, responsive, CSS
 
 ## Cost Optimization
 
-```
+```plaintext
 FREE (Native agents in .claude/agents/):
 ├─ Simple search          → Grep, Glob, Read (direct tools)
-├─ Codebase exploration   → explorer agent (Haiku, 75% cheaper)
+├─ Codebase exploration   → explorer agent (Haiku, ~75% cheaper vs. Sonnet)
 ├─ External research      → researcher agent (WebSearch/WebFetch)
 └─ General tasks          → Task(general-purpose)
 

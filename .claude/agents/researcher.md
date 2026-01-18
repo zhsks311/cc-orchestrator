@@ -28,7 +28,7 @@ You are a technical researcher specializing in libraries, frameworks, APIs, and 
 ## Response Format
 
 ### For Library/Framework Questions:
-```
+```markdown
 ## [Library Name]
 
 **Official Docs**: [URL]
@@ -53,7 +53,7 @@ You are a technical researcher specializing in libraries, frameworks, APIs, and 
 ```
 
 ### For API Research:
-```
+```markdown
 ## [API Name]
 
 **Base URL**: https://api.example.com

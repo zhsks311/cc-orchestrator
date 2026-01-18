@@ -110,10 +110,10 @@ Claude: "이것을 위해 태어났다"
 |------|----------|
 | `@arch` 또는 `@architect` | 과대망상가 등장 |
 | `@canvas`, `@ui`, `@frontend`, `@ux`, `@designer` | 픽셀 완벽주의자 |
-| `@index` 또는 `@researcher` | 문서 수집광 |
+| `@researcher`, `@index` | 문서 수집광 |
 | `@quill`, `@docs`, `@writer` | 산문의 전문가 |
 | `@lens`, `@image`, `@pdf`, `@analyzer` | 시각 수사관 |
-| `@scout`, `@find`, `@search`, `@explore` | 빠른 탐험가 |
+| `@explorer`, `@find`, `@search`, `@scout` | 빠른 탐험가 |
 
 ---
 
@@ -289,7 +289,7 @@ TypeScript, JavaScript, Python, Rust, Go, Java 등 지원.
 
 `explorer`와 `researcher` 에이전트는 `.claude/agents/`에 살면서 Claude Code 할당량만 씀. 추가 API 비용 0원.
 
-```
+```bash
 "explorer 에이전트로 인증 관련 파일 다 찾아줘"
 "researcher 에이전트로 JWT 베스트 프랙티스 찾아줘"
 ```
@@ -446,14 +446,14 @@ npm run uninstall
 
 | 에이전트 | 비용 | 추천 용도 |
 |----------|------|----------|
-| `scout` | 무료 | 개발 중 테스트, 코드베이스 탐색 |
-| `index` | 저렴 | 문서 검색, 구현 사례 조사 |
+| `explorer` | 무료 | 개발 중 테스트, 코드베이스 탐색 |
+| `researcher` | 무료 | 문서 검색, 구현 사례 조사 |
 | `lens` | 저렴 | 이미지/PDF 분석 |
 | `canvas` | 보통 | UI/UX 작업 |
 | `quill` | 보통 | 문서 작성 |
 | `arch` | 비쌈 | 아키텍처 설계, 중요 의사결정 |
 
-개발 중에는 `scout` 써서 돈 아끼세요.
+개발 중에는 `explorer` 써서 돈 아끼세요.
 
 ---
 

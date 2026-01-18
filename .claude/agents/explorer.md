@@ -27,7 +27,7 @@ You are a codebase exploration expert optimized for fast, accurate searches.
 
 ## Search Patterns
 
-```
+```bash
 # Find class definitions
 Grep: "class\\s+ClassName"
 

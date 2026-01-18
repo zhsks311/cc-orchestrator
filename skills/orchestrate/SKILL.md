@@ -68,21 +68,45 @@ User request received
 | Resource | Cost | When to Use |
 |----------|------|-------------|
 | Grep, Glob, Read | FREE | Clear scope, simple search |
-| Task(Explore) | FREE | Internal codebase exploration |
-| `index` | CHEAP | External docs, API references |
-| `canvas` | MODERATE | UI/UX, styling |
-| `arch` | EXPENSIVE | Architecture, code review, strategy |
+| `explorer` agent | FREE | Codebase exploration (Haiku, 75% cheaper) |
+| `researcher` agent | FREE | External docs, API research (WebSearch) |
+| `canvas` | MODERATE | UI/UX, styling (Gemini 3) |
+| `quill` | MODERATE | Technical documentation (Gemini 3) |
+| `lens` | MODERATE | Image/PDF analysis (Gemini 3) |
+| `arch` | EXPENSIVE | Architecture, code review (GPT-5.2) |
+
+**Agent Routing Rules (CRITICAL):**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ CLAUDE CODE NATIVE AGENTS (.claude/agents/) - FREE          │
+│                                                             │
+│   explorer  → Codebase exploration (Haiku model)            │
+│              "Use explorer agent to find X in codebase"     │
+│                                                             │
+│   researcher → External research (WebSearch + WebFetch)     │
+│              "Use researcher agent to find best practices"  │
+│                                                             │
+│ MCP AGENTS (background_task) - PAID                         │
+│                                                             │
+│   arch   → background_task(agent="arch")   // OpenAI GPT-5.2│
+│   canvas → background_task(agent="canvas") // Google Gemini │
+│   quill  → background_task(agent="quill")  // Google Gemini │
+│   lens   → background_task(agent="lens")   // Google Gemini │
+└─────────────────────────────────────────────────────────────┘
+```
 
 **Parallel Execution Pattern:**
 
 ```
-# Correct: Always run in parallel
-background_task(agent="index", prompt="Research JWT best practices...")
-background_task(agent="arch", prompt="Review authentication architecture...")
-// Continue immediately - don't wait
+# Correct: Mixed parallel execution (Native + MCP)
+"Use explorer agent to find auth patterns"              // FREE (Haiku)
+background_task(agent="arch", prompt="Review security") // PAID (GPT-5.2)
+// Both run in parallel - continue immediately
 
-# Wrong: Sequential waiting
-result = wait_agent(...)  // Never do this - loses parallelism
+# Wrong: Using MCP for Anthropic models (wasteful)
+background_task(agent="scout", ...)  // DON'T - use explorer agent
+background_task(agent="index", ...)  // DON'T - use researcher agent
 ```
 
 **Exploration Stop Conditions:**
@@ -134,24 +158,33 @@ background_cancel(all=true)  // Cancel all background tasks
 
 ### Agent Role Table
 
+**Claude Code Native Agents (.claude/agents/) - FREE:**
+
+| Agent | Model | Purpose | Triggers |
+|-------|-------|---------|----------|
+| `explorer` | Haiku | Codebase exploration, file/function search | "where is", "find", "how does X work" |
+| `researcher` | Sonnet | External docs, APIs, best practices | library names, "how to", tutorials |
+
+**MCP Agents (background_task) - PAID:**
+
 | Agent | Model | Purpose | Cost | Triggers |
 |-------|-------|---------|------|----------|
 | `arch` | GPT-5.2 | Architecture, strategy, code review | High | Design decisions, complex problems |
-| `index` | Claude Sonnet | Doc search, external API, case studies | Low | Unknown libraries, external docs |
-| `canvas` | Gemini Pro | UI/UX, styling, components | Medium | Visual changes, CSS, animations |
-| `quill` | Gemini Pro | Technical docs, README, API docs | Medium | Documentation requests |
-| `lens` | Gemini 3 Pro | Image, PDF, screenshot analysis | Medium | Visual asset analysis |
+| `canvas` | Gemini 3 | UI/UX, styling, components | Medium | Visual changes, CSS, animations |
+| `quill` | Gemini 3 | Technical docs, README, API docs | Medium | Documentation requests |
+| `lens` | Gemini 3 | Image, PDF, screenshot analysis | Medium | Visual asset analysis |
 
 ### Delegation Table
 
 | Domain | Delegate To | Trigger Keywords |
 |--------|-------------|------------------|
-| Frontend UI/UX | `canvas` | style, color, animation, layout, responsive |
-| External Research | `index` | library names, API, "how to", best practices |
-| Architecture | `arch` | design, structure, pattern selection, tradeoffs |
-| Code Review | `arch` | review, inspect, improvements |
-| Documentation | `quill` | README, docs, guide, API docs |
-| Image/PDF | `lens` | screenshot, image, PDF, diagram |
+| Codebase exploration | `explorer` (native) | find, where, search, structure |
+| External Research | `researcher` (native) | library names, API, "how to", best practices |
+| Frontend UI/UX | `canvas` (MCP) | style, color, animation, layout, responsive |
+| Architecture | `arch` (MCP) | design, structure, pattern selection, tradeoffs |
+| Code Review | `arch` (MCP) | review, inspect, improvements |
+| Documentation | `quill` (MCP) | README, docs, guide, API docs |
+| Image/PDF | `lens` (MCP) | screenshot, image, PDF, diagram |
 
 ### Frontend Delegation Gate (BLOCKING)
 
@@ -204,35 +237,43 @@ animation, transition, hover, responsive, CSS
 ### Pattern A: Exploration + Implementation
 
 ```
-1. background_task(index, "Search references...")  // Parallel
+1. "Use explorer agent to find similar patterns"  // FREE (Haiku)
 2. Start basic implementation simultaneously
-3. Enhance implementation with index results
+3. Enhance implementation with exploration results
 ```
 
-### Pattern B: Design Review
+### Pattern B: Research + Implementation
+
+```
+1. "Use researcher agent to find best practices"  // FREE (Sonnet)
+2. Start basic implementation simultaneously
+3. Apply researched patterns
+```
+
+### Pattern C: Design Review
 
 ```
 1. Write draft
-2. background_task(arch, "Review architecture...")
+2. background_task(arch, "Review architecture...") // GPT-5.2
 3. Incorporate feedback
 ```
 
-### Pattern C: Multi-perspective Collection
+### Pattern D: Multi-perspective Collection
 
 ```
-1. background_task(arch, "Architecture perspective...")    // Parallel
-2. background_task(index, "Industry examples...")          // Parallel
-3. background_task(canvas, "UX perspective...")            // Parallel
-4. Integrate all three results
+1. "Use explorer agent to analyze codebase"               // FREE - Parallel
+2. background_task(arch, "Architecture perspective...")   // GPT-5.2 - Parallel
+3. background_task(canvas, "UX perspective...")           // Gemini - Parallel
+4. Integrate all results
 ```
 
-### Pattern D: Complex Implementation
+### Pattern E: Complex Implementation
 
 ```
-1. Confirm design direction with arch
-2. Research examples with index (parallel)
+1. "Use explorer agent to understand existing patterns"  // FREE
+2. Confirm design direction with arch (MCP)
 3. Proceed with implementation
-4. Code review with arch
+4. Code review with arch (MCP)
 ```
 
 ---
@@ -240,17 +281,24 @@ animation, transition, hover, responsive, CSS
 ## Cost Optimization
 
 ```
-├─ Simple research        → index (cheap)
-├─ Codebase exploration   → Task(Explore) or direct tools (free)
-├─ Architecture decisions → arch (only when needed)
-├─ UI work               → canvas (only when needed)
-└─ Simple search         → Grep, Glob (always free first)
+FREE (Native agents in .claude/agents/):
+├─ Simple search          → Grep, Glob, Read (direct tools)
+├─ Codebase exploration   → explorer agent (Haiku, 75% cheaper)
+├─ External research      → researcher agent (WebSearch/WebFetch)
+└─ General tasks          → Task(general-purpose)
+
+PAID (MCP external APIs):
+├─ Architecture decisions → arch (GPT-5.2, expensive)
+├─ UI/UX work            → canvas (Gemini, moderate)
+├─ Documentation         → quill (Gemini, moderate)
+└─ Image/PDF analysis    → lens (Gemini, moderate)
 ```
 
 **Principles:**
-1. Don't call agents if free tools can solve it
-2. Don't use expensive agents if cheap ones (index) suffice
-3. Optimize time through parallel execution
+1. Always try FREE tools first (Grep, Glob, direct Read)
+2. Use native agents (explorer, researcher) for exploration/research
+3. Only use MCP agents for external model capabilities (GPT, Gemini)
+4. Parallel execution for time optimization
 
 ---
 
@@ -337,25 +385,38 @@ get_context(key, scope?)
 User request: "$ARGUMENTS"
 
 [Step 1: Classification]
-├─ Trivial?      → Handle directly
-├─ Research?     → Run index
-├─ Design?       → Consult arch
-├─ UI/Visual?    → Delegate to canvas
-├─ Complex?      → Multi-agent parallel
-└─ Ambiguous?    → 1 question
+├─ Trivial?         → Handle directly (Grep, Glob, Read)
+├─ Codebase search? → Use explorer agent (FREE, Haiku)
+├─ External docs?   → Use researcher agent (FREE, WebSearch)
+├─ Design?          → Consult arch (MCP, GPT-5.2)
+├─ UI/Visual?       → Delegate to canvas (MCP, Gemini)
+├─ Documentation?   → Delegate to quill (MCP, Gemini)
+├─ Image/PDF?       → Delegate to lens (MCP, Gemini)
+├─ Complex?         → Multi-agent parallel
+└─ Ambiguous?       → 1 question
 
-[Step 2: Execution]
+[Step 2: Agent Routing]
+├─ Native agents (.claude/agents/) - FREE
+│   ├─ explorer  → Codebase exploration (Haiku)
+│   └─ researcher → External research (WebSearch)
+└─ MCP agents (background_task) - PAID
+    ├─ arch   → GPT-5.2
+    ├─ canvas → Gemini 3
+    ├─ quill  → Gemini 3
+    └─ lens   → Gemini 3
+
+[Step 3: Execution]
 ├─ Identify parallelizable tasks
-├─ Execute simultaneously via background_task
+├─ Run native agents + MCP agents in parallel
 ├─ Handle directly what can be done immediately
 └─ Collect and integrate results
 
-[Step 3: Verification]
+[Step 4: Verification]
 ├─ Request fully satisfied?
 ├─ No errors?
 └─ Cleanup complete?
 
-[Step 4: Response]
+[Step 5: Response]
 ├─ Deliver results
 └─ background_cancel(all=true)
 ```

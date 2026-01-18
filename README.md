@@ -53,8 +53,8 @@ Each agent has exactly one job. They're very good at it. They will not shut up a
 
 | Agent | Model | Personality |
 |-------|-------|-------------|
-| **Explorer** | Haiku | 🔍 The speedster. Finds files faster than you can say "where did I put that". 75% cheaper than alternatives |
-| **Researcher** | Sonnet + WebSearch | 📚 The librarian. Reads every doc, cites every source. Uses WebSearch so it's actually up to date |
+| **Scout** | Haiku | 🔍 The speedster. Finds files faster than you can say "where did I put that". 75% cheaper than alternatives |
+| **Index** | Sonnet + WebSearch | 📚 The librarian. Reads every doc, cites every source. Uses WebSearch so it's actually up to date |
 
 **🌐 MCP Agents (External APIs):**
 
@@ -64,8 +64,6 @@ Each agent has exactly one job. They're very good at it. They will not shut up a
 | **Canvas** | Gemini 3 Pro | 🎨 The artist. Believes every button deserves a 47ms cubic-bezier transition |
 | **Quill** | Gemini 3 Pro | ✍️ The poet. Writes README files so beautiful they make developers cry |
 | **Lens** | Gemini 3 Pro | 👁️ The detective. Stares at your screenshots and PDFs until they confess their secrets |
-
-> **💡 Cost Tip:** Native agents (`explorer`, `researcher`) run on your Claude Code quota. MCP agents (`scout`, `index`) exist but call external APIs unnecessarily. Use native agents for 75%+ savings!
 
 ### ⚡ Parallel Execution
 
@@ -111,10 +109,10 @@ Talk to your agents naturally. They're listening. (Not in a creepy way.)
 |---------|-------------|
 | `@arch` or `@architect` | The overthinker arrives |
 | `@canvas`, `@ui`, `@frontend`, `@ux`, `@designer` | The pixel perfectionist |
-| `@researcher`, `@index` | The documentation hoarder |
+| `@index` | The documentation hoarder |
 | `@quill`, `@docs`, `@writer` | The prose professional |
 | `@lens`, `@image`, `@pdf`, `@analyzer` | The visual investigator |
-| `@explorer`, `@find`, `@search`, `@scout` | The speedy explorer |
+| `@scout`, `@find`, `@search` | The speedy scout |
 
 ---
 
@@ -288,17 +286,17 @@ Supports TypeScript, JavaScript, Python, Rust, Go, Java, and more.
 
 ### 1. Native Agents Are Free. Abuse This.
 
-The `explorer` and `researcher` agents live in `.claude/agents/` and use your Claude Code quota. Zero extra API cost.
+The `scout` and `index` agents live in `.claude/agents/` and use your Claude Code quota. Zero extra API cost.
 
 ```bash
-"Use explorer agent to find all authentication files"
-"Use researcher agent to find JWT best practices"
+"Use scout agent to find all authentication files"
+"Use index agent to find JWT best practices"
 ```
 
 Perfect for:
-- "Where the heck is that file?" → `explorer`
-- "How do I use this library?" → `researcher`
-- "Show me the project structure" → `explorer`
+- "Where the heck is that file?" → `scout`
+- "How do I use this library?" → `index`
+- "Show me the project structure" → `scout`
 
 ### 2. Arch Is Expensive. Use Wisely.
 
@@ -316,8 +314,8 @@ Instead of this:
 
 Try this:
 ```
-"Use explorer to find existing patterns"     // FREE (Haiku)
-"Use researcher to find Stripe docs"         // FREE (WebSearch)
+"Use scout to find existing patterns"     // FREE (Haiku)
+"Use index to find Stripe docs"         // FREE (WebSearch)
 background_task(arch, "Review security...")  // GPT-5.2
 ```
 
@@ -365,8 +363,8 @@ export CCO_TIMEOUT_SECONDS=300
 cc-orchestrator/
 ├── .claude/                # Claude Code native config
 │   └── agents/             # Native agents (FREE, no API calls)
-│       ├── explorer.md     # Codebase exploration (Haiku)
-│       └── researcher.md   # External research (WebSearch)
+│       ├── scout.md     # Codebase exploration (Haiku)
+│       └── index.md   # External research (WebSearch)
 ├── src/                    # The TypeScript jungle
 │   ├── core/               # Business logic (MCP-free zone)
 │   │   ├── agents/         # MCP agent definitions

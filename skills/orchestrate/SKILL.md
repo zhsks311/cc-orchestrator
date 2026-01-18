@@ -68,8 +68,8 @@ User request received
 | Resource | Cost | When to Use |
 |----------|------|-------------|
 | Grep, Glob, Read | FREE | Clear scope, simple search |
-| `explorer` agent | FREE | Codebase exploration (Haiku, ~75% cheaper vs. Sonnet) |
-| `researcher` agent | FREE | External docs, API research (WebSearch) |
+| `scout` agent | FREE | Codebase exploration (Haiku, ~75% cheaper vs. Sonnet) |
+| `index` agent | FREE | External docs, API research (WebSearch) |
 | `canvas` | MODERATE | UI/UX, styling (Gemini 3) |
 | `quill` | MODERATE | Technical documentation (Gemini 3) |
 | `lens` | MODERATE | Image/PDF analysis (Gemini 3) |
@@ -81,11 +81,11 @@ User request received
 ┌─────────────────────────────────────────────────────────────┐
 │ CLAUDE CODE NATIVE AGENTS (.claude/agents/) - FREE          │
 │                                                             │
-│   explorer  → Codebase exploration (Haiku model)            │
-│              "Use explorer agent to find X in codebase"     │
+│   scout  → Codebase exploration (Haiku model)            │
+│              "Use scout agent to find X in codebase"     │
 │                                                             │
-│   researcher → External research (WebSearch + WebFetch)     │
-│              "Use researcher agent to find best practices"  │
+│   index → External research (WebSearch + WebFetch)     │
+│              "Use index agent to find best practices"  │
 │                                                             │
 │ MCP AGENTS (background_task) - PAID                         │
 │                                                             │
@@ -100,13 +100,13 @@ User request received
 
 ```bash
 # Correct: Mixed parallel execution (Native + MCP)
-"Use explorer agent to find auth patterns"              // FREE (Haiku)
+"Use scout agent to find auth patterns"              // FREE (Haiku)
 background_task(agent="arch", prompt="Review security") // PAID (GPT-5.2)
 // Both run in parallel - continue immediately
 
 # Wrong: Using MCP for Anthropic models (wasteful)
-background_task(agent="scout", ...)  // DON'T - use explorer agent
-background_task(agent="index", ...)  // DON'T - use researcher agent
+background_task(agent="scout", ...)  // DON'T - use scout agent
+background_task(agent="index", ...)  // DON'T - use index agent
 ```
 
 **Exploration Stop Conditions:**
@@ -162,8 +162,8 @@ background_cancel(all=true)  // Cancel all background tasks
 
 | Agent | Model | Purpose | Triggers |
 |-------|-------|---------|----------|
-| `explorer` | Haiku | Codebase exploration, file/function search | "where is", "find", "how does X work" |
-| `researcher` | Sonnet | External docs, APIs, best practices | library names, "how to", tutorials |
+| `scout` | Haiku | Codebase exploration, file/function search | "where is", "find", "how does X work" |
+| `index` | Sonnet | External docs, APIs, best practices | library names, "how to", tutorials |
 
 **MCP Agents (background_task) - PAID:**
 
@@ -178,8 +178,8 @@ background_cancel(all=true)  // Cancel all background tasks
 
 | Domain | Delegate To | Trigger Keywords |
 |--------|-------------|------------------|
-| Codebase exploration | `explorer` (native) | find, where, search, structure |
-| External Research | `researcher` (native) | library names, API, "how to", best practices |
+| Codebase exploration | `scout` (native) | find, where, search, structure |
+| External Research | `index` (native) | library names, API, "how to", best practices |
 | Frontend UI/UX | `canvas` (MCP) | style, color, animation, layout, responsive |
 | Architecture | `arch` (MCP) | design, structure, pattern selection, tradeoffs |
 | Code Review | `arch` (MCP) | review, inspect, improvements |
@@ -237,7 +237,7 @@ animation, transition, hover, responsive, CSS
 ### Pattern A: Exploration + Implementation
 
 ```
-1. "Use explorer agent to find similar patterns"  // FREE (Haiku)
+1. "Use scout agent to find similar patterns"  // FREE (Haiku)
 2. Start basic implementation simultaneously
 3. Enhance implementation with exploration results
 ```
@@ -245,7 +245,7 @@ animation, transition, hover, responsive, CSS
 ### Pattern B: Research + Implementation
 
 ```
-1. "Use researcher agent to find best practices"  // FREE (Sonnet)
+1. "Use index agent to find best practices"  // FREE (Sonnet)
 2. Start basic implementation simultaneously
 3. Apply researched patterns
 ```
@@ -261,7 +261,7 @@ animation, transition, hover, responsive, CSS
 ### Pattern D: Multi-perspective Collection
 
 ```
-1. "Use explorer agent to analyze codebase"               // FREE - Parallel
+1. "Use scout agent to analyze codebase"               // FREE - Parallel
 2. background_task(arch, "Architecture perspective...")   // GPT-5.2 - Parallel
 3. background_task(canvas, "UX perspective...")           // Gemini - Parallel
 4. Integrate all results
@@ -270,7 +270,7 @@ animation, transition, hover, responsive, CSS
 ### Pattern E: Complex Implementation
 
 ```
-1. "Use explorer agent to understand existing patterns"  // FREE
+1. "Use scout agent to understand existing patterns"  // FREE
 2. Confirm design direction with arch (MCP)
 3. Proceed with implementation
 4. Code review with arch (MCP)
@@ -283,8 +283,8 @@ animation, transition, hover, responsive, CSS
 ```plaintext
 FREE (Native agents in .claude/agents/):
 ├─ Simple search          → Grep, Glob, Read (direct tools)
-├─ Codebase exploration   → explorer agent (Haiku, ~75% cheaper vs. Sonnet)
-├─ External research      → researcher agent (WebSearch/WebFetch)
+├─ Codebase exploration   → scout agent (Haiku, ~75% cheaper vs. Sonnet)
+├─ External research      → index agent (WebSearch/WebFetch)
 └─ General tasks          → Task(general-purpose)
 
 PAID (MCP external APIs):
@@ -296,7 +296,7 @@ PAID (MCP external APIs):
 
 **Principles:**
 1. Always try FREE tools first (Grep, Glob, direct Read)
-2. Use native agents (explorer, researcher) for exploration/research
+2. Use native agents (scout, index) for exploration/research
 3. Only use MCP agents for external model capabilities (GPT, Gemini)
 4. Parallel execution for time optimization
 
@@ -386,8 +386,8 @@ User request: "$ARGUMENTS"
 
 [Step 1: Classification]
 ├─ Trivial?         → Handle directly (Grep, Glob, Read)
-├─ Codebase search? → Use explorer agent (FREE, Haiku)
-├─ External docs?   → Use researcher agent (FREE, WebSearch)
+├─ Codebase search? → Use scout agent (FREE, Haiku)
+├─ External docs?   → Use index agent (FREE, WebSearch)
 ├─ Design?          → Consult arch (MCP, GPT-5.2)
 ├─ UI/Visual?       → Delegate to canvas (MCP, Gemini)
 ├─ Documentation?   → Delegate to quill (MCP, Gemini)
@@ -397,8 +397,8 @@ User request: "$ARGUMENTS"
 
 [Step 2: Agent Routing]
 ├─ Native agents (.claude/agents/) - FREE
-│   ├─ explorer  → Codebase exploration (Haiku)
-│   └─ researcher → External research (WebSearch)
+│   ├─ scout  → Codebase exploration (Haiku)
+│   └─ index → External research (WebSearch)
 └─ MCP agents (background_task) - PAID
     ├─ arch   → GPT-5.2
     ├─ canvas → Gemini 3

@@ -52,8 +52,8 @@
 
 | 에이전트 | 모델 | 성격 |
 |----------|------|------|
-| **Explorer** | Haiku | 🔍 스피드형. "그 파일 어딨지?"라고 말하기도 전에 찾아냄. 대안 대비 75% 저렴 |
-| **Researcher** | Sonnet + WebSearch | 📚 사서형. 모든 문서를 읽고, 출처를 남기고. WebSearch라 실제로 최신 정보임 |
+| **Scout** | Haiku | 🔍 스피드형. "그 파일 어딨지?"라고 말하기도 전에 찾아냄. 대안 대비 75% 저렴 |
+| **Index** | Sonnet + WebSearch | 📚 사서형. 모든 문서를 읽고, 출처를 남기고. WebSearch라 실제로 최신 정보임 |
 
 **🌐 MCP 에이전트 (외부 API):**
 
@@ -108,10 +108,10 @@ Claude: "이것을 위해 태어났다"
 |------|----------|
 | `@arch` 또는 `@architect` | 과대망상가 등장 |
 | `@canvas`, `@ui`, `@frontend`, `@ux`, `@designer` | 픽셀 완벽주의자 |
-| `@researcher`, `@index` | 문서 수집광 |
+| `@index` | 문서 수집광 |
 | `@quill`, `@docs`, `@writer` | 산문의 전문가 |
 | `@lens`, `@image`, `@pdf`, `@analyzer` | 시각 수사관 |
-| `@explorer`, `@find`, `@search`, `@scout` | 빠른 탐험가 |
+| `@scout`, `@find`, `@search` | 빠른 탐험가 |
 
 ---
 
@@ -285,17 +285,17 @@ TypeScript, JavaScript, Python, Rust, Go, Java 등 지원.
 
 ### 1. 네이티브 에이전트는 공짜. 맘껏 써도 됨
 
-`explorer`와 `researcher` 에이전트는 `.claude/agents/`에 살면서 Claude Code 할당량만 씀. 추가 API 비용 0원.
+`scout`와 `index` 에이전트는 `.claude/agents/`에 살면서 Claude Code 할당량만 씀. 추가 API 비용 0원.
 
 ```bash
-"explorer 에이전트로 인증 관련 파일 다 찾아줘"
-"researcher 에이전트로 JWT 베스트 프랙티스 찾아줘"
+"scout 에이전트로 인증 관련 파일 다 찾아줘"
+"index 에이전트로 JWT 베스트 프랙티스 찾아줘"
 ```
 
 이럴 때 좋음:
-- "그 파일 어디 있어?" → `explorer`
-- "이 라이브러리 어떻게 써?" → `researcher`
-- "프로젝트 구조 보여줘" → `explorer`
+- "그 파일 어디 있어?" → `scout`
+- "이 라이브러리 어떻게 써?" → `index`
+- "프로젝트 구조 보여줘" → `scout`
 
 ### 2. Arch는 비쌈. 현명하게 쓸 것
 
@@ -313,8 +313,8 @@ GPT-5.2는 존재론적 위기당 과금됨. 이럴 때만 쓰세요:
 
 이렇게:
 ```
-"explorer로 기존 패턴 찾아줘"              // 무료 (Haiku)
-"researcher로 Stripe 문서 찾아줘"          // 무료 (WebSearch)
+"scout로 기존 패턴 찾아줘"              // 무료 (Haiku)
+"index로 Stripe 문서 찾아줘"          // 무료 (WebSearch)
 background_task(arch, "보안 리뷰해줘...")  // GPT-5.2
 ```
 
@@ -362,8 +362,8 @@ export CCO_TIMEOUT_SECONDS=300
 cc-orchestrator/
 ├── .claude/                # Claude Code 네이티브 설정
 │   └── agents/             # 네이티브 에이전트 (무료, API 호출 없음)
-│       ├── explorer.md     # 코드베이스 탐색 (Haiku)
-│       └── researcher.md   # 외부 리서치 (WebSearch)
+│       ├── scout.md     # 코드베이스 탐색 (Haiku)
+│       └── index.md   # 외부 리서치 (WebSearch)
 ├── src/                    # 타입스크립트 정글
 │   ├── core/               # 비즈니스 로직 (MCP 없는 구역)
 │   │   ├── agents/         # MCP 에이전트 정의
@@ -444,14 +444,14 @@ npm run uninstall
 
 | 에이전트 | 비용 | 추천 용도 |
 |----------|------|----------|
-| `explorer` | 무료 | 개발 중 테스트, 코드베이스 탐색 |
-| `researcher` | 무료 | 문서 검색, 구현 사례 조사 |
+| `scout` | 무료 | 개발 중 테스트, 코드베이스 탐색 |
+| `index` | 무료 | 문서 검색, 구현 사례 조사 |
 | `lens` | 저렴 | 이미지/PDF 분석 |
 | `canvas` | 보통 | UI/UX 작업 |
 | `quill` | 보통 | 문서 작성 |
 | `arch` | 비쌈 | 아키텍처 설계, 중요 의사결정 |
 
-개발 중에는 `explorer` 써서 돈 아끼세요.
+개발 중에는 `scout` 써서 돈 아끼세요.
 
 ---
 

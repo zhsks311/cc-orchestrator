@@ -120,7 +120,9 @@ async function install(installDir) {
   console.log('─'.repeat(50));
   if (fs.existsSync(path.join(installDir, '.git'))) {
     console.log('\n[1/3] Fetching latest code...\n');
-    exec('git pull origin main', { cwd: installDir });
+    // Use fetch + reset to handle local changes (e.g., package-lock.json from npm install)
+    exec('git fetch origin main', { cwd: installDir });
+    exec('git reset --hard origin/main', { cwd: installDir });
   } else {
     console.log('\n[1/3] Cloning repository...\n');
     if (fs.existsSync(installDir)) {

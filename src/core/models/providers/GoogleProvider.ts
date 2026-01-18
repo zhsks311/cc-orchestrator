@@ -78,10 +78,7 @@ export class GoogleProvider {
       };
     } catch (error) {
       if (error instanceof Error) {
-        throw new ModelAPIError(
-          `Google Gemini API error: ${error.message}`,
-          'google'
-        );
+        throw new ModelAPIError(`Google Gemini API error: ${error.message}`, 'google');
       }
       throw error;
     }
@@ -148,10 +145,7 @@ export class GoogleProvider {
       };
     } catch (error) {
       if (error instanceof Error) {
-        throw new ModelAPIError(
-          `Google Gemini API error: ${error.message}`,
-          'google'
-        );
+        throw new ModelAPIError(`Google Gemini API error: ${error.message}`, 'google');
       }
       throw error;
     }
@@ -213,7 +207,9 @@ export class GoogleProvider {
     return [{ functionDeclarations }];
   }
 
-  private convertParameters(params: ToolDefinition['parameters']): FunctionDeclaration['parameters'] {
+  private convertParameters(
+    params: ToolDefinition['parameters']
+  ): FunctionDeclaration['parameters'] {
     return {
       type: SchemaType.OBJECT,
       properties: this.convertProperties(params.properties ?? {}),
@@ -253,9 +249,7 @@ export class GoogleProvider {
     }
   }
 
-  private mapFinishReason(
-    reason: string | undefined
-  ): ToolUseResponse['finishReason'] {
+  private mapFinishReason(reason: string | undefined): ToolUseResponse['finishReason'] {
     switch (reason) {
       case 'STOP':
         return 'stop';

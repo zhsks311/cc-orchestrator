@@ -67,11 +67,13 @@ Recommended pattern:
         },
         block: {
           type: 'boolean',
-          description: 'true: wait until completion, false: return status immediately (default: false)',
+          description:
+            'true: wait until completion, false: return status immediately (default: false)',
         },
         timeout_ms: {
           type: 'number',
-          description: 'Maximum wait time when block=true (milliseconds, default: 300000 = 5 minutes)',
+          description:
+            'Maximum wait time when block=true (milliseconds, default: 300000 = 5 minutes)',
         },
       },
       required: ['task_id'],
@@ -131,7 +133,8 @@ Recommended to use all=true for cleanup after task completion.`,
   },
   {
     name: 'share_context',
-    description: 'Share context between agents. Use to pass results from previous tasks to subsequent tasks.',
+    description:
+      'Share context between agents. Use to pass results from previous tasks to subsequent tasks.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -176,7 +179,8 @@ Recommended to use all=true for cleanup after task completion.`,
   },
   {
     name: 'suggest_agent',
-    description: 'Suggests the best agent for a user request using Key Trigger system. Keywords: architecture/design/review -> arch, library/API/docs -> index, UI/UX/design -> canvas, docs/README -> quill, image/PDF -> lens, find/where/structure -> scout',
+    description:
+      'Suggests the best agent for a user request using Key Trigger system. Keywords: architecture/design/review -> arch, library/API/docs -> index, UI/UX/design -> canvas, docs/README -> quill, image/PDF -> lens, find/where/structure -> scout',
     inputSchema: {
       type: 'object',
       properties: {

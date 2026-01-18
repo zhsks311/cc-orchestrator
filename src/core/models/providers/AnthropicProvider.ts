@@ -50,9 +50,7 @@ export class AnthropicProvider {
         messages: [{ role: 'user', content: params.userPrompt }],
       });
 
-      const textContent = response.content.find(
-        (block) => block.type === 'text'
-      );
+      const textContent = response.content.find((block) => block.type === 'text');
       if (!textContent || textContent.type !== 'text') {
         throw new ModelAPIError('Empty response from Anthropic', 'anthropic');
       }
@@ -72,10 +70,7 @@ export class AnthropicProvider {
       };
     } catch (error) {
       if (error instanceof Anthropic.APIError) {
-        throw new ModelAPIError(
-          `Anthropic API error: ${error.message}`,
-          'anthropic'
-        );
+        throw new ModelAPIError(`Anthropic API error: ${error.message}`, 'anthropic');
       }
       throw error;
     }
@@ -130,10 +125,7 @@ export class AnthropicProvider {
       };
     } catch (error) {
       if (error instanceof Anthropic.APIError) {
-        throw new ModelAPIError(
-          `Anthropic API error: ${error.message}`,
-          'anthropic'
-        );
+        throw new ModelAPIError(`Anthropic API error: ${error.message}`, 'anthropic');
       }
       throw error;
     }
@@ -188,9 +180,7 @@ export class AnthropicProvider {
     }));
   }
 
-  private mapStopReason(
-    reason: string | null
-  ): ToolUseResponse['finishReason'] {
+  private mapStopReason(reason: string | null): ToolUseResponse['finishReason'] {
     switch (reason) {
       case 'end_turn':
         return 'stop';

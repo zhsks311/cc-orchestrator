@@ -6,7 +6,6 @@
  */
 
 import { vi, type Mock } from 'vitest';
-import type { z } from 'zod';
 import type { ContractDefinition } from '../contracts/provider-contracts.js';
 
 export interface MockCallRecord<TRequest, TResponse> {
@@ -36,9 +35,7 @@ export class ContractMock<TRequest, TResponse, TError = unknown> {
       this.defaultResponse = validated;
       this.mockFn.mockResolvedValue(validated);
     } catch (error) {
-      throw new Error(
-        `Response violates ${this.contract.name} contract:\n${error}`
-      );
+      throw new Error(`Response violates ${this.contract.name} contract:\n${error}`);
     }
     return this;
   }
@@ -52,9 +49,7 @@ export class ContractMock<TRequest, TResponse, TError = unknown> {
       try {
         return this.contract.responseSchema.parse(response);
       } catch (error) {
-        throw new Error(
-          `Response ${index + 1} violates ${this.contract.name} contract:\n${error}`
-        );
+        throw new Error(`Response ${index + 1} violates ${this.contract.name} contract:\n${error}`);
       }
     });
 
@@ -71,9 +66,7 @@ export class ContractMock<TRequest, TResponse, TError = unknown> {
       try {
         this.contract.errorSchema.parse(error);
       } catch (validationError) {
-        throw new Error(
-          `Error violates ${this.contract.name} error contract:\n${validationError}`
-        );
+        throw new Error(`Error violates ${this.contract.name} error contract:\n${validationError}`);
       }
     }
 
@@ -114,9 +107,7 @@ export class ContractMock<TRequest, TResponse, TError = unknown> {
       try {
         validatedRequest = this.contract.requestSchema.parse(request);
       } catch (error) {
-        throw new Error(
-          `Request violates ${this.contract.name} contract:\n${error}`
-        );
+        throw new Error(`Request violates ${this.contract.name} contract:\n${error}`);
       }
 
       // Handle response queue
@@ -156,7 +147,7 @@ export class ContractMock<TRequest, TResponse, TError = unknown> {
       // No response configured
       throw new Error(
         `No response configured for ${this.contract.name} mock. ` +
-        `Use respondWith() or respondWithSequence() first.`
+          `Use respondWith() or respondWithSequence() first.`
       );
     };
   }
@@ -172,9 +163,7 @@ export class ContractMock<TRequest, TResponse, TError = unknown> {
       try {
         this.contract.requestSchema.parse(request);
       } catch (error) {
-        throw new Error(
-          `Call ${index + 1} violated ${this.contract.name} contract:\n${error}`
-        );
+        throw new Error(`Call ${index + 1} violated ${this.contract.name} contract:\n${error}`);
       }
     });
   }
@@ -204,14 +193,14 @@ export class ContractMock<TRequest, TResponse, TError = unknown> {
    * Get all requests
    */
   getAllRequests(): TRequest[] {
-    return this.callRecords.map(record => record.request);
+    return this.callRecords.map((record) => record.request);
   }
 
   /**
    * Get all responses
    */
   getAllResponses(): TResponse[] {
-    return this.callRecords.map(record => record.response);
+    return this.callRecords.map((record) => record.response);
   }
 
   /**
@@ -253,7 +242,7 @@ export class ContractMock<TRequest, TResponse, TError = unknown> {
     if (this.getCallCount() > 0) {
       throw new Error(
         `Expected ${this.contract.name} mock not to be called, ` +
-        `but it was called ${this.getCallCount()} times`
+          `but it was called ${this.getCallCount()} times`
       );
     }
   }
@@ -264,7 +253,7 @@ export class ContractMock<TRequest, TResponse, TError = unknown> {
   assertCalledWith(expectedRequest: Partial<TRequest>): void {
     const requests = this.getAllRequests();
 
-    const found = requests.some(request =>
+    const found = requests.some((request) =>
       Object.entries(expectedRequest).every(([key, value]) => {
         const requestValue = (request as any)[key];
         return JSON.stringify(requestValue) === JSON.stringify(value);
@@ -274,9 +263,10 @@ export class ContractMock<TRequest, TResponse, TError = unknown> {
     if (!found) {
       throw new Error(
         `Expected ${this.contract.name} mock to be called with:\n` +
-        JSON.stringify(expectedRequest, null, 2) + '\n' +
-        `But actual requests were:\n` +
-        JSON.stringify(requests, null, 2)
+          JSON.stringify(expectedRequest, null, 2) +
+          '\n' +
+          `But actual requests were:\n` +
+          JSON.stringify(requests, null, 2)
       );
     }
   }

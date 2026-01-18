@@ -26,18 +26,15 @@ describe('API Cost Guard', () => {
     });
 
     it('should block Google Generative AI calls', () => {
-      const url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
+      const url =
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
       expect(wouldBeBlocked(url)).toBe(true);
     });
 
     it('should not block non-API URLs', () => {
-      const urls = [
-        'https://example.com',
-        'https://github.com',
-        'https://localhost:3000',
-      ];
+      const urls = ['https://example.com', 'https://github.com', 'https://localhost:3000'];
 
-      urls.forEach(url => {
+      urls.forEach((url) => {
         expect(wouldBeBlocked(url)).toBe(false);
       });
     });

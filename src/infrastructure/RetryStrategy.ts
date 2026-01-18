@@ -202,9 +202,7 @@ export class RetryStrategy {
 
   private calculateDelay(attempt: number): number {
     // Exponential backoff: initialDelay * (multiplier ^ (attempt - 1))
-    let delay =
-      this.options.initialDelayMs *
-      Math.pow(this.options.backoffMultiplier, attempt - 1);
+    let delay = this.options.initialDelayMs * Math.pow(this.options.backoffMultiplier, attempt - 1);
 
     // Apply max delay cap
     delay = Math.min(delay, this.options.maxDelayMs);
@@ -226,9 +224,7 @@ export class RetryStrategy {
 /**
  * Create a retry strategy with custom options
  */
-export function createRetryStrategy(
-  options: Partial<RetryOptions> = {}
-): RetryStrategy {
+export function createRetryStrategy(options: Partial<RetryOptions> = {}): RetryStrategy {
   return new RetryStrategy(options);
 }
 
@@ -247,11 +243,7 @@ export async function retryWithBackoff<T>(
  * Decorator for adding retry to class methods
  */
 export function withRetry(options: Partial<RetryOptions> = {}) {
-  return function (
-    _target: unknown,
-    _propertyKey: string,
-    descriptor: PropertyDescriptor
-  ) {
+  return function (_target: unknown, _propertyKey: string, descriptor: PropertyDescriptor) {
     const originalMethod = descriptor.value;
     const strategy = new RetryStrategy(options);
 

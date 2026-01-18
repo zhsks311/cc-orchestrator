@@ -6,11 +6,7 @@
 import { IAgentManager } from '../../core/agents/AgentManager.js';
 import { IContextStore } from '../../core/context/ContextStore.js';
 import { IModelRouter } from '../../core/models/ModelRouter.js';
-import {
-  AgentRole,
-  AgentStatus,
-  ContextScope,
-} from '../../types/index.js';
+import { AgentRole, AgentStatus } from '../../types/index.js';
 import { ValidationError } from '../../types/errors.js';
 import { Logger } from '../../infrastructure/Logger.js';
 import {
@@ -25,10 +21,7 @@ import {
   AstReplaceInputSchema,
 } from '../tools/schemas.js';
 import { getAstGrepService } from '../../core/ast/index.js';
-import {
-  getRoleDescription,
-  AGENT_METADATA,
-} from '../../core/agents/prompts.js';
+import { getRoleDescription, AGENT_METADATA } from '../../core/agents/prompts.js';
 import { IntentAnalyzer } from '../../core/routing/IntentAnalyzer.js';
 
 export interface ToolHandlerDependencies {
@@ -209,10 +202,7 @@ export class ToolHandlers {
     }
 
     // block=true: wait until completion
-    const agentResult = await this.agentManager.waitForCompletion(
-      input.task_id,
-      input.timeout_ms
-    );
+    const agentResult = await this.agentManager.waitForCompletion(input.task_id, input.timeout_ms);
 
     const response: Record<string, unknown> = {
       task_id: agentResult.agentId,
@@ -337,7 +327,6 @@ export class ToolHandlers {
     });
   }
 
-
   /**
    * Intent-based agent recommendation
    * LLM analyzes user request to select the optimal agent.
@@ -347,7 +336,8 @@ export class ToolHandlers {
 
     // Analyze intent with IntentAnalyzer
     const analysisResult = await this.intentAnalyzer.analyze(input.query);
-    const { decision, confirmationMessage, options, isFeedbackRequest, feedbackType } = analysisResult;
+    const { decision, confirmationMessage, options, isFeedbackRequest, feedbackType } =
+      analysisResult;
 
     // 0. Handle feedback/retry requests
     if (isFeedbackRequest) {
@@ -434,15 +424,17 @@ export class ToolHandlers {
       confidence: 'low',
       reason: decision.reason,
       message: confirmationMessage || 'Which agent would you like to help you?',
-      available_agents: options?.map((opt) => ({
-        agent: opt.agent,
-        description: opt.description,
-        cost: opt.cost,
-      })) || Object.entries(AGENT_METADATA).map(([role, meta]) => ({
-        agent: role,
-        description: getRoleDescription(role as AgentRole),
-        cost: meta.cost,
-      })),
+      available_agents:
+        options?.map((opt) => ({
+          agent: opt.agent,
+          description: opt.description,
+          cost: opt.cost,
+        })) ||
+        Object.entries(AGENT_METADATA).map(([role, meta]) => ({
+          agent: role,
+          description: getRoleDescription(role as AgentRole),
+          cost: meta.cost,
+        })),
     });
   }
 
@@ -460,10 +452,17 @@ export class ToolHandlers {
           is_feedback_request: true,
           feedback_type: 'retry_same',
           message: confirmationMessage || 'Retrying with the same agent.',
-          recommendation: 'Use the previous task_id to request again with the same agent, or call background_task with a new prompt.',
+          recommendation:
+            'Use the previous task_id to request again with the same agent, or call background_task with a new prompt.',
           actions: [
-            { label: 'Retry with same prompt', action: 'background_task(agent="<previous>", prompt="<same>")' },
-            { label: 'Try with modified prompt', action: 'background_task(agent="<previous>", prompt="<modified>")' },
+            {
+              label: 'Retry with same prompt',
+              action: 'background_task(agent="<previous>", prompt="<same>")',
+            },
+            {
+              label: 'Try with modified prompt',
+              action: 'background_task(agent="<previous>", prompt="<modified>")',
+            },
           ],
         });
 
@@ -472,11 +471,13 @@ export class ToolHandlers {
           is_feedback_request: true,
           feedback_type: 'retry_different',
           message: confirmationMessage || 'Would you like to try with a different agent?',
-          available_agents: options || Object.entries(AGENT_METADATA).map(([role, meta]) => ({
-            agent: role,
-            description: getRoleDescription(role as AgentRole),
-            cost: meta.cost,
-          })),
+          available_agents:
+            options ||
+            Object.entries(AGENT_METADATA).map(([role, meta]) => ({
+              agent: role,
+              description: getRoleDescription(role as AgentRole),
+              cost: meta.cost,
+            })),
           recommendation: 'Select one of the agents below and call background_task.',
         });
 
@@ -485,10 +486,17 @@ export class ToolHandlers {
           is_feedback_request: true,
           feedback_type: 'modify',
           message: confirmationMessage || 'How would you like to modify the previous result?',
-          recommendation: 'Please describe your modification request specifically. e.g., "explain in more detail", "show only the code", "translate to Korean"',
+          recommendation:
+            'Please describe your modification request specifically. e.g., "explain in more detail", "show only the code", "translate to Korean"',
           actions: [
-            { label: 'Request modification from same agent', action: 'background_task(agent="<previous>", prompt="<modification request>")' },
-            { label: 'Process with different agent', action: 'Get recommendation with suggest_agent' },
+            {
+              label: 'Request modification from same agent',
+              action: 'background_task(agent="<previous>", prompt="<modification request>")',
+            },
+            {
+              label: 'Process with different agent',
+              action: 'Get recommendation with suggest_agent',
+            },
           ],
         });
 
@@ -532,9 +540,10 @@ export class ToolHandlers {
       pattern: input.pattern,
       path: input.path,
       language: resolvedLanguage || 'auto-detected',
-      language_warning: input.language && !resolvedLanguage
-        ? `Unsupported language '${input.language}', used auto-detection instead`
-        : undefined,
+      language_warning:
+        input.language && !resolvedLanguage
+          ? `Unsupported language '${input.language}', used auto-detection instead`
+          : undefined,
       total_matches: results.length,
       matches: results.map((r) => ({
         file: r.file,
@@ -576,9 +585,10 @@ export class ToolHandlers {
       replacement: input.replacement,
       path: input.path,
       language: resolvedLanguage || 'auto-detected',
-      language_warning: input.language && !resolvedLanguage
-        ? `Unsupported language '${input.language}', used auto-detection instead`
-        : undefined,
+      language_warning:
+        input.language && !resolvedLanguage
+          ? `Unsupported language '${input.language}', used auto-detection instead`
+          : undefined,
       dry_run: input.dry_run,
       total_files_modified: results.length,
       total_replacements: totalReplacements,

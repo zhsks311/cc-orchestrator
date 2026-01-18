@@ -86,7 +86,9 @@ export class ModelRouter implements IModelRouter {
     // Log available providers summary
     const available = this.getAvailableProviders();
     if (available.length === 0) {
-      this.logger.warn('No providers available. Set at least one API key: OPENAI_API_KEY, GOOGLE_API_KEY, or ANTHROPIC_API_KEY');
+      this.logger.warn(
+        'No providers available. Set at least one API key: OPENAI_API_KEY, GOOGLE_API_KEY, or ANTHROPIC_API_KEY'
+      );
     } else {
       this.logger.info('Available providers', { providers: available });
     }
@@ -154,7 +156,10 @@ export class ModelRouter implements IModelRouter {
    * Returns the primary provider if available and healthy, otherwise searches providerFallbacks
    * @param checkHealth - if true, also checks provider health status (rate limits, circuit breaker)
    */
-  findAvailableProviderConfig(role: AgentRole, checkHealth: boolean = false): {
+  findAvailableProviderConfig(
+    role: AgentRole,
+    checkHealth: boolean = false
+  ): {
     config: ProviderModelConfig;
     fallbackInfo?: FallbackInfo;
   } | null {
@@ -181,7 +186,7 @@ export class ModelRouter implements IModelRouter {
     const primaryHealthCheck = this.healthManager.checkHealth(modelConfig.provider);
     const fallbackReason = !this.isProviderAvailable(modelConfig.provider)
       ? FallbackReason.API_KEY_MISSING
-      : primaryHealthCheck.reason ?? FallbackReason.UNKNOWN;
+      : (primaryHealthCheck.reason ?? FallbackReason.UNKNOWN);
 
     // Try provider fallbacks
     if (modelConfig.providerFallbacks) {
@@ -205,8 +210,7 @@ export class ModelRouter implements IModelRouter {
 
   async executeTask(params: ExecuteTaskParams): Promise<ModelResponse> {
     const modelConfig = this.getModelForRole(params.role);
-    const systemPrompt =
-      params.systemPrompt ?? getSystemPromptForRole(params.role);
+    const systemPrompt = params.systemPrompt ?? getSystemPromptForRole(params.role);
 
     const userPrompt = this.buildUserPrompt(params.task, params.context);
 
@@ -317,9 +321,7 @@ export class ModelRouter implements IModelRouter {
         const currentProviderIndex = modelConfig.providerFallbacks.findIndex(
           (f) => f.provider === providerConfig.provider
         );
-        const remainingFallbacks = modelConfig.providerFallbacks.slice(
-          currentProviderIndex + 1
-        );
+        const remainingFallbacks = modelConfig.providerFallbacks.slice(currentProviderIndex + 1);
 
         for (const nextFallback of remainingFallbacks) {
           if (this.isProviderAvailable(nextFallback.provider)) {
@@ -398,10 +400,7 @@ export class ModelRouter implements IModelRouter {
 
         case ModelProvider.ANTHROPIC:
           if (!this.anthropicProvider) {
-            throw new ModelAPIError(
-              'Anthropic provider not initialized',
-              'anthropic'
-            );
+            throw new ModelAPIError('Anthropic provider not initialized', 'anthropic');
           }
           response = await this.anthropicProvider.execute(executeParams);
           break;
@@ -422,10 +421,7 @@ export class ModelRouter implements IModelRouter {
     }
   }
 
-  private buildUserPrompt(
-    task: string,
-    context?: Record<string, unknown>
-  ): string {
+  private buildUserPrompt(task: string, context?: Record<string, unknown>): string {
     if (!context || Object.keys(context).length === 0) {
       return task;
     }
@@ -528,10 +524,7 @@ export class ModelRouter implements IModelRouter {
 
       case ModelProvider.ANTHROPIC:
         if (!this.anthropicProvider) {
-          throw new ModelAPIError(
-            'Anthropic provider not initialized',
-            'anthropic'
-          );
+          throw new ModelAPIError('Anthropic provider not initialized', 'anthropic');
         }
         return this.anthropicProvider.executeWithTools(executeParams);
 

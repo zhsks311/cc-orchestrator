@@ -7,9 +7,8 @@ import {
   RetryStrategy,
   createRetryStrategy,
   retryWithBackoff,
-  RetryOptions,
 } from '../../src/infrastructure/RetryStrategy.js';
-import { CCOError, ModelAPIError, RateLimitError } from '../../src/types/errors.js';
+import { CCOError, ModelAPIError } from '../../src/types/errors.js';
 
 describe('RetryStrategy', () => {
   beforeEach(() => {
@@ -122,7 +121,7 @@ describe('RetryStrategy', () => {
     it('should respect custom shouldRetry function', async () => {
       const strategy = new RetryStrategy({
         maxRetries: 3,
-        shouldRetry: (error, attempt) => {
+        shouldRetry: (error, _attempt) => {
           // Only retry if message contains 'temporary'
           return error.message.includes('temporary');
         },

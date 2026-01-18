@@ -83,8 +83,16 @@ export const ROLE_MODEL_MAPPING: Record<AgentRole, ModelConfig> = {
     model: 'gpt-5.2',
     fallbackModel: 'gpt-5-mini',
     providerFallbacks: [
-      { provider: ModelProvider.ANTHROPIC, model: 'claude-opus-4-20250514', fallbackModel: 'claude-sonnet-4-20250514' },
-      { provider: ModelProvider.GOOGLE, model: 'gemini-2.5-pro-preview-06-05', fallbackModel: 'gemini-2.5-flash-preview-05-20' },
+      {
+        provider: ModelProvider.ANTHROPIC,
+        model: 'claude-opus-4-20250514',
+        fallbackModel: 'claude-sonnet-4-20250514',
+      },
+      {
+        provider: ModelProvider.GOOGLE,
+        model: 'gemini-2.5-pro-preview-06-05',
+        fallbackModel: 'gemini-2.5-flash-preview-05-20',
+      },
     ],
     maxTokens: 16000,
     temperature: 0.7,
@@ -95,7 +103,11 @@ export const ROLE_MODEL_MAPPING: Record<AgentRole, ModelConfig> = {
     model: 'gemini-3-pro-preview',
     fallbackModel: 'gemini-3-flash-preview',
     providerFallbacks: [
-      { provider: ModelProvider.ANTHROPIC, model: 'claude-sonnet-4-20250514', fallbackModel: 'claude-3-5-sonnet-latest' },
+      {
+        provider: ModelProvider.ANTHROPIC,
+        model: 'claude-sonnet-4-20250514',
+        fallbackModel: 'claude-3-5-sonnet-latest',
+      },
       { provider: ModelProvider.OPENAI, model: 'gpt-4o', fallbackModel: 'gpt-4o-mini' },
     ],
     maxTokens: 8000,
@@ -108,7 +120,11 @@ export const ROLE_MODEL_MAPPING: Record<AgentRole, ModelConfig> = {
     fallbackModel: 'claude-sonnet-4-20250514',
     providerFallbacks: [
       { provider: ModelProvider.OPENAI, model: 'gpt-4o', fallbackModel: 'gpt-4o-mini' },
-      { provider: ModelProvider.GOOGLE, model: 'gemini-2.5-pro-preview-06-05', fallbackModel: 'gemini-2.5-flash-preview-05-20' },
+      {
+        provider: ModelProvider.GOOGLE,
+        model: 'gemini-2.5-pro-preview-06-05',
+        fallbackModel: 'gemini-2.5-flash-preview-05-20',
+      },
     ],
     maxTokens: 32000,
     temperature: 0.3,
@@ -119,7 +135,11 @@ export const ROLE_MODEL_MAPPING: Record<AgentRole, ModelConfig> = {
     model: 'gemini-3-pro-preview',
     fallbackModel: 'gemini-3-flash-preview',
     providerFallbacks: [
-      { provider: ModelProvider.ANTHROPIC, model: 'claude-sonnet-4-20250514', fallbackModel: 'claude-3-5-sonnet-latest' },
+      {
+        provider: ModelProvider.ANTHROPIC,
+        model: 'claude-sonnet-4-20250514',
+        fallbackModel: 'claude-3-5-sonnet-latest',
+      },
       { provider: ModelProvider.OPENAI, model: 'gpt-4o', fallbackModel: 'gpt-4o-mini' },
     ],
     maxTokens: 16000,
@@ -131,7 +151,11 @@ export const ROLE_MODEL_MAPPING: Record<AgentRole, ModelConfig> = {
     model: 'gemini-3-pro-preview',
     fallbackModel: 'gemini-3-flash-preview',
     providerFallbacks: [
-      { provider: ModelProvider.ANTHROPIC, model: 'claude-sonnet-4-20250514', fallbackModel: 'claude-3-5-sonnet-latest' },
+      {
+        provider: ModelProvider.ANTHROPIC,
+        model: 'claude-sonnet-4-20250514',
+        fallbackModel: 'claude-3-5-sonnet-latest',
+      },
       { provider: ModelProvider.OPENAI, model: 'gpt-4o', fallbackModel: 'gpt-4o-mini' },
     ],
     maxTokens: 8000,
@@ -143,7 +167,11 @@ export const ROLE_MODEL_MAPPING: Record<AgentRole, ModelConfig> = {
     model: 'claude-3-5-sonnet-latest',
     fallbackModel: 'claude-3-haiku-latest',
     providerFallbacks: [
-      { provider: ModelProvider.GOOGLE, model: 'gemini-2.5-flash-preview-05-20', fallbackModel: 'gemini-2.0-flash' },
+      {
+        provider: ModelProvider.GOOGLE,
+        model: 'gemini-2.5-flash-preview-05-20',
+        fallbackModel: 'gemini-2.0-flash',
+      },
       { provider: ModelProvider.OPENAI, model: 'gpt-4o-mini', fallbackModel: 'gpt-4o-mini' },
     ],
     maxTokens: 8000,

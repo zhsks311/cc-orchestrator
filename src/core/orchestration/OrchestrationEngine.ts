@@ -6,13 +6,7 @@
 import { IAgentManager } from '../agents/AgentManager.js';
 import { IContextStore } from '../context/ContextStore.js';
 import { Logger } from '../../infrastructure/Logger.js';
-import {
-  AgentRole,
-  AgentStatus,
-  Priority,
-  ContextScope,
-  AgentError,
-} from '../../types/index.js';
+import { AgentRole, AgentStatus, Priority, ContextScope, AgentError } from '../../types/index.js';
 import {
   Stage,
   ExecutionPlan,
@@ -108,7 +102,10 @@ export class OrchestrationEngine implements IOrchestrationEngine {
             stage.dependsOn.every((depId) => executedStages.has(depId))
         );
 
-        if (readyStages.length === 0 && executedStages.size < orchestration.executionPlan.stages.length) {
+        if (
+          readyStages.length === 0 &&
+          executedStages.size < orchestration.executionPlan.stages.length
+        ) {
           throw new Error('Circular dependency detected in execution plan');
         }
 
@@ -160,7 +157,6 @@ export class OrchestrationEngine implements IOrchestrationEngine {
         totalExecutionTimeMs: orchestration.totalExecutionTimeMs,
         stageResults: this.getStageResultsObject(orchestrationId),
       };
-
     } catch (error) {
       orchestration.status = OrchestrationStatus.FAILED;
       orchestration.completedAt = new Date();
@@ -185,7 +181,7 @@ export class OrchestrationEngine implements IOrchestrationEngine {
   private async executeStage(
     orchestration: Orchestration,
     stage: Stage,
-    previousStageAgents: Map<string, string>
+    _previousStageAgents: Map<string, string>
   ): Promise<StageResult> {
     this.logger.debug('Executing stage', {
       orchestrationId: orchestration.id,
@@ -258,9 +254,7 @@ export class OrchestrationEngine implements IOrchestrationEngine {
   }
 
   listOrchestrations(sessionId: string): Orchestration[] {
-    return Array.from(this.orchestrations.values()).filter(
-      (o) => o.sessionId === sessionId
-    );
+    return Array.from(this.orchestrations.values()).filter((o) => o.sessionId === sessionId);
   }
 
   private createExecutionPlan(
@@ -283,15 +277,17 @@ export class OrchestrationEngine implements IOrchestrationEngine {
       }));
     } else {
       // Default: use Arch only
-      stages = [{
-        id: 'stage-1',
-        name: 'Arch analysis',
-        role: AgentRole.ARCH,
-        task: goal,
-        dependsOn: [],
-        inputs: {},
-        priority: Priority.MEDIUM,
-      }];
+      stages = [
+        {
+          id: 'stage-1',
+          name: 'Arch analysis',
+          role: AgentRole.ARCH,
+          task: goal,
+          dependsOn: [],
+          inputs: {},
+          priority: Priority.MEDIUM,
+        },
+      ];
     }
 
     // Adjust based on quality level

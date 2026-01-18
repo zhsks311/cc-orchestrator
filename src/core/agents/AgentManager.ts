@@ -12,17 +12,10 @@ import {
   AgentResult,
   AgentError,
 } from '../../types/index.js';
-import {
-  AgentNotFoundError,
-  TimeoutError,
-  CCOError,
-} from '../../types/errors.js';
+import { AgentNotFoundError, TimeoutError, CCOError } from '../../types/errors.js';
 import { ModelRouter, IModelRouter } from '../models/ModelRouter.js';
 import { Logger } from '../../infrastructure/Logger.js';
-import {
-  RetryStrategy,
-  RetryOptions,
-} from '../../infrastructure/RetryStrategy.js';
+import { RetryStrategy, RetryOptions } from '../../infrastructure/RetryStrategy.js';
 
 export interface IAgentManager {
   createAgent(params: CreateAgentParams): Promise<Agent>;
@@ -30,11 +23,7 @@ export interface IAgentManager {
   listAgents(filter?: AgentFilter): Promise<Agent[]>;
   waitForCompletion(agentId: string, timeoutMs: number): Promise<AgentResult>;
   cancelAgent(agentId: string): Promise<void>;
-  updateAgentStatus(
-    agentId: string,
-    status: AgentStatus,
-    data?: Partial<Agent>
-  ): Promise<void>;
+  updateAgentStatus(agentId: string, status: AgentStatus, data?: Partial<Agent>): Promise<void>;
 }
 
 export class AgentManager implements IAgentManager {
@@ -50,10 +39,7 @@ export class AgentManager implements IAgentManager {
   constructor(modelRouter?: IModelRouter, retryOptions?: Partial<RetryOptions>) {
     this.modelRouter = modelRouter ?? new ModelRouter();
     this.logger = new Logger('AgentManager');
-    this.maxConcurrentAgents = parseInt(
-      process.env.CCO_MAX_PARALLEL_AGENTS ?? '5',
-      10
-    );
+    this.maxConcurrentAgents = parseInt(process.env.CCO_MAX_PARALLEL_AGENTS ?? '5', 10);
 
     // Configure retry strategy from environment or defaults
     this.retryOptions = {
@@ -136,15 +122,10 @@ export class AgentManager implements IAgentManager {
       }
     }
 
-    return agents.sort(
-      (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
-    );
+    return agents.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
 
-  async waitForCompletion(
-    agentId: string,
-    timeoutMs: number
-  ): Promise<AgentResult> {
+  async waitForCompletion(agentId: string, timeoutMs: number): Promise<AgentResult> {
     const agent = await this.getAgent(agentId);
 
     // Already completed
@@ -208,8 +189,7 @@ export class AgentManager implements IAgentManager {
     if (this.isTerminalStatus(status)) {
       agent.completedAt = new Date();
       if (agent.startedAt) {
-        agent.executionTimeMs =
-          agent.completedAt.getTime() - agent.startedAt.getTime();
+        agent.executionTimeMs = agent.completedAt.getTime() - agent.startedAt.getTime();
       }
     }
 
@@ -254,7 +234,10 @@ export class AgentManager implements IAgentManager {
       });
     } catch (error) {
       // Properly extract retryable flag from CCOError
-      const isRetryable = error instanceof CCOError ? error.retryable : this.retryStrategy.isRetryable(error as Error);
+      const isRetryable =
+        error instanceof CCOError
+          ? error.retryable
+          : this.retryStrategy.isRetryable(error as Error);
 
       const agentError: AgentError = {
         code: error instanceof Error ? error.name : 'UNKNOWN_ERROR',
@@ -300,9 +283,7 @@ export class AgentManager implements IAgentManager {
 
   // Cleanup methods
   getRunningAgentsCount(): number {
-    return Array.from(this.agents.values()).filter(
-      (a) => a.status === AgentStatus.RUNNING
-    ).length;
+    return Array.from(this.agents.values()).filter((a) => a.status === AgentStatus.RUNNING).length;
   }
 
   async cleanupSession(sessionId: string): Promise<void> {

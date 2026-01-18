@@ -86,7 +86,21 @@ export class ContractMock<TRequest, TResponse, TError = unknown> {
    * Configure mock to throw a sequence of errors
    */
   throwErrorSequence(...errors: Array<Error | TError>): this {
-    this.responseQueue = errors;
+    // Validate non-Error objects against error schema
+    const validated = errors.map((error, index) => {
+      if (!(error instanceof Error) && this.contract.errorSchema) {
+        try {
+          this.contract.errorSchema.parse(error);
+        } catch (validationError) {
+          throw new Error(
+            `Error ${index + 1} violates ${this.contract.name} error contract:\n${validationError}`
+          );
+        }
+      }
+      return error;
+    });
+
+    this.responseQueue = validated;
     return this;
   }
 

@@ -177,6 +177,56 @@ describe('ContractMock', () => {
     });
   });
 
+  describe('throwErrorSequence', () => {
+    it('should accept sequence of valid errors', () => {
+      const errors = [
+        new Error('Error 1'),
+        {
+          error: {
+            message: 'Error 2',
+            type: 'rate_limit_error',
+            param: null,
+            code: null,
+          },
+        },
+        new Error('Error 3'),
+      ];
+
+      expect(() => mock.throwErrorSequence(...errors)).not.toThrow();
+    });
+
+    it('should reject sequence with invalid error object', () => {
+      const errors = [
+        new Error('Valid error'),
+        {
+          error: {
+            message: 123, // Should be string
+          },
+        } as any,
+      ];
+
+      expect(() => mock.throwErrorSequence(...errors)).toThrow(/Error 2 violates.*error contract/);
+    });
+
+    it('should throw errors in sequence', async () => {
+      const errors = [
+        new Error('First error'),
+        new Error('Second error'),
+      ];
+
+      mock.throwErrorSequence(...errors);
+      const mockFn = mock.getMock();
+
+      const request = {
+        model: 'gpt-4o',
+        messages: [{ role: 'user' as const, content: 'Hello' }],
+      };
+
+      await expect(mockFn(request)).rejects.toThrow('First error');
+      await expect(mockFn(request)).rejects.toThrow('Second error');
+    });
+  });
+
   describe('call history', () => {
     it('should record call history', async () => {
       mock.respondWith(createDefaultOpenAIResponse());

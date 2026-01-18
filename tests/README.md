@@ -17,7 +17,13 @@ tests/
 ├── setup/              # Global test setup and utilities
 │   ├── api-guard.ts    # Prevents accidental API calls
 │   └── cost-tracker.ts # Estimates API costs
-├── mocks/              # Mock implementations (planned)
+├── contracts/          # Provider API contract definitions
+│   └── provider-contracts.ts # Zod schemas for OpenAI, Anthropic, Google
+├── mocks/              # Contract-validated mock implementations
+│   ├── contract-mock-factory.ts # Schema-validated mock factory
+│   ├── openai-mock.ts  # OpenAI provider mocks
+│   ├── anthropic-mock.ts # Anthropic provider mocks
+│   └── google-mock.ts  # Google AI provider mocks
 ├── utils/              # Test utilities (planned)
 └── README.md           # This file
 ```

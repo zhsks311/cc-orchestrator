@@ -37,7 +37,6 @@ The API Cost Guard prevents accidental real API calls during tests, which would:
 - Cost money (especially expensive models like GPT-4, Claude Opus)
 - Make tests non-deterministic
 - Slow down test execution
-- Require API keys in CI/CD
 
 ### How It Works
 

@@ -1,8 +1,9 @@
 ---
 name: explorer
-description: Expert codebase exploration. Find files, functions, trace code flow, understand structure. Use proactively when locating code or understanding architecture.
+description: Expert codebase exploration. Use PROACTIVELY when locating files, functions, tracing code flow, or understanding project structure.
 tools: Read, Glob, Grep, Bash
 model: haiku
+permissionMode: plan
 ---
 
 # Codebase Explorer

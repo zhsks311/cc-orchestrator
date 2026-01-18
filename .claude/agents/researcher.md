@@ -1,8 +1,9 @@
 ---
 name: researcher
-description: Library and framework research expert. Research documentation, APIs, best practices, and examples. Use proactively for "how to use X" or questions about external tools and libraries.
+description: Library and framework research expert. Use PROACTIVELY for external documentation, APIs, best practices, or "how to use X" questions.
 tools: Read, WebSearch, WebFetch, Bash
 model: sonnet
+permissionMode: default
 ---
 
 # Technical Researcher

@@ -42,6 +42,7 @@
     "@ast-grep/napi": "^0.31.0",
     "@google/generative-ai": "^0.21.0",
     "@modelcontextprotocol/sdk": "^1.0.0",
+    "cc-orchestrator": "^0.2.2",
     "dotenv": "^17.2.3",
     "openai": "^4.77.0",
     "uuid": "^11.0.3",

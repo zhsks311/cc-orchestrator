@@ -111,6 +111,22 @@ npx cc-orchestrator@latest
 - ✅ 알아서 다 설정함
 - ✅ 지저분한 홈 디렉토리를 판단하지 않음
 
+**설치 옵션:**
+
+| 옵션 | 설명 |
+|------|------|
+| `--upgrade`, `-u` | 기존 설치 업데이트 |
+| `--force`, `-f` | 전체 컴포넌트 강제 재설치 |
+| `--keys`, `-k` | API 키만 재설정 |
+| `--help`, `-h` | 도움말 표시 |
+
+```bash
+# 예시
+npx cc-orchestrator@latest --upgrade    # 최신 버전으로 업데이트
+npx cc-orchestrator@latest --keys       # API 키 변경
+npx cc-orchestrator@latest --force      # 전체 재설치
+```
+
 ### 어려운 방법 (Claude Code용)
 
 Claude Code가 자동으로 할 때 (안녕, 로봇 친구):

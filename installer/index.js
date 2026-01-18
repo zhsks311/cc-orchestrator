@@ -24,6 +24,7 @@ const args = process.argv.slice(2);
 const showHelp = args.includes('--help') || args.includes('-h');
 const upgradeMode = args.includes('--upgrade') || args.includes('-u');
 const forceMode = args.includes('--force') || args.includes('-f');
+const keysMode = args.includes('--keys') || args.includes('-k');
 
 // Get custom directory from args (first non-flag arg)
 const customDir = args.find(arg => !arg.startsWith('-'));
@@ -47,6 +48,7 @@ function printHelp() {
 Options:
   --upgrade, -u    Update existing installation
   --force, -f      Force reinstall all components
+  --keys, -k       Reconfigure API keys only
   --help, -h       Show this help message
 
 Examples:
@@ -54,6 +56,7 @@ Examples:
   npx cc-orchestrator@latest ./my-cco           # Install to custom directory
   npx cc-orchestrator@latest --upgrade          # Update existing installation
   npx cc-orchestrator@latest --force            # Force reinstall
+  npx cc-orchestrator@latest --keys             # Reconfigure API keys
 
 After installation:
   1. Restart Claude Code
@@ -139,7 +142,9 @@ async function install(installDir) {
   console.log('\n[3/3] Running setup wizard...\n');
   console.log('─'.repeat(50));
 
-  const setupArgs = forceMode ? ['run', 'setup', '--', '--force'] : ['run', 'setup'];
+  const setupArgs = ['run', 'setup', '--'];
+  if (forceMode) setupArgs.push('--force');
+  if (keysMode) setupArgs.push('--keys');
   await spawnAsync('npm', setupArgs, { cwd: installDir });
 
   // Done

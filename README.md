@@ -111,6 +111,22 @@ That's it. The installer will:
 - ✅ Configure everything automagically
 - ✅ Not judge your messy home directory
 
+**Installer Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--upgrade`, `-u` | Update existing installation |
+| `--force`, `-f` | Force reinstall all components |
+| `--keys`, `-k` | Reconfigure API keys only |
+| `--help`, `-h` | Show help message |
+
+```bash
+# Examples
+npx cc-orchestrator@latest --upgrade    # Update to latest version
+npx cc-orchestrator@latest --keys       # Change API keys
+npx cc-orchestrator@latest --force      # Full reinstall
+```
+
 ### The Hard Way (For Claude Code)
 
 When Claude Code is doing this autonomously (hello, robot friend):

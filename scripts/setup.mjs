@@ -6,6 +6,8 @@
  * Usage:
  *   npm run setup              # Interactive installation
  *   npm run setup -- --force   # Reinstall all components
+ *   npm run setup -- --keys    # Reconfigure API keys only
+ *   npm run setup -- --yes     # Non-interactive mode (skip prompts)
  */
 
 import * as readline from 'readline';
@@ -43,6 +45,7 @@ const CURRENT_VERSION = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8')).ver
 const args = process.argv.slice(2);
 const forceMode = args.includes('--force') || args.includes('-f');
 const yesMode = args.includes('--yes') || args.includes('-y');
+const keysMode = args.includes('--keys') || args.includes('-k');
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -680,7 +683,7 @@ async function main() {
   let googleKey = existingKeys.GOOGLE_API_KEY;
   let anthropicKey = existingKeys.ANTHROPIC_API_KEY;
 
-  if (!yesMode && (!status.desktopConfig || forceMode)) {
+  if (!yesMode && (!status.desktopConfig || forceMode || keysMode)) {
     console.log('─'.repeat(60));
     console.log('\nAPI Key Setup (press Enter to skip)\n');
 

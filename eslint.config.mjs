@@ -24,8 +24,8 @@ export default tseslint.config(
       '@typescript-eslint/explicit-module-boundary-types': 'off',
       '@typescript-eslint/no-explicit-any': 'warn',
 
-      // General rules
-      'no-console': ['warn', { allow: ['warn', 'error'] }],
+      // General rules - error level to match CLAUDE.md guidelines
+      'no-console': ['error', { allow: ['warn', 'error'] }],
       'prefer-const': 'error',
       'no-var': 'error',
 

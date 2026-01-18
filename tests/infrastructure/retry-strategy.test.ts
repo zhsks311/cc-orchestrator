@@ -82,8 +82,9 @@ describe('RetryStrategy', () => {
       const fn = vi.fn().mockRejectedValue(new ModelAPIError('Persistent error', 'openai'));
 
       const executePromise = strategy.execute(fn);
+      // Attach no-op handler to prevent unhandled rejection during timer advancement
+      executePromise.catch(() => {});
 
-      // Run through all retries - use runAllTimersAsync to properly handle async
       await vi.runAllTimersAsync();
 
       await expect(executePromise).rejects.toThrow('Persistent error');
@@ -202,8 +203,9 @@ describe('RetryStrategy', () => {
       const fn = vi.fn().mockRejectedValue(error);
 
       const executePromise = strategy.execute(fn);
+      // Attach no-op handler to prevent unhandled rejection during timer advancement
+      executePromise.catch(() => {});
 
-      // Run all timers to completion
       await vi.runAllTimersAsync();
 
       await expect(executePromise).rejects.toThrow();
@@ -229,8 +231,9 @@ describe('RetryStrategy', () => {
       const fn = vi.fn().mockRejectedValue(new ModelAPIError('API error', 'openai'));
 
       const executePromise = strategy.execute(fn);
+      // Attach no-op handler to prevent unhandled rejection during timer advancement
+      executePromise.catch(() => {});
 
-      // Run all timers to completion
       await vi.runAllTimersAsync();
 
       await expect(executePromise).rejects.toThrow();

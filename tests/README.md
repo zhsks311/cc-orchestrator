@@ -33,6 +33,7 @@ tests/
 ### Purpose
 
 The API Cost Guard prevents accidental real API calls during tests, which would:
+
 - Cost money (especially expensive models like GPT-4, Claude Opus)
 - Make tests non-deterministic
 - Slow down test execution
@@ -212,6 +213,7 @@ See the [Testing Strategy Document](../docs/TESTING_STRATEGY.md) for details.
 
 **Cause**: Asynchronous operations not completing
 **Solution**:
+
 - Check for missing `await` keywords
 - Increase timeout with `{ timeout: 30000 }` option
 - Verify mocks are resolving properly

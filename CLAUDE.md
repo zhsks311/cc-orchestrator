@@ -245,3 +245,57 @@ LOG_LEVEL=debug npm run dev
 - `arch`: Expensive (GPT-5.2)
 
 Use `scout` during development.
+
+## Testing
+
+### Running Tests
+
+```bash
+# Run all tests
+npm run test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run specific test file
+npm run test -- tests/setup/api-guard.test.ts
+```
+
+### API Cost Guard
+
+**CRITICAL**: The API Cost Guard prevents accidental real API calls during tests.
+
+- **Enabled by default** via `vitest.config.ts`
+- **Blocks production APIs**: OpenAI, Anthropic, Google
+- **In CI**: Throws error and fails test
+- **Locally**: Warns but allows execution
+
+```typescript
+// ❌ This will be blocked
+await fetch('https://api.openai.com/v1/chat/completions');
+// Error: 🚨 BLOCKED: Real API call detected!
+
+// ✅ Use mocks instead
+const mockProvider = vi.fn().mockResolvedValue({ content: 'mocked' });
+```
+
+### Test Structure
+
+```
+tests/
+├── setup/          # Global setup (API guard, cost tracker)
+├── mocks/          # Mock implementations
+├── utils/          # Test utilities
+└── README.md       # Full testing documentation
+```
+
+### Writing Tests
+
+Follow these conventions:
+
+1. **Mock external APIs**: Never call real APIs in unit tests
+2. **Use descriptive names**: `should handle invalid input gracefully`
+3. **Test error cases**: Don't just test happy paths
+4. **Keep tests fast**: Unit tests should run in milliseconds
+
+See `tests/README.md` for full documentation.

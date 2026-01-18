@@ -49,14 +49,21 @@ Inspired by [Oh My OpenCode](https://github.com/code-yeongyu/oh-my-opencode). We
 
 Each agent has exactly one job. They're very good at it. They will not shut up about it.
 
+**🏠 Native Agents (FREE - Live in `.claude/agents/`):**
+
+| Agent | Model | Personality |
+|-------|-------|-------------|
+| **Scout** | Haiku | 🔍 The speedster. Finds files faster than you can say "where did I put that". 75% cheaper than alternatives |
+| **Index** | Sonnet + WebSearch | 📚 The librarian. Reads every doc, cites every source. Uses WebSearch so it's actually up to date |
+
+**🌐 MCP Agents (External APIs):**
+
 | Agent | Model | Personality |
 |-------|-------|-------------|
 | **Arch** | GPT-5.2 | 🧠 The overthinker. Will write 3 pages about why your variable name is "technically correct but philosophically questionable" |
 | **Canvas** | Gemini 3 Pro | 🎨 The artist. Believes every button deserves a 47ms cubic-bezier transition |
-| **Index** | Claude Sonnet 4.5 | 📚 The librarian. Has read every documentation page. Will cite sources. Cannot be stopped |
 | **Quill** | Gemini 3 Pro | ✍️ The poet. Writes README files so beautiful they make developers cry |
 | **Lens** | Gemini 3 Pro | 👁️ The detective. Stares at your screenshots and PDFs until they confess their secrets |
-| **Scout** | Claude Sonnet | 🔍 The intern. Fast, free, and surprisingly competent at finding things. We don't pay them |
 
 ### ⚡ Parallel Execution
 
@@ -102,10 +109,10 @@ Talk to your agents naturally. They're listening. (Not in a creepy way.)
 |---------|-------------|
 | `@arch` or `@architect` | The overthinker arrives |
 | `@canvas`, `@ui`, `@frontend`, `@ux`, `@designer` | The pixel perfectionist |
-| `@index` or `@researcher` | The documentation hoarder |
+| `@index` | The documentation hoarder |
 | `@quill`, `@docs`, `@writer` | The prose professional |
 | `@lens`, `@image`, `@pdf`, `@analyzer` | The visual investigator |
-| `@scout`, `@find`, `@search`, `@explore` | The speedy explorer |
+| `@scout`, `@find`, `@search` | The speedy scout |
 
 ---
 
@@ -277,12 +284,19 @@ Supports TypeScript, JavaScript, Python, Rust, Go, Java, and more.
 
 ## 💡 Pro Tips
 
-### 1. Scout Is Free. Abuse This.
+### 1. Native Agents Are Free. Abuse This.
 
-The `scout` agent uses your existing Claude quota. Zero extra cost. Perfect for:
-- "Where the heck is that file?"
-- "Who wrote this and why?"
-- "Show me the project structure so I can pretend I understand it"
+The `scout` and `index` agents live in `.claude/agents/` and use your Claude Code quota. Zero extra API cost.
+
+```bash
+"Use scout agent to find all authentication files"
+"Use index agent to find JWT best practices"
+```
+
+Perfect for:
+- "Where the heck is that file?" → `scout`
+- "How do I use this library?" → `index`
+- "Show me the project structure" → `scout`
 
 ### 2. Arch Is Expensive. Use Wisely.
 
@@ -300,10 +314,12 @@ Instead of this:
 
 Try this:
 ```
-"@all Research Stripe API, design payment form, review for security holes"
+"Use scout to find existing patterns"     // FREE (Haiku)
+"Use index to find Stripe docs"         // FREE (WebSearch)
+background_task(arch, "Review security...")  // GPT-5.2
 ```
 
-Three agents. One request. They'll figure it out.
+Native + MCP agents. Running in parallel. Maximum efficiency.
 
 ---
 
@@ -345,9 +361,13 @@ export CCO_TIMEOUT_SECONDS=300
 
 ```
 cc-orchestrator/
+├── .claude/                # Claude Code native config
+│   └── agents/             # Native agents (FREE, no API calls)
+│       ├── scout.md     # Codebase exploration (Haiku)
+│       └── index.md   # External research (WebSearch)
 ├── src/                    # The TypeScript jungle
 │   ├── core/               # Business logic (MCP-free zone)
-│   │   ├── agents/         # Where agents live
+│   │   ├── agents/         # MCP agent definitions
 │   │   ├── models/         # Model routing & provider wrangling
 │   │   ├── ast/            # AST search/replace engine
 │   │   ├── context/        # Context sharing between agents

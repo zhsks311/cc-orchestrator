@@ -48,14 +48,21 @@
 
 각 에이전트는 딱 한 가지만 합니다. 그것만 아주 잘합니다. 그리고 그것에 대해 끊임없이 떠들 겁니다.
 
+**🏠 네이티브 에이전트 (무료 - `.claude/agents/`에 살고 있음):**
+
+| 에이전트 | 모델 | 성격 |
+|----------|------|------|
+| **Scout** | Haiku | 🔍 스피드형. "그 파일 어딨지?"라고 말하기도 전에 찾아냄. 대안 대비 75% 저렴 |
+| **Index** | Sonnet + WebSearch | 📚 사서형. 모든 문서를 읽고, 출처를 남기고. WebSearch라 실제로 최신 정보임 |
+
+**🌐 MCP 에이전트 (외부 API):**
+
 | 에이전트 | 모델 | 성격 |
 |----------|------|------|
 | **Arch** | GPT-5.2 | 🧠 과대망상형. 변수명 하나에 "기술적으로는 맞지만 철학적으로 의문"이라며 3페이지 쓸 사람 |
 | **Canvas** | Gemini 3 Pro | 🎨 예술가형. 버튼 하나에 47ms cubic-bezier 트랜지션이 필요하다고 믿는 사람 |
-| **Index** | Claude Sonnet 4.5 | 📚 사서형. 모든 문서를 읽었고, 출처를 남기고, 멈출 수 없는 사람 |
 | **Quill** | Gemini 3 Pro | ✍️ 시인형. 개발자를 울리는 README를 쓰는 사람 |
 | **Lens** | Gemini 3 Pro | 👁️ 탐정형. 스크린샷과 PDF를 뚫어지게 쳐다보며 비밀을 캐내는 사람 |
-| **Scout** | Claude Sonnet | 🔍 인턴형. 빠르고, 공짜고, 의외로 유능함. 월급은 안 줌 |
 
 ### ⚡ 병렬 실행
 
@@ -101,10 +108,10 @@ Claude: "이것을 위해 태어났다"
 |------|----------|
 | `@arch` 또는 `@architect` | 과대망상가 등장 |
 | `@canvas`, `@ui`, `@frontend`, `@ux`, `@designer` | 픽셀 완벽주의자 |
-| `@index` 또는 `@researcher` | 문서 수집광 |
+| `@index` | 문서 수집광 |
 | `@quill`, `@docs`, `@writer` | 산문의 전문가 |
 | `@lens`, `@image`, `@pdf`, `@analyzer` | 시각 수사관 |
-| `@scout`, `@find`, `@search`, `@explore` | 빠른 탐험가 |
+| `@scout`, `@find`, `@search` | 빠른 탐험가 |
 
 ---
 
@@ -276,12 +283,19 @@ TypeScript, JavaScript, Python, Rust, Go, Java 등 지원.
 
 ## 💡 프로 팁
 
-### 1. Scout는 공짜. 맘껏 써도 됨
+### 1. 네이티브 에이전트는 공짜. 맘껏 써도 됨
 
-`scout` 에이전트는 기존 Claude 할당량을 씀. 추가 비용 0원. 이럴 때 좋음:
-- "그 파일 어디 있어?"
-- "이거 누가 왜 이렇게 짰어?"
-- "프로젝트 구조 보여줘, 이해한 척 할 거야"
+`scout`와 `index` 에이전트는 `.claude/agents/`에 살면서 Claude Code 할당량만 씀. 추가 API 비용 0원.
+
+```bash
+"scout 에이전트로 인증 관련 파일 다 찾아줘"
+"index 에이전트로 JWT 베스트 프랙티스 찾아줘"
+```
+
+이럴 때 좋음:
+- "그 파일 어디 있어?" → `scout`
+- "이 라이브러리 어떻게 써?" → `index`
+- "프로젝트 구조 보여줘" → `scout`
 
 ### 2. Arch는 비쌈. 현명하게 쓸 것
 
@@ -299,10 +313,12 @@ GPT-5.2는 존재론적 위기당 과금됨. 이럴 때만 쓰세요:
 
 이렇게:
 ```
-"@all Stripe API 조사, 결제 폼 디자인, 보안 허점 리뷰"
+"scout로 기존 패턴 찾아줘"              // 무료 (Haiku)
+"index로 Stripe 문서 찾아줘"          // 무료 (WebSearch)
+background_task(arch, "보안 리뷰해줘...")  // GPT-5.2
 ```
 
-에이전트 셋. 요청 하나. 알아서 할 거예요.
+네이티브 + MCP 에이전트. 병렬 실행. 최대 효율.
 
 ---
 
@@ -344,9 +360,13 @@ export CCO_TIMEOUT_SECONDS=300
 
 ```
 cc-orchestrator/
+├── .claude/                # Claude Code 네이티브 설정
+│   └── agents/             # 네이티브 에이전트 (무료, API 호출 없음)
+│       ├── scout.md     # 코드베이스 탐색 (Haiku)
+│       └── index.md   # 외부 리서치 (WebSearch)
 ├── src/                    # 타입스크립트 정글
 │   ├── core/               # 비즈니스 로직 (MCP 없는 구역)
-│   │   ├── agents/         # 에이전트들의 보금자리
+│   │   ├── agents/         # MCP 에이전트 정의
 │   │   ├── models/         # 모델 라우팅 & 프로바이더 길들이기
 │   │   ├── ast/            # AST 검색/대체 엔진
 │   │   ├── context/        # 에이전트 간 컨텍스트 공유
@@ -425,7 +445,7 @@ npm run uninstall
 | 에이전트 | 비용 | 추천 용도 |
 |----------|------|----------|
 | `scout` | 무료 | 개발 중 테스트, 코드베이스 탐색 |
-| `index` | 저렴 | 문서 검색, 구현 사례 조사 |
+| `index` | 무료 | 문서 검색, 구현 사례 조사 |
 | `lens` | 저렴 | 이미지/PDF 분석 |
 | `canvas` | 보통 | UI/UX 작업 |
 | `quill` | 보통 | 문서 작성 |

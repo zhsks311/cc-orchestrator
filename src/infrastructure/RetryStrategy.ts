@@ -2,7 +2,7 @@
  * Retry Strategy - Exponential backoff retry utility
  */
 
-import { CCOError } from '../types/errors.js';
+import { CCOError, RateLimitError } from '../types/errors.js';
 import { Logger } from './Logger.js';
 
 export interface RetryOptions {
@@ -52,14 +52,19 @@ export class RetryStrategy {
 
   /**
    * Execute a function with exponential backoff retry
+   * Returns the result along with metadata about the execution
    */
   async execute<T>(fn: () => Promise<T>): Promise<T> {
     const startTime = Date.now();
     let lastError: Error | undefined;
     let attempt = 0;
 
+    // Store attempt count for executeWithResult
+    this.lastAttemptCount = 0;
+
     while (attempt <= this.options.maxRetries) {
       try {
+        this.lastAttemptCount = attempt + 1;
         const result = await fn();
 
         if (attempt > 0) {
@@ -73,6 +78,7 @@ export class RetryStrategy {
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
         attempt++;
+        this.lastAttemptCount = attempt;
 
         // Check if we should retry
         if (!this.shouldRetry(lastError, attempt)) {
@@ -94,8 +100,8 @@ export class RetryStrategy {
           throw lastError;
         }
 
-        // Calculate delay with exponential backoff
-        const delayMs = this.calculateDelay(attempt);
+        // Calculate delay with exponential backoff (or use retryAfter for rate limits)
+        const delayMs = this.calculateDelay(attempt, lastError);
 
         // Call onRetry callback if provided
         if (this.options.onRetry) {
@@ -118,6 +124,9 @@ export class RetryStrategy {
     throw lastError ?? new Error('Retry failed with unknown error');
   }
 
+  // Track last attempt count for executeWithResult
+  private lastAttemptCount = 0;
+
   /**
    * Execute with detailed result (doesn't throw)
    */
@@ -129,14 +138,14 @@ export class RetryStrategy {
       return {
         success: true,
         result,
-        attempts: 1, // Will be updated if retries occurred
+        attempts: this.lastAttemptCount,
         totalTimeMs: Date.now() - startTime,
       };
     } catch (error) {
       return {
         success: false,
         error: error instanceof Error ? error : new Error(String(error)),
-        attempts: this.options.maxRetries + 1,
+        attempts: this.lastAttemptCount,
         totalTimeMs: Date.now() - startTime,
       };
     }
@@ -200,7 +209,16 @@ export class RetryStrategy {
     return true;
   }
 
-  private calculateDelay(attempt: number): number {
+  private calculateDelay(attempt: number, error?: Error): number {
+    // For rate limit errors, use the retryAfter time if available
+    if (error instanceof RateLimitError && error.retryAfter) {
+      const retryAfterMs = error.retryAfter.getTime() - Date.now();
+      if (retryAfterMs > 0) {
+        // Use retryAfter but cap at maxDelayMs
+        return Math.min(retryAfterMs, this.options.maxDelayMs);
+      }
+    }
+
     // Exponential backoff: initialDelay * (multiplier ^ (attempt - 1))
     let delay = this.options.initialDelayMs * Math.pow(this.options.backoffMultiplier, attempt - 1);
 

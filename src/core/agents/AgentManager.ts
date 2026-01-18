@@ -255,7 +255,8 @@ export class AgentManager implements IAgentManager {
         role: agent.role,
         error: agentError,
         wasRetryable: isRetryable,
-        maxRetriesExhausted: isRetryable,
+        // If error was retryable, it means max retries were exhausted
+        maxRetriesExhausted: isRetryable ? true : false,
       });
     }
   }

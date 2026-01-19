@@ -1,6 +1,6 @@
 {
   "name": "cc-orchestrator-server",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "CC Orchestrator - MCP Server for multi-model agent orchestration in Claude Code",
   "main": "dist/index.js",
   "type": "module",

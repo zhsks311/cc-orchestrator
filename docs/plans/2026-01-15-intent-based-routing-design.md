@@ -9,7 +9,7 @@ Replace keyword-based triggers (`ultrawork`, `ulw`, `search`, `분석`) with int
 ## Goals
 
 1. Zero learning curve - automatic agent selection
-2. Preserve manual control via @ mentions (`@oracle`, `@frontend`)
+2. Preserve manual control via @ mentions (`@arch`, `@canvas`)
 3. Handle ambiguity gracefully with confirmation prompts
 4. Support retry/feedback loops
 
@@ -34,7 +34,7 @@ Query → Feedback Check → @ Mention → Parallel → Heuristic Analysis → R
 
 #### Detection Priority:
 1. **Feedback patterns** (`다시 해줘`, `retry`, `다른 에이전트로`)
-2. **Explicit @ mentions** (`@oracle`, `@frontend`)
+2. **Explicit @ mentions** (`@arch`, `@canvas`)
 3. **Parallel requests** (`@all`, `동시에`, `in parallel`)
 4. **Heuristic scoring** (expertise, aliases, examples)
 
@@ -71,10 +71,10 @@ Deleted from `src/core/orchestration/OrchestrationEngine.ts`:
 **High Confidence:**
 ```json
 {
-  "suggested_agent": "oracle",
+  "suggested_agent": "arch",
   "confidence": "high",
   "reason": "명시적 멘션",
-  "recommendation": "Use background_task(agent=\"oracle\", prompt=\"...\")..."
+  "recommendation": "Use background_task(agent=\"arch\", prompt=\"...\")..."
 }
 ```
 

@@ -24,9 +24,8 @@ const claudeDir = path.join(homeDir, '.claude');
 const claudeHooksDir = path.join(claudeDir, 'hooks');
 const claudeSkillsDir = path.join(claudeDir, 'skills');
 const claudeSettingsPath = path.join(claudeDir, 'settings.json');
-const claudeDesktopConfigPath = isWindows
-  ? path.join(process.env.APPDATA || '', 'Claude', 'claude_desktop_config.json')
-  : path.join(homeDir, 'Library', 'Application Support', 'Claude', 'claude_desktop_config.json');
+// Claude Code global config (NOT Claude Desktop)
+const claudeCodeConfigPath = path.join(homeDir, '.claude.json');
 
 // Parse command line arguments
 const args = process.argv.slice(2);
@@ -183,11 +182,11 @@ function removeClaudeConfig(removeSerenaFlag = false) {
     console.log('  Not found: CC Orchestrator skills');
   }
 
-  // Remove cc-orchestrator from desktop config
-  console.log('\n[Desktop Config] Removing MCP server entry...');
+  // Remove cc-orchestrator from Claude Code config (~/.claude.json)
+  console.log('\n[Claude Code] Removing MCP server entry...');
   try {
-    if (fs.existsSync(claudeDesktopConfigPath)) {
-      const content = fs.readFileSync(claudeDesktopConfigPath, 'utf8');
+    if (fs.existsSync(claudeCodeConfigPath)) {
+      const content = fs.readFileSync(claudeCodeConfigPath, 'utf8');
       const cfg = JSON.parse(content);
       let removed = false;
       let serenaRemoved = false;
@@ -207,27 +206,27 @@ function removeClaudeConfig(removeSerenaFlag = false) {
         }
       }
       if (removed || serenaRemoved) {
-        fs.writeFileSync(claudeDesktopConfigPath, JSON.stringify(cfg, null, 2));
-        if (removed) console.log('  Removed: cc-orchestrator/ccmo from desktop config');
-        if (serenaRemoved) console.log('  Removed: serena from desktop config');
+        fs.writeFileSync(claudeCodeConfigPath, JSON.stringify(cfg, null, 2));
+        if (removed) console.log('  Removed: cc-orchestrator/ccmo from ~/.claude.json');
+        if (serenaRemoved) console.log('  Removed: serena from ~/.claude.json');
       } else {
-        console.log('  Not found: cc-orchestrator in desktop config');
+        console.log('  Not found: cc-orchestrator in ~/.claude.json');
       }
     }
   } catch (e) {
-    console.log('  Warning: Could not update desktop config:', e.message);
+    console.log('  Warning: Could not update Claude Code config:', e.message);
   }
 }
 
 // Check if Serena is installed
 function checkSerenaInstalled() {
   try {
-    if (fs.existsSync(claudeDesktopConfigPath)) {
-      const cfg = JSON.parse(fs.readFileSync(claudeDesktopConfigPath, 'utf8'));
+    if (fs.existsSync(claudeCodeConfigPath)) {
+      const cfg = JSON.parse(fs.readFileSync(claudeCodeConfigPath, 'utf8'));
       return !!(cfg.mcpServers?.serena);
     }
   } catch (e) {
-    console.log('  Warning: Could not read desktop config:', e.message);
+    console.log('  Warning: Could not read Claude Code config:', e.message);
   }
   return false;
 }
@@ -265,7 +264,7 @@ async function main() {
     console.log('  2. Hooks: ~/.claude/hooks/ (CC Orchestrator files)');
     console.log('  3. Skills: ~/.claude/skills/orchestrate/');
     console.log('  4. Settings: ~/.claude/settings.json (CC Orchestrator hooks)');
-    console.log('  5. Desktop Config: cc-orchestrator entry');
+    console.log('  5. Claude Code: ~/.claude.json (cc-orchestrator entry)');
     if (serenaInstalled) {
       console.log('  6. Serena MCP: serena entry (optional)\n');
     } else {

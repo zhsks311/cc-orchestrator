@@ -29,9 +29,8 @@ const ccoConfigPath = path.join(ccoDir, 'config.json');
 const claudeHooksDir = path.join(claudeDir, 'hooks');
 const claudeSkillsDir = path.join(claudeDir, 'skills');
 const claudeSettingsPath = path.join(claudeDir, 'settings.json');
-const claudeDesktopConfigPath = isWindows
-  ? path.join(process.env.APPDATA || '', 'Claude', 'claude_desktop_config.json')
-  : path.join(homeDir, 'Library', 'Application Support', 'Claude', 'claude_desktop_config.json');
+// Claude Code global config (NOT Claude Desktop)
+const claudeCodeConfigPath = path.join(homeDir, '.claude.json');
 
 // Manifest file paths for version tracking
 const hooksManifestPath = path.join(claudeHooksDir, '.cco-manifest.json');
@@ -65,7 +64,7 @@ function normalizePath(p) {
   return p.split(path.sep).join('/');
 }
 
-// Read API keys from Claude Desktop config
+// Read API keys from Claude Code config (~/.claude.json)
 function loadExistingKeys() {
   const keys = {
     OPENAI_API_KEY: '',
@@ -73,9 +72,9 @@ function loadExistingKeys() {
     ANTHROPIC_API_KEY: ''
   };
 
-  if (fs.existsSync(claudeDesktopConfigPath)) {
+  if (fs.existsSync(claudeCodeConfigPath)) {
     try {
-      const cfg = JSON.parse(fs.readFileSync(claudeDesktopConfigPath, 'utf8'));
+      const cfg = JSON.parse(fs.readFileSync(claudeCodeConfigPath, 'utf8'));
       const mcpEnv = cfg.mcpServers?.['cc-orchestrator']?.env;
       if (mcpEnv) {
         if (mcpEnv.OPENAI_API_KEY) keys.OPENAI_API_KEY = mcpEnv.OPENAI_API_KEY;
@@ -300,8 +299,14 @@ function getSerenaCommand() {
   return null;
 }
 
-function checkSerenaInstalled(cfg) {
-  return !!(cfg?.mcpServers?.serena);
+function checkSerenaInstalled() {
+  if (!fs.existsSync(claudeCodeConfigPath)) return false;
+  try {
+    const cfg = JSON.parse(fs.readFileSync(claudeCodeConfigPath, 'utf8'));
+    return !!(cfg?.mcpServers?.serena);
+  } catch (e) {
+    return false;
+  }
 }
 
 function copyDirRecursive(src, dest, exclude = []) {
@@ -471,10 +476,10 @@ function verifyInstallation() {
     results.skills = { ok: false, message: 'Not installed or different project', count: 0 };
   }
 
-  // Desktop config
-  if (fs.existsSync(claudeDesktopConfigPath)) {
+  // Claude Code config (~/.claude.json)
+  if (fs.existsSync(claudeCodeConfigPath)) {
     try {
-      const cfg = JSON.parse(fs.readFileSync(claudeDesktopConfigPath, 'utf8'));
+      const cfg = JSON.parse(fs.readFileSync(claudeCodeConfigPath, 'utf8'));
       if (cfg.mcpServers?.['cc-orchestrator']) {
         results.config = { ok: true, message: 'Registered' };
       } else {
@@ -508,7 +513,7 @@ function printVerificationResults(results) {
   console.log(`      MCP Server:     ${icon(results.mcp.ok)} ${results.mcp.message}`);
   console.log(`      Hooks:          ${icon(results.hooks.ok)} ${results.hooks.message}${results.hooks.count ? ` (${results.hooks.count} files)` : ''}`);
   console.log(`      Skills:         ${icon(results.skills.ok)} ${results.skills.message}${results.skills.count ? ` (${results.skills.count} files)` : ''}`);
-  console.log(`      Desktop Config: ${icon(results.config.ok)} ${results.config.message}`);
+  console.log(`      Claude Code:    ${icon(results.config.ok)} ${results.config.message}`);
   console.log(`      Serena MCP:     ${icon(results.serena.ok, true)} ${results.serena.message}`);
 
   const allOk = results.mcp.ok && results.hooks.ok && results.skills.ok && results.config.ok;
@@ -543,7 +548,7 @@ function checkStatus() {
       needsUpdate: needsUpdate(skillsManifestPath),
       corrupted: false
     },
-    desktopConfig: false,
+    claudeCodeConfig: false,
     ccoConfig: fs.existsSync(ccoConfigPath)
   };
 
@@ -569,11 +574,11 @@ function checkStatus() {
     }
   }
 
-  // Check desktop config
-  if (fs.existsSync(claudeDesktopConfigPath)) {
+  // Check Claude Code config (~/.claude.json)
+  if (fs.existsSync(claudeCodeConfigPath)) {
     try {
-      const cfg = JSON.parse(fs.readFileSync(claudeDesktopConfigPath, 'utf8'));
-      status.desktopConfig = !!(cfg.mcpServers && cfg.mcpServers['cc-orchestrator']);
+      const cfg = JSON.parse(fs.readFileSync(claudeCodeConfigPath, 'utf8'));
+      status.claudeCodeConfig = !!(cfg.mcpServers && cfg.mcpServers['cc-orchestrator']);
     } catch (e) { }
   }
 
@@ -619,7 +624,7 @@ async function main() {
     console.log(`  Skills:           ✗ Not installed`);
   }
 
-  console.log(`  Desktop Config:   ${status.desktopConfig ? '✓' : '✗'}`);
+  console.log(`  Claude Code:      ${status.claudeCodeConfig ? '✓' : '✗'}`);
   console.log(`  CCO Config:       ${status.ccoConfig ? '✓' : '✗'}`);
   console.log('');
 
@@ -668,7 +673,7 @@ async function main() {
   const allInstalled = status.nodeModules && status.dist &&
                        status.hooks.installed && !status.hooks.needsUpdate &&
                        status.skills.installed && !status.skills.needsUpdate &&
-                       status.desktopConfig && status.ccoConfig;
+                       status.claudeCodeConfig && status.ccoConfig;
 
   if (allInstalled && !forceMode) {
     console.log('✅ All components are already installed.');
@@ -683,7 +688,9 @@ async function main() {
   let googleKey = existingKeys.GOOGLE_API_KEY;
   let anthropicKey = existingKeys.ANTHROPIC_API_KEY;
 
-  if (!yesMode && (!status.desktopConfig || forceMode || keysMode)) {
+  // Show API key input if: not in yes mode AND (no config OR force mode OR keys mode OR no existing keys)
+  const hasAnyExistingKey = openaiKey || googleKey || anthropicKey;
+  if (!yesMode && (!status.claudeCodeConfig || forceMode || keysMode || !hasAnyExistingKey)) {
     console.log('─'.repeat(60));
     console.log('\nAPI Key Setup (press Enter to skip)\n');
 
@@ -717,13 +724,7 @@ async function main() {
   const serenaCmd = getSerenaCommand();
 
   // Check if Serena is already installed
-  let existingCfg = { mcpServers: {} };
-  if (fs.existsSync(claudeDesktopConfigPath)) {
-    try {
-      existingCfg = JSON.parse(fs.readFileSync(claudeDesktopConfigPath, 'utf8'));
-    } catch (e) { }
-  }
-  const serenaAlreadyInstalled = checkSerenaInstalled(existingCfg);
+  const serenaAlreadyInstalled = checkSerenaInstalled();
 
   if (!yesMode && !serenaAlreadyInstalled) {
     console.log('\n─'.repeat(60));
@@ -905,18 +906,18 @@ async function main() {
     console.log('      ✓ settings.json updated');
   }
 
-  // Update desktop config
+  // Update Claude Code config (~/.claude.json)
   try {
-    let cfg = { mcpServers: {} };
-    if (fs.existsSync(claudeDesktopConfigPath)) {
-      cfg = JSON.parse(fs.readFileSync(claudeDesktopConfigPath, 'utf8'));
-      fs.copyFileSync(claudeDesktopConfigPath, claudeDesktopConfigPath + '.backup');
+    let cfg = {};
+    if (fs.existsSync(claudeCodeConfigPath)) {
+      cfg = JSON.parse(fs.readFileSync(claudeCodeConfigPath, 'utf8'));
+      fs.copyFileSync(claudeCodeConfigPath, claudeCodeConfigPath + '.backup');
     }
     cfg.mcpServers = cfg.mcpServers || {};
 
     const indexPath = normalizePath(path.join(rootDir, 'dist', 'index.js'));
 
-    // Remove duplicates
+    // Remove duplicates (old entries pointing to same path)
     for (const [key, value] of Object.entries(cfg.mcpServers)) {
       if (key !== 'cc-orchestrator' && value.args && value.args[0]) {
         if (normalizePath(value.args[0]) === indexPath) {
@@ -925,19 +926,22 @@ async function main() {
       }
     }
 
+    // Claude Code MCP format includes 'type: stdio'
     cfg.mcpServers['cc-orchestrator'] = {
+      type: 'stdio',
       command: 'node',
       args: [indexPath],
       env: {
-        OPENAI_API_KEY: openaiKey,
-        GOOGLE_API_KEY: googleKey,
-        ANTHROPIC_API_KEY: anthropicKey
+        OPENAI_API_KEY: openaiKey || '',
+        GOOGLE_API_KEY: googleKey || '',
+        ANTHROPIC_API_KEY: anthropicKey || ''
       }
     };
 
     // Add Serena MCP if requested
     if (installSerena && serenaCmd) {
       cfg.mcpServers['serena'] = {
+        type: 'stdio',
         command: serenaCmd.command,
         args: serenaCmd.args
       };
@@ -947,11 +951,10 @@ async function main() {
       console.log('      ✓ Serena MCP preserved');
     }
 
-    fs.mkdirSync(path.dirname(claudeDesktopConfigPath), { recursive: true });
-    fs.writeFileSync(claudeDesktopConfigPath, JSON.stringify(cfg, null, 2));
-    console.log('      ✓ claude_desktop_config.json updated');
+    fs.writeFileSync(claudeCodeConfigPath, JSON.stringify(cfg, null, 2));
+    console.log('      ✓ ~/.claude.json updated');
   } catch (e) {
-    console.log('      ⚠ desktop config update failed: ' + e.message);
+    console.log('      ⚠ Claude Code config update failed: ' + e.message);
   }
 
   // 6. Generate CCO config file

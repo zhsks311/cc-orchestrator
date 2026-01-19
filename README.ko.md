@@ -153,15 +153,16 @@ EOF
 # 4. 빌드
 npm run build
 
-# 5. Claude Desktop에 등록
+# 5. Claude Code에 등록
 ```
 
-`~/.claude/claude_desktop_config.json`에 추가:
+`~/.claude.json` (Claude Code 전역 설정)에 추가:
 
 ```json
 {
   "mcpServers": {
     "cc-orchestrator": {
+      "type": "stdio",
       "command": "node",
       "args": ["/절대/경로/cc-orchestrator/dist/index.js"],
       "env": {

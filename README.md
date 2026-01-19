@@ -153,15 +153,16 @@ EOF
 # 4. Build it
 npm run build
 
-# 5. Tell Claude Desktop about it
+# 5. Tell Claude Code about it
 ```
 
-Add to `~/.claude/claude_desktop_config.json`:
+Add to `~/.claude.json` (Claude Code global config):
 
 ```json
 {
   "mcpServers": {
     "cc-orchestrator": {
+      "type": "stdio",
       "command": "node",
       "args": ["/absolute/path/to/cc-orchestrator/dist/index.js"],
       "env": {

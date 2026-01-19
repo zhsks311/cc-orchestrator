@@ -35,6 +35,7 @@ class ClaudeSelfAdapter(LLMAdapter):
 
         Note: Does not perform actual review, only generates message requesting Claude to review
         """
+        _ = prompt  # unused but required by interface
         message = self._build_self_review_message(context)
 
         return ReviewResult(

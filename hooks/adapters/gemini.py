@@ -2,7 +2,7 @@
 Gemini API Adapter (v2)
 - Direct REST API call (CLI alternative)
 - Free tier: 1500 requests/day
-- Model: gemini-1.5-flash (fast and cheap)
+- Model: gemini-2.5-flash-lite (fast and cheap)
 """
 import os
 import sys

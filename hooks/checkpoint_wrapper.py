@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
 Checkpoint Wrapper
-명령줄에서 수동 체크포인트를 생성하는 스크립트
+Script for creating manual checkpoints from command line
 
-사용법:
-    python checkpoint_wrapper.py "체크포인트 메시지" [session_id]
+Usage:
+    python checkpoint_wrapper.py "checkpoint message" [session_id]
 
-/checkpoint 스킬에서 Bash 도구로 호출:
-    python ~/.claude/hooks/checkpoint_wrapper.py "인증 시스템 구현 완료"
+Called from /checkpoint skill via Bash tool:
+    python ~/.claude/hooks/checkpoint_wrapper.py "Auth system implementation complete"
 """
 
 import sys
@@ -21,7 +21,7 @@ LOG_FILE = HOOKS_DIR / "logs" / "checkpoint.log"
 
 
 def log(message: str):
-    """디버그 로그"""
+    """Debug logging"""
     try:
         LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
         with open(LOG_FILE, "a", encoding="utf-8") as f:
@@ -31,7 +31,7 @@ def log(message: str):
 
 
 def get_current_session_id() -> str:
-    """현재 세션 ID 추정 (가장 최근 세션)"""
+    """Estimate current session ID (most recent session)"""
     sys.path.insert(0, str(HOOKS_DIR))
     from context_resilience import get_protected_context_manager
 
@@ -41,7 +41,7 @@ def get_current_session_id() -> str:
     if not sessions:
         return f"checkpoint-{datetime.now().strftime('%Y%m%d%H%M%S')}"
 
-    # 가장 최근 세션 찾기
+    # Find most recent session
     latest_session = None
     latest_time = None
 
@@ -60,7 +60,7 @@ def get_current_session_id() -> str:
 
 
 def create_checkpoint(message: str, session_id: Optional[str] = None) -> Dict[str, Any]:
-    """체크포인트 생성"""
+    """Create checkpoint"""
     sys.path.insert(0, str(HOOKS_DIR))
     from context_resilience import (
         get_protected_context_manager,
@@ -73,10 +73,10 @@ def create_checkpoint(message: str, session_id: Optional[str] = None) -> Dict[st
     manager = get_protected_context_manager()
     anchor_manager = get_semantic_anchor_manager()
 
-    # 현재 컨텍스트 로드
+    # Load current context
     context = manager.load(session_id)
 
-    # 체크포인트 컨텍스트 구성
+    # Build checkpoint context
     checkpoint_context = {
         "timestamp": datetime.now().isoformat(),
         "active_files": context.active_files if context else [],
@@ -84,7 +84,7 @@ def create_checkpoint(message: str, session_id: Optional[str] = None) -> Dict[st
         "key_decisions": context.key_decisions[-3:] if context and context.key_decisions else [],
     }
 
-    # 앵커 추가
+    # Add anchor
     anchor = anchor_manager.add_checkpoint(
         session_id=session_id,
         message=message,
@@ -104,14 +104,14 @@ def create_checkpoint(message: str, session_id: Optional[str] = None) -> Dict[st
 
 
 def main():
-    """메인 엔트리포인트"""
+    """Main entrypoint"""
     log("checkpoint_wrapper.py executed")
 
     if len(sys.argv) < 2:
         print(json.dumps({
             "success": False,
-            "error": "체크포인트 메시지가 필요합니다.",
-            "usage": "python checkpoint_wrapper.py \"메시지\" [session_id]"
+            "error": "Checkpoint message is required.",
+            "usage": "python checkpoint_wrapper.py \"message\" [session_id]"
         }))
         sys.exit(1)
 

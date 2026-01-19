@@ -1,6 +1,6 @@
 """
 Context Resilience Configuration
-설정 파일 로드 및 기본값 관리
+Config file loading and default value management
 """
 
 import json
@@ -11,9 +11,9 @@ from typing import Dict, Any, Optional
 
 @dataclass
 class CleanupConfig:
-    """데이터 정리 설정"""
+    """Data cleanup settings"""
     enabled: bool = True
-    session_retention_days: int = 14  # 14일 보존
+    session_retention_days: int = 14  # 14 day retention
     max_anchors_per_session: int = 50
     max_memory_size_mb: int = 100
     max_memory_files: int = 1000
@@ -22,7 +22,7 @@ class CleanupConfig:
 
 @dataclass
 class AnchorDetectionConfig:
-    """앵커 감지 설정"""
+    """Anchor detection settings"""
     decision: bool = True
     error_resolved: bool = True
     user_explicit: bool = True
@@ -31,7 +31,7 @@ class AnchorDetectionConfig:
 
 @dataclass
 class ContextResilienceConfig:
-    """Context Resilience 전체 설정"""
+    """Context Resilience overall settings"""
     enabled: bool = True
     auto_save: bool = True
     auto_recover: bool = True
@@ -50,7 +50,7 @@ class ContextResilienceConfig:
 
 
 def load_config(config_path: str = "~/.claude/hooks/config.json") -> ContextResilienceConfig:
-    """설정 파일 로드 (없으면 기본값 사용)"""
+    """Load config file (use defaults if not exists)"""
     path = Path(config_path).expanduser()
 
     if not path.exists():
@@ -60,7 +60,7 @@ def load_config(config_path: str = "~/.claude/hooks/config.json") -> ContextResi
         data = json.loads(path.read_text(encoding='utf-8'))
         cr_config = data.get("context_resilience", {})
 
-        # 중첩 설정 파싱
+        # Parse nested config
         anchor_config = AnchorDetectionConfig(
             **cr_config.get("anchor_detection", {})
         ) if "anchor_detection" in cr_config else AnchorDetectionConfig()
@@ -87,11 +87,11 @@ def load_config(config_path: str = "~/.claude/hooks/config.json") -> ContextResi
 
 
 def save_config(config: ContextResilienceConfig, config_path: str = "~/.claude/hooks/config.json") -> None:
-    """설정 파일 저장 (기존 설정과 병합)"""
+    """Save config file (merge with existing config)"""
     path = Path(config_path).expanduser()
     path.parent.mkdir(parents=True, exist_ok=True)
 
-    # 기존 설정 로드
+    # Load existing config
     existing = {}
     if path.exists():
         try:
@@ -99,7 +99,7 @@ def save_config(config: ContextResilienceConfig, config_path: str = "~/.claude/h
         except json.JSONDecodeError:
             existing = {}
 
-    # context_resilience 섹션 업데이트
+    # Update context_resilience section
     existing["context_resilience"] = {
         "enabled": config.enabled,
         "auto_save": config.auto_save,
@@ -129,12 +129,12 @@ def save_config(config: ContextResilienceConfig, config_path: str = "~/.claude/h
     )
 
 
-# 전역 설정 캐시
+# Global config cache
 _config: Optional[ContextResilienceConfig] = None
 
 
 def get_config() -> ContextResilienceConfig:
-    """전역 설정 반환 (캐시됨)"""
+    """Return global config (cached)"""
     global _config
     if _config is None:
         _config = load_config()
@@ -142,7 +142,7 @@ def get_config() -> ContextResilienceConfig:
 
 
 def reload_config() -> ContextResilienceConfig:
-    """설정 다시 로드"""
+    """Reload config"""
     global _config
     _config = load_config()
     return _config

@@ -1,6 +1,6 @@
 """
-쿼터 모니터링 및 폴백 전략
-외부 LLM 쿼터 상태 추적 및 자동 폴백
+Quota Monitoring and Fallback Strategy
+External LLM quota tracking and automatic fallback
 """
 import json
 from pathlib import Path
@@ -11,16 +11,16 @@ from enum import Enum
 
 
 class QuotaStatus(Enum):
-    """쿼터 상태"""
-    AVAILABLE = "available"      # 사용 가능
-    LOW = "low"                  # 낮음 (경고)
-    EXHAUSTED = "exhausted"      # 소진됨
-    UNKNOWN = "unknown"          # 알 수 없음
+    """Quota status"""
+    AVAILABLE = "available"      # Available
+    LOW = "low"                  # Low (warning)
+    EXHAUSTED = "exhausted"      # Exhausted
+    UNKNOWN = "unknown"          # Unknown
 
 
 @dataclass
 class AdapterQuota:
-    """어댑터별 쿼터 정보"""
+    """Quota info per adapter"""
     adapter_name: str
     status: QuotaStatus
     last_success: Optional[str] = None
@@ -39,12 +39,12 @@ class AdapterQuota:
 
 class QuotaMonitor:
     """
-    쿼터 모니터링 시스템
+    Quota monitoring system
 
-    기능:
-    - 어댑터별 성공/실패 추적
-    - 연속 실패 시 자동 쿨다운
-    - 일일 리셋
+    Features:
+    - Track success/failure per adapter
+    - Auto cooldown on consecutive failures
+    - Daily reset
     """
 
     def __init__(self, state_dir: str = "~/.claude/hooks/state"):
@@ -55,12 +55,12 @@ class QuotaMonitor:
         self._load_state()
 
     def _load_state(self) -> None:
-        """상태 로드"""
+        """Load state"""
         if self.quota_file.exists():
             try:
                 data = json.loads(self.quota_file.read_text(encoding="utf-8"))
 
-                # 날짜 체크 - 새 날이면 리셋
+                # Date check - reset on new day
                 last_date = data.get("date")
                 today = datetime.now().strftime("%Y-%m-%d")
 
@@ -84,7 +84,7 @@ class QuotaMonitor:
                 self.quotas = {}
 
     def _save_state(self) -> None:
-        """상태 저장"""
+        """Save state"""
         data = {
             "date": datetime.now().strftime("%Y-%m-%d"),
             "updated_at": datetime.now().isoformat(),
@@ -96,7 +96,7 @@ class QuotaMonitor:
         )
 
     def record_success(self, adapter_name: str) -> None:
-        """성공 기록"""
+        """Record success"""
         if adapter_name not in self.quotas:
             self.quotas[adapter_name] = AdapterQuota(
                 adapter_name=adapter_name,
@@ -112,7 +112,7 @@ class QuotaMonitor:
         self._save_state()
 
     def record_failure(self, adapter_name: str, error: str) -> None:
-        """실패 기록"""
+        """Record failure"""
         if adapter_name not in self.quotas:
             self.quotas[adapter_name] = AdapterQuota(
                 adapter_name=adapter_name,
@@ -124,7 +124,7 @@ class QuotaMonitor:
         quota.consecutive_failures += 1
         quota.last_failure = datetime.now().isoformat()
 
-        # 쿼터 소진 판단
+        # Determine quota exhaustion
         quota_keywords = ["quota", "limit", "exceeded", "rate", "429", "exhausted"]
         is_quota_error = any(kw in error.lower() for kw in quota_keywords)
 
@@ -138,7 +138,7 @@ class QuotaMonitor:
         self._save_state()
 
     def is_available(self, adapter_name: str) -> bool:
-        """어댑터 사용 가능 여부"""
+        """Check adapter availability"""
         if adapter_name not in self.quotas:
             return True
 
@@ -156,11 +156,11 @@ class QuotaMonitor:
         return quota.status != QuotaStatus.EXHAUSTED
 
     def get_available_adapters(self, adapter_names: List[str]) -> List[str]:
-        """사용 가능한 어댑터 목록"""
+        """Get list of available adapters"""
         return [name for name in adapter_names if self.is_available(name)]
 
     def get_summary(self) -> Dict[str, Any]:
-        """쿼터 요약"""
+        """Quota summary"""
         return {
             "date": datetime.now().strftime("%Y-%m-%d"),
             "adapters": {
@@ -178,7 +178,7 @@ _quota_monitor: Optional[QuotaMonitor] = None
 
 
 def get_quota_monitor() -> QuotaMonitor:
-    """쿼터 모니터 싱글톤"""
+    """Quota monitor singleton"""
     global _quota_monitor
     if _quota_monitor is None:
         _quota_monitor = QuotaMonitor()

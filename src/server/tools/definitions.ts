@@ -12,22 +12,20 @@ export const TOOL_DEFINITIONS: Tool[] = [
 
 Available agents:
 - arch (GPT-5.2): Architecture design, strategic decision-making, code review
-- index (Claude Sonnet 4.5): Documentation search, codebase analysis, implementation research
 - canvas (Gemini 3 Pro): UI/UX design, frontend implementation
 - quill (Gemini 3 Pro): Technical documentation, README, API docs
 - lens (Gemini 3 Pro): Image, PDF analysis
-- scout (Claude Sonnet): Codebase exploration, file/function search, structure analysis (Free)
 
 Parallel execution recommended:
 background_task(agent="arch", prompt="Review architecture...")
-background_task(agent="index", prompt="Research references...")
+background_task(agent="canvas", prompt="Design UI...")
 // Both tasks run simultaneously`,
     inputSchema: {
       type: 'object',
       properties: {
         agent: {
           type: 'string',
-          enum: ['arch', 'canvas', 'index', 'quill', 'lens', 'scout'],
+          enum: ['arch', 'canvas', 'quill', 'lens'],
           description: 'Agent to execute',
         },
         prompt: {
@@ -122,7 +120,7 @@ Recommended to use all=true for cleanup after task completion.`,
               type: 'array',
               items: {
                 type: 'string',
-                enum: ['arch', 'canvas', 'index', 'quill', 'lens'],
+                enum: ['arch', 'canvas', 'quill', 'lens'],
               },
               description: 'Agent filter',
             },
@@ -180,7 +178,7 @@ Recommended to use all=true for cleanup after task completion.`,
   {
     name: 'suggest_agent',
     description:
-      'Suggests the best agent for a user request using Key Trigger system. Keywords: architecture/design/review -> arch, library/API/docs -> index, UI/UX/design -> canvas, docs/README -> quill, image/PDF -> lens, find/where/structure -> scout',
+      'Suggests the best agent for a user request using Key Trigger system. Keywords: architecture/design/review -> arch, UI/UX/design -> canvas, docs/README -> quill, image/PDF -> lens',
     inputSchema: {
       type: 'object',
       properties: {

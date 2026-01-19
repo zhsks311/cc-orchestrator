@@ -1,5 +1,5 @@
 """
-LLM Adapter 기본 클래스
+LLM Adapter Base Class
 """
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -43,7 +43,7 @@ class ReviewResult:
     success: bool = True
     error: Optional[str] = None
     duration_ms: int = 0
-    is_self_review: bool = False  # Claude 셀프 리뷰 여부
+    is_self_review: bool = False  # Whether this is Claude self review
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -66,7 +66,7 @@ class ReviewResult:
 
 
 class LLMAdapter(ABC):
-    """LLM Adapter 기본 인터페이스"""
+    """LLM Adapter base interface"""
 
     def __init__(self, name: str, config: Dict[str, Any]):
         self.name = name
@@ -76,11 +76,11 @@ class LLMAdapter(ABC):
     @abstractmethod
     def review(self, prompt: str, context: Dict[str, Any]) -> ReviewResult:
         """
-        코드 리뷰 수행
+        Perform code review
 
         Args:
-            prompt: 리뷰 프롬프트
-            context: 동적 컨텍스트 (diff, file_path 등)
+            prompt: Review prompt
+            context: Dynamic context (diff, file_path, etc.)
 
         Returns:
             ReviewResult
@@ -89,22 +89,22 @@ class LLMAdapter(ABC):
 
     @abstractmethod
     def is_available(self) -> bool:
-        """어댑터가 사용 가능한지 확인 (CLI 설치 여부 등)"""
+        """Check if adapter is available (CLI installation, etc.)"""
         pass
 
     def parse_response(self, response: str) -> ReviewResult:
         """
-        LLM 응답을 파싱하여 ReviewResult 생성
+        Parse LLM response to create ReviewResult
 
-        기대하는 JSON 형식:
+        Expected JSON format:
         {
             "severity": "OK|LOW|MEDIUM|HIGH|CRITICAL",
             "issues": [
                 {
-                    "description": "문제 설명",
+                    "description": "Issue description",
                     "severity": "...",
-                    "location": "파일:라인",
-                    "suggestion": "수정 제안"
+                    "location": "file:line",
+                    "suggestion": "Fix suggestion"
                 }
             ]
         }
@@ -113,7 +113,7 @@ class LLMAdapter(ABC):
         import re
 
         try:
-            # JSON 블록 추출 시도
+            # Try to extract JSON block
             json_match = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', response, re.DOTALL)
             if json_match:
                 response = json_match.group(1)
@@ -139,20 +139,20 @@ class LLMAdapter(ABC):
             )
 
         except (json.JSONDecodeError, KeyError) as e:
-            # JSON 파싱 실패 시 텍스트 분석으로 폴백
+            # Fallback to text analysis on JSON parse failure
             return self._parse_text_response(response)
 
     def _parse_text_response(self, response: str) -> ReviewResult:
-        """텍스트 응답에서 심각도 추론"""
+        """Infer severity from text response"""
         response_lower = response.lower()
 
-        if any(word in response_lower for word in ["critical", "심각", "보안취약"]):
+        if any(word in response_lower for word in ["critical", "security vulnerability"]):
             severity = Severity.CRITICAL
-        elif any(word in response_lower for word in ["high", "높음", "버그", "오류"]):
+        elif any(word in response_lower for word in ["high", "bug", "error"]):
             severity = Severity.HIGH
-        elif any(word in response_lower for word in ["medium", "중간", "개선"]):
+        elif any(word in response_lower for word in ["medium", "improvement"]):
             severity = Severity.MEDIUM
-        elif any(word in response_lower for word in ["low", "낮음", "사소"]):
+        elif any(word in response_lower for word in ["low", "minor", "trivial"]):
             severity = Severity.LOW
         else:
             severity = Severity.OK

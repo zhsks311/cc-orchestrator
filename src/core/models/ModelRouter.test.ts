@@ -217,17 +217,6 @@ describe('ModelRouter', () => {
   });
 
   describe('Role-specific fallback chains', () => {
-    it('INDEX should fallback from Anthropic to OpenAI', () => {
-      process.env.OPENAI_API_KEY = 'test-key';
-      const router = new ModelRouter();
-
-      // INDEX primary is Anthropic
-      const result = router.findAvailableProviderConfig(AgentRole.INDEX);
-
-      expect(result!.config.provider).toBe(ModelProvider.OPENAI);
-      expect(result!.fallbackInfo!.originalProvider).toBe(ModelProvider.ANTHROPIC);
-    });
-
     it('CANVAS should fallback from Google to Anthropic', () => {
       process.env.ANTHROPIC_API_KEY = 'test-key';
       const router = new ModelRouter();
@@ -239,15 +228,26 @@ describe('ModelRouter', () => {
       expect(result!.fallbackInfo!.originalProvider).toBe(ModelProvider.GOOGLE);
     });
 
-    it('SCOUT should fallback from Anthropic to Google', () => {
-      process.env.GOOGLE_API_KEY = 'test-key';
+    it('QUILL should fallback from Google to Anthropic', () => {
+      process.env.ANTHROPIC_API_KEY = 'test-key';
       const router = new ModelRouter();
 
-      // SCOUT primary is Anthropic
-      const result = router.findAvailableProviderConfig(AgentRole.SCOUT);
+      // QUILL primary is Google
+      const result = router.findAvailableProviderConfig(AgentRole.QUILL);
 
-      expect(result!.config.provider).toBe(ModelProvider.GOOGLE);
-      expect(result!.fallbackInfo!.originalProvider).toBe(ModelProvider.ANTHROPIC);
+      expect(result!.config.provider).toBe(ModelProvider.ANTHROPIC);
+      expect(result!.fallbackInfo!.originalProvider).toBe(ModelProvider.GOOGLE);
+    });
+
+    it('LENS should fallback from Google to Anthropic', () => {
+      process.env.ANTHROPIC_API_KEY = 'test-key';
+      const router = new ModelRouter();
+
+      // LENS primary is Google
+      const result = router.findAvailableProviderConfig(AgentRole.LENS);
+
+      expect(result!.config.provider).toBe(ModelProvider.ANTHROPIC);
+      expect(result!.fallbackInfo!.originalProvider).toBe(ModelProvider.GOOGLE);
     });
   });
 });

@@ -1,6 +1,6 @@
 """
-의도 추출 모듈 - transcript에서 사용자의 원래 요청 추출
-토큰 제한을 고려하여 요약 기능 포함
+Intent Extraction Module - Extract original user request from transcript
+Includes summarization considering token limits
 """
 import json
 from pathlib import Path
@@ -8,22 +8,22 @@ from typing import Dict, Any, List, Optional
 
 
 class IntentExtractor:
-    """Transcript에서 사용자 의도 추출"""
+    """Extract user intent from transcript"""
 
-    MAX_CHARS = 10000  # 토큰 제한 (약 2500 토큰)
+    MAX_CHARS = 10000  # Token limit (approx 2500 tokens)
 
     def extract_from_transcript(self, transcript_path: str) -> Dict[str, Any]:
         """
-        Transcript 파일에서 사용자 의도 추출
+        Extract user intent from transcript file
 
         Args:
-            transcript_path: transcript JSON 파일 경로
+            transcript_path: transcript JSON file path
 
         Returns:
             Dict containing:
-                - original_request: 첫 번째 사용자 메시지 (원래 요청)
-                - combined_intent: 모든 사용자 메시지 (토큰 제한 적용)
-                - message_count: 사용자 메시지 수
+                - original_request: First user message (original request)
+                - combined_intent: All user messages (with token limit)
+                - message_count: Number of user messages
         """
         try:
             transcript = self._load_transcript(transcript_path)
@@ -49,7 +49,7 @@ class IntentExtractor:
             }
 
     def _load_transcript(self, transcript_path: str) -> List[Dict[str, Any]]:
-        """Transcript 파일 로드"""
+        """Load transcript file"""
         path = Path(transcript_path)
         if not path.exists():
             return []
@@ -57,7 +57,7 @@ class IntentExtractor:
         content = path.read_text(encoding="utf-8")
         data = json.loads(content)
 
-        # transcript 구조에 따라 처리
+        # Handle based on transcript structure
         if isinstance(data, list):
             return data
         elif isinstance(data, dict) and "messages" in data:
@@ -65,13 +65,13 @@ class IntentExtractor:
         return []
 
     def _extract_user_messages(self, transcript: List[Dict[str, Any]]) -> List[str]:
-        """사용자 메시지만 추출"""
+        """Extract user messages only"""
         messages = []
         for msg in transcript:
             role = msg.get("role", "")
             if role == "user" or role == "human":
                 content = msg.get("content", "")
-                # content가 리스트인 경우 (멀티모달)
+                # Handle list content (multimodal)
                 if isinstance(content, list):
                     text_parts = [
                         p.get("text", "") for p in content
@@ -84,9 +84,9 @@ class IntentExtractor:
 
     def _combine_with_limit(self, messages: List[str]) -> str:
         """
-        메시지 결합 (토큰 제한 적용)
+        Combine messages (with token limit)
 
-        제한 초과 시: 첫 메시지(원래 요청) + 마지막 N개 메시지
+        On limit exceeded: First message (original request) + last N messages
         """
         separator = "\n\n---\n\n"
         combined = separator.join(messages)
@@ -94,11 +94,11 @@ class IntentExtractor:
         if len(combined) <= self.MAX_CHARS:
             return combined
 
-        # 첫 메시지는 필수 포함
+        # First message is required
         first = messages[0]
-        remaining_chars = self.MAX_CHARS - len(first) - 100  # 여유 공간
+        remaining_chars = self.MAX_CHARS - len(first) - 100  # Buffer space
 
-        # 마지막 메시지들부터 역순으로 추가
+        # Add messages from last in reverse order
         last_messages = []
         for msg in reversed(messages[1:]):
             if len(separator.join(last_messages)) + len(msg) < remaining_chars:
@@ -107,13 +107,13 @@ class IntentExtractor:
                 break
 
         if last_messages:
-            return f"{first}\n\n[...중간 {len(messages) - 1 - len(last_messages)}개 메시지 생략...]\n\n{separator.join(last_messages)}"
+            return f"{first}\n\n[...{len(messages) - 1 - len(last_messages)} middle messages omitted...]\n\n{separator.join(last_messages)}"
         else:
-            # 첫 메시지만 반환 (너무 긴 경우)
+            # Return only first message (if too long)
             return first[:self.MAX_CHARS]
 
     def _empty_result(self) -> Dict[str, Any]:
-        """빈 결과 반환"""
+        """Return empty result"""
         return {
             "original_request": "",
             "combined_intent": "",
@@ -121,6 +121,6 @@ class IntentExtractor:
         }
 
 
-# 편의를 위한 함수
+# Convenience function
 def get_intent_extractor() -> IntentExtractor:
     return IntentExtractor()

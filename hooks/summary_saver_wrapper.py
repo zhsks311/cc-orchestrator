@@ -206,7 +206,7 @@ def extract_work_summary(transcript: List[Dict]) -> Optional[str]:
         return None
 
     # Priority: structured markers first (more specific)
-    structured_markers = ["## Summary", "## 요약", "### Summary", "Summary:", "결론:"]
+    structured_markers = ["## Summary", "### Summary", "Summary:", "Conclusion:"]
     for marker in structured_markers:
         if marker in last_assistant_content:
             idx = last_assistant_content.find(marker)

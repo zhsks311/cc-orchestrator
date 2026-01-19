@@ -1,6 +1,6 @@
 """
 Context Resilience Framework
-Compact로 인한 문맥 손실을 방지하기 위한 시스템
+System to prevent context loss due to compaction
 """
 
 from .protected_context import (

@@ -1,6 +1,6 @@
 """
-상태 관리 모듈 - 세션별 재시도 횟수, debounce, override 상태 관리
-filelock을 사용하여 race condition 방지
+State Management Module - Per-session retry count, debounce, override state management
+Uses filelock to prevent race conditions
 """
 import json
 import os
@@ -12,7 +12,7 @@ from datetime import datetime
 try:
     from filelock import FileLock
 except ImportError:
-    # filelock 없으면 간단한 fallback
+    # Simple fallback if filelock not available
     class FileLock:
         def __init__(self, path): pass
         def __enter__(self): return self
@@ -49,7 +49,7 @@ class StateManager:
         with FileLock(str(lock_path)):
             path.write_text(json.dumps(data, indent=2, ensure_ascii=False))
 
-    # ===== Retry Count 관리 =====
+    # ===== Retry Count Management =====
     def get_retry_count(self, session_id: str, stage: str) -> int:
         state = self._read_state(session_id, "retry")
         return state.get(stage, 0)
@@ -65,7 +65,7 @@ class StateManager:
         state[stage] = 0
         self._write_state(session_id, "retry", state)
 
-    # ===== Debounce 관리 =====
+    # ===== Debounce Management =====
     def get_last_call_time(self, session_id: str, stage: str) -> Optional[float]:
         state = self._read_state(session_id, "debounce")
         return state.get(stage)
@@ -76,22 +76,22 @@ class StateManager:
         self._write_state(session_id, "debounce", state)
 
     def should_debounce(self, session_id: str, stage: str, debounce_seconds: float) -> bool:
-        """debounce_seconds 내에 호출이 있었으면 True (스킵해야 함)"""
+        """Returns True if called within debounce_seconds (should skip)"""
         last_call = self.get_last_call_time(session_id, stage)
         if last_call is None:
             return False
         return (time.time() - last_call) < debounce_seconds
 
-    # ===== Override 관리 =====
+    # ===== Override Management =====
     def set_override(self, session_id: str, skip_count: int = 1):
-        """다음 N번의 검열을 스킵"""
+        """Skip next N reviews"""
         state = self._read_state(session_id, "override")
         state["skip_count"] = skip_count
         state["set_at"] = datetime.now().isoformat()
         self._write_state(session_id, "override", state)
 
     def check_and_consume_override(self, session_id: str) -> bool:
-        """override가 설정되어 있으면 True 반환하고 카운트 감소"""
+        """Returns True if override is set and decrements count"""
         state = self._read_state(session_id, "override")
         skip_count = state.get("skip_count", 0)
 
@@ -101,24 +101,24 @@ class StateManager:
             return True
         return False
 
-    # ===== Todo State 관리 =====
+    # ===== Todo State Management =====
     def get_todo_state(self, session_id: str) -> Dict[str, Any]:
-        """현재 todo 상태 조회"""
+        """Get current todo state"""
         return self._read_state(session_id, "todo")
 
     def save_todo_state(self, session_id: str, state: Dict[str, Any]):
-        """todo 상태 저장"""
+        """Save todo state"""
         state["updated_at"] = datetime.now().isoformat()
         self._write_state(session_id, "todo", state)
 
-    # ===== Completion Review 횟수 관리 =====
+    # ===== Completion Review Count Management =====
     def get_completion_review_count(self, session_id: str) -> int:
-        """완료 검토 횟수 조회 (무한 루프 방지용)"""
+        """Get completion review count (for infinite loop prevention)"""
         state = self._read_state(session_id, "todo")
         return state.get("review_count", 0)
 
     def increment_completion_review_count(self, session_id: str) -> int:
-        """완료 검토 횟수 증가"""
+        """Increment completion review count"""
         state = self._read_state(session_id, "todo")
         state["review_count"] = state.get("review_count", 0) + 1
         state["last_review_at"] = datetime.now().isoformat()
@@ -126,14 +126,14 @@ class StateManager:
         return state["review_count"]
 
     def reset_completion_review_count(self, session_id: str):
-        """완료 검토 횟수 초기화 (새 작업 시작 시)"""
+        """Reset completion review count (on new task start)"""
         state = self._read_state(session_id, "todo")
         state["review_count"] = 0
         self._write_state(session_id, "todo", state)
 
-    # ===== 세션 정리 =====
+    # ===== Session Cleanup =====
     def cleanup_session(self, session_id: str):
-        """세션 종료 시 상태 파일 정리"""
+        """Cleanup state files on session end"""
         for state_type in ["retry", "debounce", "override", "todo"]:
             path = self._get_state_path(session_id, state_type)
             lock_path = self._get_lock_path(session_id, state_type)
@@ -143,7 +143,7 @@ class StateManager:
                 lock_path.unlink()
 
 
-# 싱글톤 인스턴스
+# Singleton instance
 _state_manager: Optional[StateManager] = None
 
 def get_state_manager() -> StateManager:

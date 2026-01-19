@@ -1,13 +1,13 @@
 """
 Semantic Anchors
-중요 결정, 에러 해결 등 중요 순간을 자동 감지하여 저장
+Automatically detect and save important moments like decisions, error resolutions
 
-앵커 타입:
-- DECISION: 결정사항 ("이렇게 하자", "선택")
-- ERROR_RESOLVED: 에러 해결 완료
-- FILE_MODIFIED: 파일 수정 완료
-- USER_EXPLICIT: 사용자 명시적 마킹 ("기억해", "중요:")
-- CHECKPOINT: 수동 체크포인트
+Anchor types:
+- DECISION: Decisions made ("let's do this", "chose")
+- ERROR_RESOLVED: Error resolution completed
+- FILE_MODIFIED: File modification completed
+- USER_EXPLICIT: User explicit marking ("remember", "important:")
+- CHECKPOINT: Manual checkpoint
 """
 
 import json
@@ -24,7 +24,7 @@ from .config import get_config, ContextResilienceConfig
 
 
 class AnchorType(Enum):
-    """앵커 타입"""
+    """Anchor type"""
     DECISION = "decision"
     ERROR_RESOLVED = "error_resolved"
     FILE_MODIFIED = "file_modified"
@@ -32,70 +32,67 @@ class AnchorType(Enum):
     CHECKPOINT = "checkpoint"
 
 
-# 앵커 감지 패턴
+# Anchor detection patterns
 ANCHOR_PATTERNS: Dict[AnchorType, List[str]] = {
     AnchorType.DECISION: [
-        r'결정|선택|이렇게\s*하자|방법으로|approach',
         r'decided|choose|let\'s go with|we\'ll use|going with',
-        r'선택했|결정했|확정|최종적으로',
+        r'approach|decision|selected|determined',
     ],
     AnchorType.ERROR_RESOLVED: [
-        r'해결|수정\s*완료|고침|에러.*고침',
         r'fixed|resolved|working now|bug.*fixed|error.*resolved',
-        r'문제\s*해결|버그\s*수정|이슈\s*해결',
+        r'problem\s*solved|issue\s*resolved',
     ],
     AnchorType.USER_EXPLICIT: [
-        r'기억해|중요:|잊지\s*마|remember|important:',
-        r'메모:|note:|핵심:|key point:',
-        r'꼭\s*기억|반드시\s*기억|never forget',
+        r'remember|important:|note:|key point:',
+        r'never forget|must remember',
     ],
 }
 
 
 @dataclass
 class SemanticAnchor:
-    """시맨틱 앵커 데이터"""
+    """Semantic anchor data"""
     id: str
     session_id: str
     anchor_type: str  # AnchorType.value
-    content: str  # 핵심 내용 (최대 200자)
-    context: Dict[str, Any] = field(default_factory=dict)  # 관련 파일, 코드 스니펫
+    content: str  # Core content (max 200 chars)
+    context: Dict[str, Any] = field(default_factory=dict)  # Related files, code snippets
     timestamp: str = ""
-    importance: int = 1  # 1-5, 높을수록 중요
+    importance: int = 1  # 1-5, higher = more important
 
     def __post_init__(self):
         if not self.timestamp:
             self.timestamp = datetime.now().isoformat()
-        # content 길이 제한
+        # Limit content length
         if len(self.content) > 200:
             self.content = self.content[:197] + "..."
 
 
 class SemanticAnchorManager:
-    """시맨틱 앵커 관리자"""
+    """Semantic anchor manager"""
 
     STATE_DIR = Path("~/.claude/hooks/state").expanduser()
-    MAX_ANCHORS = 50  # 세션당 최대 앵커 수
+    MAX_ANCHORS = 50  # Max anchors per session
 
     def __init__(self, config: Optional[ContextResilienceConfig] = None):
         self.config = config or get_config()
         self.STATE_DIR.mkdir(parents=True, exist_ok=True)
 
     def _get_anchors_path(self, session_id: str) -> Path:
-        """앵커 파일 경로"""
+        """Anchor file path"""
         return self.STATE_DIR / f"{session_id}_anchors.json"
 
     def _get_lock_path(self, session_id: str) -> Path:
-        """락 파일 경로"""
+        """Lock file path"""
         return self.STATE_DIR / f"{session_id}_anchors.lock"
 
     def _generate_anchor_id(self, content: str, timestamp: str) -> str:
-        """앵커 ID 생성"""
+        """Generate anchor ID"""
         data = f"{content}{timestamp}"
         return hashlib.md5(data.encode()).hexdigest()[:12]
 
     def load_anchors(self, session_id: str) -> List[SemanticAnchor]:
-        """앵커 목록 로드"""
+        """Load anchor list"""
         path = self._get_anchors_path(session_id)
         if not path.exists():
             return []
@@ -109,7 +106,7 @@ class SemanticAnchorManager:
             return []
 
     def save_anchors(self, session_id: str, anchors: List[SemanticAnchor]) -> None:
-        """앵커 목록 저장"""
+        """Save anchor list"""
         path = self._get_anchors_path(session_id)
         lock = FileLock(self._get_lock_path(session_id))
 
@@ -131,15 +128,15 @@ class SemanticAnchorManager:
         context: Optional[Dict[str, Any]] = None,
         importance: int = 1
     ) -> SemanticAnchor:
-        """새 앵커 추가"""
+        """Add new anchor"""
         anchors = self.load_anchors(session_id)
 
-        # 최대 개수 제한 (LRU)
+        # Max count limit (LRU)
         max_anchors = self.config.max_anchors or self.MAX_ANCHORS
         if len(anchors) >= max_anchors:
-            # 중요도 낮은 것부터 삭제 (importance 낮고 오래된 것)
+            # Delete from lowest importance (low importance and oldest)
             anchors.sort(key=lambda a: (a.importance, a.timestamp))
-            anchors = anchors[1:]  # 가장 낮은 것 삭제
+            anchors = anchors[1:]  # Delete lowest one
 
         timestamp = datetime.now().isoformat()
         anchor = SemanticAnchor(
@@ -163,7 +160,7 @@ class SemanticAnchorManager:
         text: str,
         context: Optional[Dict[str, Any]] = None
     ) -> Optional[SemanticAnchor]:
-        """텍스트에서 앵커 감지 및 추가"""
+        """Detect and add anchor from text"""
         if not self.config.enabled:
             return None
 
@@ -171,7 +168,7 @@ class SemanticAnchorManager:
         if not detected_type:
             return None
 
-        # 앵커 타입별 설정 확인
+        # Check anchor type config
         anchor_config = self.config.anchor_detection
         if detected_type == AnchorType.DECISION and not anchor_config.decision:
             return None
@@ -180,10 +177,10 @@ class SemanticAnchorManager:
         if detected_type == AnchorType.USER_EXPLICIT and not anchor_config.user_explicit:
             return None
 
-        # 중요도 결정
+        # Determine importance
         importance = self._calculate_importance(detected_type, text)
 
-        # 핵심 내용 추출
+        # Extract key content
         content = self._extract_key_content(text, detected_type)
 
         return self.add_anchor(
@@ -195,7 +192,7 @@ class SemanticAnchorManager:
         )
 
     def detect_anchor_type(self, text: str) -> Optional[AnchorType]:
-        """텍스트에서 앵커 타입 감지"""
+        """Detect anchor type from text"""
         for anchor_type, patterns in ANCHOR_PATTERNS.items():
             for pattern in patterns:
                 if re.search(pattern, text, re.IGNORECASE):
@@ -203,9 +200,9 @@ class SemanticAnchorManager:
         return None
 
     def _calculate_importance(self, anchor_type: AnchorType, text: str) -> int:
-        """앵커 중요도 계산 (1-5)"""
+        """Calculate anchor importance (1-5)"""
         base_importance = {
-            AnchorType.USER_EXPLICIT: 5,  # 사용자 명시적 마킹은 최고 중요도
+            AnchorType.USER_EXPLICIT: 5,  # User explicit marking has highest importance
             AnchorType.CHECKPOINT: 5,
             AnchorType.ERROR_RESOLVED: 4,
             AnchorType.DECISION: 3,
@@ -214,19 +211,19 @@ class SemanticAnchorManager:
 
         importance = base_importance.get(anchor_type, 2)
 
-        # 강조 표현이 있으면 +1
-        if re.search(r'중요|critical|important|핵심|반드시', text, re.IGNORECASE):
+        # +1 if emphasis expression present
+        if re.search(r'critical|important|key|must', text, re.IGNORECASE):
             importance = min(5, importance + 1)
 
         return importance
 
     def _extract_key_content(self, text: str, anchor_type: AnchorType) -> str:
-        """핵심 내용 추출"""
-        # 첫 문장 또는 첫 100자
+        """Extract key content"""
+        # First sentence or first 100 chars
         lines = text.strip().split('\n')
         first_line = lines[0] if lines else text
 
-        # 패턴 이후 내용 추출 시도
+        # Try to extract content after pattern
         for pattern in ANCHOR_PATTERNS.get(anchor_type, []):
             match = re.search(f'{pattern}[:\\s]*(.+)', text, re.IGNORECASE)
             if match:
@@ -242,15 +239,15 @@ class SemanticAnchorManager:
         limit: int = 10,
         anchor_types: Optional[List[AnchorType]] = None
     ) -> List[SemanticAnchor]:
-        """최근 앵커 조회"""
+        """Get recent anchors"""
         anchors = self.load_anchors(session_id)
 
-        # 타입 필터
+        # Type filter
         if anchor_types:
             type_values = [t.value for t in anchor_types]
             anchors = [a for a in anchors if a.anchor_type in type_values]
 
-        # 최신순 + 중요도순 정렬
+        # Sort by newest + importance
         anchors.sort(key=lambda a: (a.importance, a.timestamp), reverse=True)
 
         return anchors[:limit]
@@ -261,7 +258,7 @@ class SemanticAnchorManager:
         file_path: str,
         change_type: str = "modified"
     ) -> SemanticAnchor:
-        """파일 수정 앵커 추가"""
+        """Add file modified anchor"""
         if not self.config.anchor_detection.file_modified:
             return None
 
@@ -285,7 +282,7 @@ class SemanticAnchorManager:
         message: str,
         context: Optional[Dict[str, Any]] = None
     ) -> SemanticAnchor:
-        """수동 체크포인트 추가"""
+        """Add manual checkpoint"""
         return self.add_anchor(
             session_id=session_id,
             anchor_type=AnchorType.CHECKPOINT,
@@ -295,12 +292,12 @@ class SemanticAnchorManager:
         )
 
     def build_anchors_summary(self, session_id: str, limit: int = 10) -> str:
-        """앵커 요약 메시지 생성"""
+        """Generate anchor summary message"""
         anchors = self.get_recent_anchors(session_id, limit=limit)
         if not anchors:
             return ""
 
-        lines = ["### 주요 이력"]
+        lines = ["### Key History"]
 
         type_icons = {
             AnchorType.DECISION.value: "🔷",
@@ -317,7 +314,7 @@ class SemanticAnchorManager:
         return "\n".join(lines)
 
     def list_sessions(self) -> List[str]:
-        """앵커가 있는 세션 목록"""
+        """List sessions with anchors"""
         sessions = set()
         for f in self.STATE_DIR.glob("*_anchors.json"):
             session_id = f.stem.replace("_anchors", "")
@@ -325,7 +322,7 @@ class SemanticAnchorManager:
         return list(sessions)
 
     def cleanup_old_anchors(self, max_age_days: int = 7) -> int:
-        """오래된 앵커 파일 정리"""
+        """Cleanup old anchor files"""
         from datetime import timedelta
 
         cutoff = datetime.now() - timedelta(days=max_age_days)
@@ -336,7 +333,7 @@ class SemanticAnchorManager:
                 mtime = datetime.fromtimestamp(f.stat().st_mtime)
                 if mtime < cutoff:
                     f.unlink()
-                    # 락 파일도 삭제
+                    # Delete lock file too
                     lock_file = f.with_suffix('.lock')
                     if lock_file.exists():
                         lock_file.unlink()
@@ -347,12 +344,12 @@ class SemanticAnchorManager:
         return deleted
 
 
-# 싱글톤 인스턴스
+# Singleton instance
 _anchor_manager: Optional[SemanticAnchorManager] = None
 
 
 def get_semantic_anchor_manager() -> SemanticAnchorManager:
-    """SemanticAnchorManager 싱글톤 인스턴스 반환"""
+    """Return SemanticAnchorManager singleton instance"""
     global _anchor_manager
     if _anchor_manager is None:
         _anchor_manager = SemanticAnchorManager()

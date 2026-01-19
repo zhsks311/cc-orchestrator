@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-리뷰 오케스트레이터 - 다중 LLM을 병렬 호출하고 결과를 취합
+Review Orchestrator - Parallel LLM calls and result aggregation
 
-사용법:
+Usage:
     echo '{"stage": "code", "context": {...}}' | python review_orchestrator.py
 
-stdin 입력 (Claude Code Hook에서 전달):
+stdin input (from Claude Code Hook):
 {
     "session_id": "abc123",
     "tool_name": "Edit",
@@ -22,7 +22,7 @@ from typing import Dict, Any, List
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 
-# 모듈 경로 추가
+# Add module path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from adapters import GeminiAdapter, CopilotAdapter, ReviewResult
@@ -32,7 +32,7 @@ from security import get_security_validator, load_config
 
 
 class AuditLogger:
-    """감사 로그 기록"""
+    """Audit log recording"""
 
     def __init__(self, log_dir: str = "~/.claude/hooks/logs"):
         self.log_dir = Path(log_dir).expanduser()
@@ -49,7 +49,7 @@ class AuditLogger:
 
 
 class ReviewOrchestrator:
-    """다중 LLM 리뷰 오케스트레이터"""
+    """Multi-LLM review orchestrator"""
 
     def __init__(self):
         self.config = load_config()
@@ -57,7 +57,7 @@ class ReviewOrchestrator:
         self.security = get_security_validator()
         self.audit_logger = AuditLogger()
 
-        # 어댑터 초기화
+        # Initialize adapters
         self.adapters = []
         enabled = self.config.get("enabled_adapters", ["gemini", "copilot"])
 
@@ -72,7 +72,7 @@ class ReviewOrchestrator:
                 self.adapters.append(adapter)
 
     def extract_context(self, hook_input: Dict[str, Any]) -> Dict[str, Any]:
-        """Hook 입력에서 동적 컨텍스트 추출"""
+        """Extract dynamic context from hook input"""
         context = {
             "session_id": hook_input.get("session_id", "unknown"),
             "tool_name": hook_input.get("tool_name", ""),
@@ -81,22 +81,22 @@ class ReviewOrchestrator:
 
         tool_input = hook_input.get("tool_input", {})
 
-        # Edit 도구: diff 추출
+        # Edit tool: extract diff
         if "old_string" in tool_input and "new_string" in tool_input:
             context["file_path"] = tool_input.get("file_path", "")
             context["diff"] = f"- {tool_input['old_string']}\n+ {tool_input['new_string']}"
             context["code"] = tool_input.get("new_string", "")
 
-        # Write 도구: 전체 내용
+        # Write tool: full content
         elif "content" in tool_input:
             context["file_path"] = tool_input.get("file_path", "")
             context["code"] = tool_input.get("content", "")
 
-        # TodoWrite 도구: 계획 추출
+        # TodoWrite tool: extract plan
         elif "todos" in tool_input:
             context["todos"] = tool_input.get("todos", [])
 
-        # 민감정보 마스킹
+        # Mask sensitive info
         if context.get("code"):
             context["code"] = self.security.mask_sensitive_data(context["code"])
         if context.get("diff"):
@@ -105,22 +105,22 @@ class ReviewOrchestrator:
         return context
 
     def load_prompt(self, stage: str) -> str:
-        """단계별 프롬프트 로드"""
+        """Load stage-specific prompt"""
         prompt_path = Path("~/.claude/hooks/prompts").expanduser() / f"{stage}.txt"
         if prompt_path.exists():
             return prompt_path.read_text()
 
-        # 기본 프롬프트
+        # Default prompts
         default_prompts = {
-            "plan": "당신은 시니어 개발자입니다. 아래 작업 계획을 검토하고 불필요한 작업(YAGNI), 누락된 사항, 잠재적 문제점을 찾아주세요.",
-            "code": "당신은 시니어 코드 리뷰어입니다. 아래 코드 변경을 검토하고 버그, 보안 취약점, 코드 품질 문제를 찾아주세요.",
-            "test": "당신은 QA 전문가입니다. 아래 테스트 결과를 분석하고 추가 테스트 필요 여부, 누락된 케이스를 확인해주세요.",
-            "final": "당신은 시니어 아키텍트입니다. 전체 작업을 종합적으로 검토하고 최종 품질을 평가해주세요."
+            "plan": "You are a senior developer. Review the task plan below and identify unnecessary work (YAGNI), missing items, and potential issues.",
+            "code": "You are a senior code reviewer. Review the code changes below and identify bugs, security vulnerabilities, and code quality issues.",
+            "test": "You are a QA expert. Analyze the test results below and check for additional tests needed and missing cases.",
+            "final": "You are a senior architect. Comprehensively review the entire work and evaluate the final quality."
         }
         return default_prompts.get(stage, default_prompts["code"])
 
     def resolve_conflict(self, results: List[ReviewResult]) -> Severity:
-        """LLM 의견 충돌 해결"""
+        """Resolve LLM opinion conflicts"""
         conflict_config = self.config.get("conflict_resolution", {})
         policy = conflict_config.get("policy", "conservative")
 
@@ -130,11 +130,11 @@ class ReviewOrchestrator:
             return Severity.OK
 
         if policy == "conservative" or policy == "highest_severity":
-            # 가장 높은 심각도 선택
+            # Select highest severity
             return max(severities)
 
         elif policy == "majority_vote":
-            # 다수결 (동률 시 높은 심각도)
+            # Majority vote (highest severity on tie)
             from collections import Counter
             counts = Counter(severities)
             max_count = max(counts.values())
@@ -142,7 +142,7 @@ class ReviewOrchestrator:
             return max(candidates)
 
         elif policy == "weighted_vote":
-            # 가중치 적용
+            # Apply weights
             weights = conflict_config.get("weights", {})
             weighted_scores = {}
             for result in results:
@@ -160,7 +160,7 @@ class ReviewOrchestrator:
         return max(severities) if severities else Severity.OK
 
     def run_parallel_reviews(self, prompt: str, context: Dict[str, Any]) -> List[ReviewResult]:
-        """병렬로 LLM 리뷰 실행"""
+        """Run LLM reviews in parallel"""
         results = []
 
         if not self.adapters:
@@ -206,20 +206,20 @@ class ReviewOrchestrator:
         return results
 
     def check_override(self, session_id: str) -> bool:
-        """Override 체크"""
+        """Check override"""
         override_config = self.config.get("override", {})
         if not override_config.get("enabled", True):
             return False
 
-        # 환경 변수 체크
+        # Check environment variable
         if os.environ.get("CLAUDE_SKIP_REVIEW") == "1":
             return True
 
-        # 상태 체크
+        # Check state
         return self.state_manager.check_and_consume_override(session_id)
 
     def check_debounce(self, session_id: str, stage: str) -> bool:
-        """Debounce 체크 - True면 스킵해야 함"""
+        """Debounce check - True means should skip"""
         debounce_config = self.config.get("debounce", {})
         if not debounce_config.get("enabled", True):
             return False
@@ -231,31 +231,31 @@ class ReviewOrchestrator:
         return self.state_manager.should_debounce(session_id, stage, seconds)
 
     def build_system_message(self, results: List[ReviewResult], final_severity: Severity, stage: str) -> str:
-        """Claude에게 전달할 시스템 메시지 생성"""
+        """Generate system message for Claude"""
         if final_severity == Severity.OK:
-            return f"[자기검열-{stage}] ✅ 검토 통과"
+            return f"[Self-Review-{stage}] ✅ Review passed"
 
-        messages = [f"[자기검열-{stage}] ⚠️ {final_severity.value} 수준 이슈 발견:"]
+        messages = [f"[Self-Review-{stage}] ⚠️ {final_severity.value} level issues found:"]
 
         for result in results:
             if result.success and result.issues:
-                messages.append(f"\n### {result.adapter_name} 피드백:")
+                messages.append(f"\n### {result.adapter_name} Feedback:")
                 for issue in result.issues:
                     messages.append(f"- [{issue.severity.value}] {issue.description}")
                     if issue.suggestion:
-                        messages.append(f"  → 제안: {issue.suggestion}")
+                        messages.append(f"  → Suggestion: {issue.suggestion}")
 
         if final_severity in [Severity.CRITICAL, Severity.HIGH]:
-            messages.append("\n⚠️ 위 문제들을 수정해주세요.")
+            messages.append("\n⚠️ Please fix the above issues.")
 
         return "\n".join(messages)
 
     def orchestrate(self, stage: str, hook_input: Dict[str, Any]) -> Dict[str, Any]:
-        """메인 오케스트레이션 로직"""
+        """Main orchestration logic"""
         context = self.extract_context(hook_input)
         session_id = context["session_id"]
 
-        # Override 체크
+        # Override check
         if self.check_override(session_id):
             self.audit_logger.log({
                 "event_type": "override",
@@ -264,30 +264,30 @@ class ReviewOrchestrator:
             })
             return {
                 "decision": "continue",
-                "systemMessage": f"[자기검열-{stage}] 🔓 Override로 스킵됨"
+                "systemMessage": f"[Self-Review-{stage}] 🔓 Skipped by override"
             }
 
-        # Debounce 체크
+        # Debounce check
         if self.check_debounce(session_id, stage):
             return {
                 "decision": "continue",
-                "systemMessage": ""  # Debounce 시 메시지 없음
+                "systemMessage": ""  # No message on debounce
             }
 
-        # Debounce 시간 갱신
+        # Update debounce time
         self.state_manager.update_last_call_time(session_id, stage)
 
-        # 프롬프트 로드 및 리뷰 실행
+        # Load prompt and run review
         prompt = self.load_prompt(stage)
         results = self.run_parallel_reviews(prompt, context)
 
-        # 충돌 해결
+        # Resolve conflicts
         final_severity = self.resolve_conflict(results)
 
-        # 시스템 메시지 생성
+        # Generate system message
         system_message = self.build_system_message(results, final_severity, stage)
 
-        # 재시도 로직
+        # Retry logic
         rework_config = self.config.get("rework_settings", {})
         stage_config = self.config.get("stage_settings", {}).get(stage, {})
         max_retries = stage_config.get("max_retries", rework_config.get("max_retries", 3))
@@ -298,11 +298,11 @@ class ReviewOrchestrator:
             if retry_count < max_retries:
                 self.state_manager.increment_retry_count(session_id, stage)
                 should_continue = False
-                system_message += f"\n\n(재시도 {retry_count + 1}/{max_retries})"
+                system_message += f"\n\n(Retry {retry_count + 1}/{max_retries})"
             else:
-                system_message += f"\n\n⚠️ 최대 재시도 횟수({max_retries})에 도달. 경고와 함께 진행합니다."
+                system_message += f"\n\n⚠️ Max retry count ({max_retries}) reached. Proceeding with warning."
 
-        # 감사 로그
+        # Audit log
         self.audit_logger.log({
             "event_type": "review",
             "session_id": session_id,
@@ -319,14 +319,14 @@ class ReviewOrchestrator:
 
 
 def main():
-    """CLI 엔트리포인트"""
-    # stdin에서 입력 읽기
+    """CLI entrypoint"""
+    # Read input from stdin
     try:
         input_data = json.load(sys.stdin)
     except json.JSONDecodeError:
         print(json.dumps({
             "decision": "continue",
-            "systemMessage": "[자기검열] ⚠️ 입력 파싱 실패"
+            "systemMessage": "[Self-Review] ⚠️ Input parsing failed"
         }))
         sys.exit(0)
 
@@ -336,7 +336,7 @@ def main():
     orchestrator = ReviewOrchestrator()
     result = orchestrator.orchestrate(stage, hook_input)
 
-    # Claude Code Hook 형식으로 출력
+    # Output in Claude Code Hook format
     output = {}
     if result.get("systemMessage"):
         output["systemMessage"] = result["systemMessage"]

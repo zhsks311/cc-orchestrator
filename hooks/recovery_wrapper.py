@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
 Recovery Wrapper
-SessionStart 훅으로 동작하여 이전 세션의 컨텍스트를 자동 복구
+SessionStart hook that automatically recovers context from previous session
 
-사용법 (settings.json):
+Usage (settings.json):
 {
   "SessionStart": [
     {
@@ -30,7 +30,7 @@ LOG_FILE = HOOKS_DIR / "logs" / "recovery.log"
 
 
 def log(message: str):
-    """디버그 로그"""
+    """Debug log"""
     try:
         LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
         with open(LOG_FILE, "a", encoding="utf-8") as f:
@@ -40,7 +40,7 @@ def log(message: str):
 
 
 def main():
-    """메인 엔트리포인트"""
+    """Main entrypoint"""
     log("recovery_wrapper.py executed")
 
     try:
@@ -61,7 +61,7 @@ def main():
 
         log(f"Session start - ID: {session_id[:8] if session_id else 'unknown'}..., CWD: {cwd}")
 
-        # context_resilience 모듈 로드
+        # Load context_resilience module
         sys.path.insert(0, str(HOOKS_DIR))
         from context_resilience import get_config
         from context_resilience.auto_recovery import get_auto_recovery_engine
@@ -69,7 +69,7 @@ def main():
 
         config = get_config()
 
-        # 주기적 데이터 정리 실행 (cleanup)
+        # Run periodic data cleanup
         if config.cleanup.enabled:
             try:
                 cleanup_result = run_cleanup(force=False)
@@ -86,7 +86,7 @@ def main():
 
         engine = get_auto_recovery_engine()
 
-        # 세션 초기화 + 이전 세션 복구
+        # Initialize session + recover previous session
         result = engine.initialize_session(session_id, cwd)
 
         system_message = result.get("systemMessage", "")

@@ -65,7 +65,7 @@
     "exponential_backoff": true,
     "backoff_base_seconds": 1,
     "critical_triggers": ["security", "injection", "FAIL", "CRITICAL"],
-    "high_triggers": ["bug", "missing", "HIGH", "error", "critical"]
+    "high_triggers": ["bug", "missing", "HIGH", "error"]
   },
 
   "stage_settings": {

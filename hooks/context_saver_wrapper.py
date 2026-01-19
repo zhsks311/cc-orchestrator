@@ -56,7 +56,6 @@ def extract_todos(tool_input: Dict[str, Any]) -> list:
 def detect_decision_keywords(text: str) -> bool:
     """Detect decision-related keywords"""
     patterns = [
-        r'decided|choose|let\'s go with|approach',
         r'decided|choose|let\'s go with|approach'
     ]
     for pattern in patterns:
@@ -68,7 +67,6 @@ def detect_decision_keywords(text: str) -> bool:
 def detect_error_resolved(text: str) -> bool:
     """Detect error resolved keywords"""
     patterns = [
-        r'fixed|resolved|working now|bug.*fixed',
         r'fixed|resolved|working now|bug.*fixed'
     ]
     for pattern in patterns:

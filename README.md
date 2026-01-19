@@ -87,6 +87,7 @@ Talk to your agents naturally. They're listening. (Not in a creepy way.)
 | `together` | Teamwork makes the dream work |
 
 **Call an MCP agent:**
+
 | Mention | Who answers |
 |---------|-------------|
 | `@arch` or `@architect` | The overthinker arrives |
@@ -95,6 +96,7 @@ Talk to your agents naturally. They're listening. (Not in a creepy way.)
 | `@lens`, `@image`, `@pdf`, `@analyzer` | The visual investigator |
 
 **Native agents (use Claude Code's Task tool):**
+
 | Command | Who answers |
 |---------|-------------|
 | `Task(subagent_type="scout")` | 🔍 The speedy scout - finds files and code |

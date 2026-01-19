@@ -34,7 +34,7 @@ class AutoRecoveryEngine:
         self.manager = get_protected_context_manager()
         self.anchor_manager = get_semantic_anchor_manager()
 
-    def find_recent_session(self, current_cwd: str = None, max_age_hours: int = 336) -> Optional[str]:  # 14 days = 336 hours
+    def find_recent_session(self, current_cwd: Optional[str] = None, max_age_hours: int = 336) -> Optional[str]:  # 14 days = 336 hours
         """
         Find recent session ID
 

@@ -272,13 +272,21 @@ Helps with decision-making considering overall system quality including technica
         shouldUse: true,
         reason: 'Performance analysis needed',
       },
-      { input: 'Change the button color', shouldUse: false, reason: 'UI work is for Canvas' },
+      {
+        input: 'Change the button color',
+        shouldUse: false,
+        reason: 'UI work is for Canvas',
+      },
       {
         input: 'How to install React',
         shouldUse: false,
         reason: 'Documentation search - use Claude Code Task tool with index agent',
       },
-      { input: 'Where is this file?', shouldUse: false, reason: 'Exploration - use Claude Code Task tool with scout agent' },
+      {
+        input: 'Where is this file?',
+        shouldUse: false,
+        reason: 'Exploration - use Claude Code Task tool with scout agent',
+      },
     ],
     aliases: ['arch', 'architect'],
   },
@@ -400,7 +408,6 @@ Converts visual content to text explanations.`,
     ],
     aliases: ['lens', 'image', 'pdf', 'analyzer'],
   },
-
 };
 
 /**

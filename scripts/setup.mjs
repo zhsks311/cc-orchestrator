@@ -1019,7 +1019,7 @@ async function main() {
     console.log('      ⚠ Claude Code config update failed: ' + e.message);
   }
 
-  // 6. Generate CCO config file
+  // 7. Generate CCO config file
   console.log('[7/8] Generating CCO config file...');
   const ccoConfig = generateConfig(currentKeys);
   if (ccoConfig && saveConfig(ccoConfig)) {
@@ -1032,7 +1032,7 @@ async function main() {
     console.log('      ⚠ No API keys, config file not generated');
   }
 
-  // 7. Verify installation
+  // 8. Verify installation
   console.log('[8/8] Verifying installation...');
   const verifyResults = verifyInstallation();
   const allOk = printVerificationResults(verifyResults);

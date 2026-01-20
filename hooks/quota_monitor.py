@@ -150,10 +150,12 @@ class QuotaMonitor:
             try:
                 cooldown_end = datetime.fromisoformat(quota.cooldown_until)
             except ValueError:
-                # Invalid date format - clear cooldown
+                # Invalid date format - reset cooldown and status
                 quota.cooldown_until = None
+                quota.status = QuotaStatus.UNKNOWN
+                quota.consecutive_failures = 0
                 self._save_state()
-                return quota.status != QuotaStatus.EXHAUSTED
+                return True
             if datetime.now() < cooldown_end:
                 return False
             quota.status = QuotaStatus.UNKNOWN

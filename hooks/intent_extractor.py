@@ -25,6 +25,8 @@ class IntentExtractor:
                 - original_request: First user message (original request)
                 - combined_intent: All user messages (with token limit)
                 - message_count: Number of user messages
+                - truncated: Whether combined_intent was truncated to fit MAX_CHARS
+                - error: (optional) Error message when extraction fails
         """
         try:
             transcript = self._load_transcript(transcript_path)
@@ -99,11 +101,17 @@ class IntentExtractor:
         first = messages[0]
         remaining_chars = self.MAX_CHARS - len(first) - 100  # Buffer space
 
-        # Add messages from last in reverse order
+        # Add messages from last in reverse order, tracking running length including separators
         last_messages = []
+        running_len = 0
+        sep_len = len(self.SEPARATOR)
+
         for msg in reversed(messages[1:]):
-            if len(self.SEPARATOR.join(last_messages)) + len(msg) < remaining_chars:
+            # Calculate additional length: separator (if not first) + message
+            additional_len = (sep_len if last_messages else 0) + len(msg)
+            if running_len + additional_len < remaining_chars:
                 last_messages.insert(0, msg)
+                running_len += additional_len
             else:
                 break
 

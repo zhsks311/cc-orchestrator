@@ -90,7 +90,7 @@ class SemanticAnchorManager:
     def _generate_anchor_id(self, content: str, timestamp: str) -> str:
         """Generate anchor ID"""
         data = f"{content}{timestamp}"
-        return hashlib.md5(data.encode()).hexdigest()[:12]
+        return hashlib.sha256(data.encode()).hexdigest()[:12]
 
     def load_anchors(self, session_id: str) -> List[SemanticAnchor]:
         """Load anchor list"""

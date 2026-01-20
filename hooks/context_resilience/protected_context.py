@@ -196,7 +196,7 @@ class ProtectedContextManager:
         claude_md_path = Path(cwd) / "CLAUDE.md"
         if claude_md_path.exists():
             content = claude_md_path.read_text(encoding='utf-8')
-            return hashlib.md5(content.encode()).hexdigest()[:8]
+            return hashlib.sha256(content.encode()).hexdigest()[:8]
         return ""
 
     def delete(self, session_id: str) -> None:

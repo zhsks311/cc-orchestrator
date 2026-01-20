@@ -61,15 +61,35 @@ class StateManager:
         return state.get(stage, 0)
 
     def increment_retry_count(self, session_id: str, stage: str) -> int:
-        state = self._read_state(session_id, "retry")
-        state[stage] = state.get(stage, 0) + 1
-        self._write_state(session_id, "retry", state)
-        return state[stage]
+        """Atomic increment of retry count (read-modify-write in single lock)"""
+        path = self._get_state_path(session_id, "retry")
+        lock_path = self._get_lock_path(session_id, "retry")
+
+        with FileLock(str(lock_path)):
+            state = {}
+            if path.exists():
+                try:
+                    state = json.loads(path.read_text())
+                except json.JSONDecodeError:
+                    state = {}
+            state[stage] = state.get(stage, 0) + 1
+            path.write_text(json.dumps(state, indent=2, ensure_ascii=False))
+            return state[stage]
 
     def reset_retry_count(self, session_id: str, stage: str):
-        state = self._read_state(session_id, "retry")
-        state[stage] = 0
-        self._write_state(session_id, "retry", state)
+        """Atomic reset of retry count"""
+        path = self._get_state_path(session_id, "retry")
+        lock_path = self._get_lock_path(session_id, "retry")
+
+        with FileLock(str(lock_path)):
+            state = {}
+            if path.exists():
+                try:
+                    state = json.loads(path.read_text())
+                except json.JSONDecodeError:
+                    state = {}
+            state[stage] = 0
+            path.write_text(json.dumps(state, indent=2, ensure_ascii=False))
 
     # ===== Debounce Management =====
     def get_last_call_time(self, session_id: str, stage: str) -> Optional[float]:
@@ -77,9 +97,19 @@ class StateManager:
         return state.get(stage)
 
     def update_last_call_time(self, session_id: str, stage: str):
-        state = self._read_state(session_id, "debounce")
-        state[stage] = time.time()
-        self._write_state(session_id, "debounce", state)
+        """Atomic update of last call time"""
+        path = self._get_state_path(session_id, "debounce")
+        lock_path = self._get_lock_path(session_id, "debounce")
+
+        with FileLock(str(lock_path)):
+            state = {}
+            if path.exists():
+                try:
+                    state = json.loads(path.read_text())
+                except json.JSONDecodeError:
+                    state = {}
+            state[stage] = time.time()
+            path.write_text(json.dumps(state, indent=2, ensure_ascii=False))
 
     def should_debounce(self, session_id: str, stage: str, debounce_seconds: float) -> bool:
         """Returns True if called within debounce_seconds (should skip)"""
@@ -90,22 +120,40 @@ class StateManager:
 
     # ===== Override Management =====
     def set_override(self, session_id: str, skip_count: int = 1):
-        """Skip next N reviews"""
-        state = self._read_state(session_id, "override")
-        state["skip_count"] = skip_count
-        state["set_at"] = datetime.now().isoformat()
-        self._write_state(session_id, "override", state)
+        """Skip next N reviews (atomic)"""
+        path = self._get_state_path(session_id, "override")
+        lock_path = self._get_lock_path(session_id, "override")
+
+        with FileLock(str(lock_path)):
+            state = {}
+            if path.exists():
+                try:
+                    state = json.loads(path.read_text())
+                except json.JSONDecodeError:
+                    state = {}
+            state["skip_count"] = skip_count
+            state["set_at"] = datetime.now().isoformat()
+            path.write_text(json.dumps(state, indent=2, ensure_ascii=False))
 
     def check_and_consume_override(self, session_id: str) -> bool:
-        """Returns True if override is set and decrements count"""
-        state = self._read_state(session_id, "override")
-        skip_count = state.get("skip_count", 0)
+        """Returns True if override is set and decrements count (atomic)"""
+        path = self._get_state_path(session_id, "override")
+        lock_path = self._get_lock_path(session_id, "override")
 
-        if skip_count > 0:
-            state["skip_count"] = skip_count - 1
-            self._write_state(session_id, "override", state)
-            return True
-        return False
+        with FileLock(str(lock_path)):
+            state = {}
+            if path.exists():
+                try:
+                    state = json.loads(path.read_text())
+                except json.JSONDecodeError:
+                    state = {}
+            skip_count = state.get("skip_count", 0)
+
+            if skip_count > 0:
+                state["skip_count"] = skip_count - 1
+                path.write_text(json.dumps(state, indent=2, ensure_ascii=False))
+                return True
+            return False
 
     # ===== Todo State Management =====
     def get_todo_state(self, session_id: str) -> Dict[str, Any]:
@@ -124,18 +172,36 @@ class StateManager:
         return state.get("review_count", 0)
 
     def increment_completion_review_count(self, session_id: str) -> int:
-        """Increment completion review count"""
-        state = self._read_state(session_id, "todo")
-        state["review_count"] = state.get("review_count", 0) + 1
-        state["last_review_at"] = datetime.now().isoformat()
-        self._write_state(session_id, "todo", state)
-        return state["review_count"]
+        """Increment completion review count (atomic)"""
+        path = self._get_state_path(session_id, "todo")
+        lock_path = self._get_lock_path(session_id, "todo")
+
+        with FileLock(str(lock_path)):
+            state = {}
+            if path.exists():
+                try:
+                    state = json.loads(path.read_text())
+                except json.JSONDecodeError:
+                    state = {}
+            state["review_count"] = state.get("review_count", 0) + 1
+            state["last_review_at"] = datetime.now().isoformat()
+            path.write_text(json.dumps(state, indent=2, ensure_ascii=False))
+            return state["review_count"]
 
     def reset_completion_review_count(self, session_id: str):
-        """Reset completion review count (on new task start)"""
-        state = self._read_state(session_id, "todo")
-        state["review_count"] = 0
-        self._write_state(session_id, "todo", state)
+        """Reset completion review count (atomic)"""
+        path = self._get_state_path(session_id, "todo")
+        lock_path = self._get_lock_path(session_id, "todo")
+
+        with FileLock(str(lock_path)):
+            state = {}
+            if path.exists():
+                try:
+                    state = json.loads(path.read_text())
+                except json.JSONDecodeError:
+                    state = {}
+            state["review_count"] = 0
+            path.write_text(json.dumps(state, indent=2, ensure_ascii=False))
 
     # ===== Session Cleanup =====
     def cleanup_session(self, session_id: str):

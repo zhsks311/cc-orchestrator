@@ -1,12 +1,12 @@
 """
 Auto Recovery Engine
-Compact 후 또는 세션 시작 시 자동으로 컨텍스트 복구
+Automatically recover context after compact or session start
 
-동작 방식:
-1. 가장 최근 세션의 Protected Context 로드
-2. 활성 스킬 경로 확인
-3. 복구 메시지 생성
-4. systemMessage로 Claude에게 전달
+How it works:
+1. Load Protected Context from the most recent session
+2. Check active skill paths
+3. Generate recovery message
+4. Deliver to Claude via systemMessage
 """
 
 import os
@@ -27,21 +27,21 @@ from .config import get_config, ContextResilienceConfig
 
 
 class AutoRecoveryEngine:
-    """자동 복구 엔진"""
+    """Auto recovery engine"""
 
     def __init__(self, config: Optional[ContextResilienceConfig] = None):
         self.config = config or get_config()
         self.manager = get_protected_context_manager()
         self.anchor_manager = get_semantic_anchor_manager()
 
-    def find_recent_session(self, current_cwd: str = None, max_age_hours: int = 336) -> Optional[str]:  # 14일 = 336시간
+    def find_recent_session(self, current_cwd: Optional[str] = None, max_age_hours: int = 336) -> Optional[str]:  # 14 days = 336 hours
         """
-        최근 세션 ID 찾기
+        Find recent session ID
 
-        조건:
-        1. max_age_hours 이내에 업데이트됨
-        2. 같은 작업 디렉토리 우선 (있는 경우)
-        3. 의미있는 컨텐츠가 있는 세션만
+        Conditions:
+        1. Updated within max_age_hours
+        2. Prefer same working directory (if available)
+        3. Only sessions with meaningful content
         """
         sessions = self.manager.list_sessions()
         if not sessions:
@@ -56,7 +56,7 @@ class AutoRecoveryEngine:
             if not context:
                 continue
 
-            # 업데이트 시간 확인
+            # Check update time
             if not context.updated_at:
                 continue
             try:
@@ -66,7 +66,7 @@ class AutoRecoveryEngine:
             except ValueError:
                 continue
 
-            # 의미있는 컨텐츠가 있는지 확인
+            # Check if there's meaningful content
             has_meaningful_content = bool(
                 context.user_intent or
                 context.key_decisions or
@@ -76,7 +76,7 @@ class AutoRecoveryEngine:
             if not has_meaningful_content:
                 continue
 
-            # 작업 디렉토리 매칭 여부에 따라 분류
+            # Classify based on working directory match
             candidate = (session_id, context, updated)
             if current_cwd and context.working_directory:
                 if self._normalize_path(context.working_directory) == self._normalize_path(current_cwd):
@@ -86,11 +86,11 @@ class AutoRecoveryEngine:
             else:
                 other_candidates.append(candidate)
 
-        # updated_at 기준 내림차순 정렬 (최신 먼저)
+        # Sort by updated_at descending (newest first)
         same_cwd_candidates.sort(key=lambda x: x[2], reverse=True)
         other_candidates.sort(key=lambda x: x[2], reverse=True)
 
-        # 같은 CWD 세션 우선, 없으면 다른 세션
+        # Prefer same CWD session, otherwise other sessions
         if same_cwd_candidates:
             return same_cwd_candidates[0][0]
         if other_candidates:
@@ -98,11 +98,11 @@ class AutoRecoveryEngine:
         return None
 
     def _normalize_path(self, path: str) -> str:
-        """경로 정규화"""
+        """Normalize path"""
         return str(Path(path).resolve()).lower()
 
     def should_recover(self, session_id: str) -> bool:
-        """복구가 필요한지 확인"""
+        """Check if recovery is needed"""
         if not self.config.enabled or not self.config.auto_recover:
             return False
 
@@ -110,7 +110,7 @@ class AutoRecoveryEngine:
         if not context:
             return False
 
-        # 최소한의 정보가 있어야 복구 의미 있음
+        # Recovery only meaningful if there's minimal info
         has_meaningful_content = bool(
             context.user_intent or
             context.key_decisions or
@@ -122,10 +122,10 @@ class AutoRecoveryEngine:
 
     def recover(self, session_id: str) -> Dict[str, Any]:
         """
-        컨텍스트 복구 실행
+        Execute context recovery
 
         Returns:
-            hookSpecificOutput 형식으로 Claude에게 컨텍스트 전달
+            Deliver context to Claude in hookSpecificOutput format
         """
         if not self.should_recover(session_id):
             return {"continue": True}
@@ -134,18 +134,18 @@ class AutoRecoveryEngine:
         if not context:
             return {"continue": True}
 
-        # 복구 메시지 생성
+        # Generate recovery message
         message = self.manager.build_recovery_message(context)
 
-        # 앵커 요약 추가
+        # Add anchor summary
         anchors_summary = self.anchor_manager.build_anchors_summary(session_id, limit=10)
         if anchors_summary:
             message += "\n\n" + anchors_summary
 
-        # 길이 제한
+        # Length limit
         max_len = self.config.recovery_message_max_length
         if len(message) > max_len:
-            message = message[:max_len - 50] + "\n\n... (일부 생략됨)"
+            message = message[:max_len - 50] + "\n\n... (partially omitted)"
 
         return {
             "hookSpecificOutput": {
@@ -156,9 +156,9 @@ class AutoRecoveryEngine:
 
     def recover_for_cwd(self, cwd: str) -> Dict[str, Any]:
         """
-        현재 작업 디렉토리 기반 복구
+        Recover based on current working directory
 
-        SessionStart 훅에서 사용
+        Used in SessionStart hook
         """
         session_id = self.find_recent_session(current_cwd=cwd)
         if not session_id:
@@ -167,7 +167,7 @@ class AutoRecoveryEngine:
         return self.recover(session_id)
 
     def get_active_skills(self, session_id: str) -> List[str]:
-        """활성 스킬 경로 목록 반환"""
+        """Return list of active skill paths"""
         context = self.manager.load(session_id)
         if not context:
             return []
@@ -175,15 +175,15 @@ class AutoRecoveryEngine:
 
     def detect_skills_in_directory(self, cwd: str) -> List[str]:
         """
-        작업 디렉토리에서 스킬 파일 감지
+        Detect skill files in working directory
 
-        검색 위치:
+        Search locations:
         1. ~/.claude/skills/
         2. {cwd}/.claude/skills/
         """
         skills = []
 
-        # 글로벌 스킬
+        # Global skills
         global_skills_dir = Path("~/.claude/skills").expanduser()
         if global_skills_dir.exists():
             for skill_dir in global_skills_dir.iterdir():
@@ -192,7 +192,7 @@ class AutoRecoveryEngine:
                     if skill_md.exists():
                         skills.append(str(skill_md))
 
-        # 프로젝트 로컬 스킬
+        # Project local skills
         if cwd:
             local_skills_dir = Path(cwd) / ".claude" / "skills"
             if local_skills_dir.exists():
@@ -206,14 +206,14 @@ class AutoRecoveryEngine:
 
     def initialize_session(self, session_id: str, cwd: str) -> Dict[str, Any]:
         """
-        새 세션 초기화 + 이전 세션 복구
+        Initialize new session + recover previous session
 
-        SessionStart에서 호출
+        Called from SessionStart
         """
-        # 이전 세션 복구 시도
+        # Attempt previous session recovery
         recovery_result = self.recover_for_cwd(cwd)
 
-        # 새 세션 초기화
+        # Initialize new session
         skills = self.detect_skills_in_directory(cwd)
 
         self.manager.update(
@@ -226,7 +226,7 @@ class AutoRecoveryEngine:
         return recovery_result
 
 
-# 편의 함수
+# Convenience function
 def get_auto_recovery_engine() -> AutoRecoveryEngine:
-    """AutoRecoveryEngine 인스턴스 반환"""
+    """Return AutoRecoveryEngine instance"""
     return AutoRecoveryEngine()

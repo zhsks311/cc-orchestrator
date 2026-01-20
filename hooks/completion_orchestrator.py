@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-완료 시점 검토 오케스트레이터
-모든 TODO가 완료되면 Claude 셀프 리뷰 + 외부 LLM 검토 실행
+Completion Review Orchestrator
+Runs Claude self-review + external LLM review when all TODOs are completed
 
-사용법:
+Usage:
     echo '{"session_id": "...", "tool_input": {"todos": [...]}, ...}' | python completion_orchestrator.py
 """
 import sys
@@ -13,7 +13,7 @@ from typing import Dict, Any, List, Optional
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 
-# 모듈 경로 추가
+# Add module path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from adapters import GeminiAdapter, CopilotAdapter, ReviewResult
@@ -28,7 +28,7 @@ from debate_orchestrator import DebateOrchestrator
 
 
 class AuditLogger:
-    """감사 로그 기록"""
+    """Audit log recording"""
 
     def __init__(self, log_dir: str = "~/.claude/hooks/logs"):
         self.log_dir = Path(log_dir).expanduser()
@@ -45,7 +45,7 @@ class AuditLogger:
 
 
 class CompletionOrchestrator:
-    """완료 시점 검토 오케스트레이터"""
+    """Completion review orchestrator"""
 
     def __init__(self):
         self.config = load_config()
@@ -57,12 +57,12 @@ class CompletionOrchestrator:
         self.quota_monitor = get_quota_monitor()
         self.debate_orchestrator = DebateOrchestrator(self.config)
 
-        # 어댑터 초기화
+        # Initialize adapters
         self.self_adapter = ClaudeSelfAdapter(self.config)
         self.external_adapters = self._init_external_adapters()
 
     def _init_external_adapters(self) -> List:
-        """외부 LLM 어댑터 초기화 (쿼터 체크 포함)"""
+        """Initialize external LLM adapters (with quota check)"""
         adapters = []
         completion_config = self.config.get("completion_review", {})
 
@@ -70,7 +70,7 @@ class CompletionOrchestrator:
             return adapters
 
         enabled = self.config.get("enabled_adapters", ["gemini", "copilot"])
-        # 쿼터 사용 가능한 어댑터만 필터링
+        # Filter only adapters with available quota
         available = self.quota_monitor.get_available_adapters(enabled)
 
         if "gemini" in available:
@@ -86,10 +86,10 @@ class CompletionOrchestrator:
         return adapters
 
     def _build_context(self, hook_input: Dict[str, Any], todos: List[Dict]) -> Dict[str, Any]:
-        """컨텍스트 구축"""
+        """Build context"""
         transcript_path = hook_input.get("transcript_path")
 
-        # 의도 추출
+        # Extract intent
         intent_info = {}
         if transcript_path:
             intent_info = self.intent_extractor.extract_from_transcript(transcript_path)
@@ -104,36 +104,36 @@ class CompletionOrchestrator:
         }
 
     def _load_prompt(self, prompt_name: str) -> str:
-        """프롬프트 로드"""
+        """Load prompt"""
         prompt_path = Path("~/.claude/hooks/prompts").expanduser() / f"{prompt_name}.txt"
         if prompt_path.exists():
             return prompt_path.read_text(encoding="utf-8")
 
-        # 기본 프롬프트
-        return """당신은 시니어 소프트웨어 아키텍트입니다.
-작업 완료 상태를 검토하고 다음을 확인해주세요:
-1. 사용자 요청이 모두 구현되었는가?
-2. 빠진 기능이나 요구사항이 있는가?
-3. 요청하지 않은 불필요한 기능이 추가되었는가?
+        # Default prompt
+        return """You are a senior software architect.
+Review the completion status and verify the following:
+1. Have all user requests been implemented?
+2. Are there any missing features or requirements?
+3. Were any unnecessary features added that weren't requested?
 
-JSON 형식으로 응답해주세요:
+Please respond in JSON format:
 {
   "severity": "OK|LOW|MEDIUM|HIGH|CRITICAL",
   "issues": [{"description": "...", "severity": "...", "suggestion": "..."}]
 }"""
 
     def _run_parallel_reviews(self, context: Dict[str, Any]) -> List[ReviewResult]:
-        """병렬로 리뷰 실행 (쿼터 모니터링 포함)"""
+        """Run reviews in parallel (with quota monitoring)"""
         results = []
         completion_config = self.config.get("completion_review", {})
 
-        # 셀프 리뷰 (서브에이전트 활용)
+        # Self review (using sub-agent)
         if completion_config.get("include_self_review", True):
             self_result = self.self_adapter.review("", context)
             results.append(self_result)
 
-        # 외부 LLM 리뷰 (쿼터 체크됨)
-        # 매 호출마다 어댑터 재초기화 (쿼터 상태 반영)
+        # External LLM review (quota checked)
+        # Re-initialize adapters on each call (reflect quota status)
         self.external_adapters = self._init_external_adapters()
 
         if self.external_adapters:
@@ -141,10 +141,10 @@ JSON 형식으로 응답해주세요:
 
             full_prompt = f"""{prompt}
 
-## 사용자 원래 요청:
+## Original User Request:
 {context.get("combined_intent", "N/A")}
 
-## 완료된 작업 목록:
+## Completed Task List:
 {self._format_todos(context.get("todos", []))}
 """
 
@@ -157,7 +157,7 @@ JSON 형식으로 응답해주세요:
                     adapter = futures[future]
                     try:
                         result = future.result()
-                        # 쿼터 모니터링: 성공/실패 기록
+                        # Quota monitoring: record success/failure
                         if result.success:
                             self.quota_monitor.record_success(adapter.name)
                         else:
@@ -177,9 +177,9 @@ JSON 형식으로 응답해주세요:
         return results
 
     def _format_todos(self, todos: List[Dict]) -> str:
-        """Todo 목록 포맷팅"""
+        """Format todo list"""
         if not todos:
-            return "(없음)"
+            return "(None)"
 
         lines = []
         for i, todo in enumerate(todos, 1):
@@ -196,21 +196,21 @@ JSON 형식으로 응답해주세요:
         context: Dict[str, Any],
         debate_result: Optional['DebateRound'] = None
     ) -> Dict[str, Any]:
-        """출력 생성 (조건부 블록 로직)"""
-        from debate_orchestrator import DebateRound  # Type hint용
+        """Generate output (conditional block logic)"""
+        from debate_orchestrator import DebateRound  # For type hint
 
         messages = []
 
-        # 셀프 리뷰 메시지 (Claude에게 검토 요청)
+        # Self review message (request review from Claude)
         for r in results:
             if r.is_self_review:
                 messages.append(r.raw_response)
 
-        # 외부 LLM 결과
+        # External LLM results
         external_results = [r for r in results if not r.is_self_review and r.success]
         final_severity = Severity.OK
 
-        # 토론이 있었으면 토론 결과의 severity 사용
+        # If debate occurred, use debate result's severity
         if debate_result and debate_result.final_severity:
             final_severity = debate_result.final_severity
             messages.append(self.debate_orchestrator.format_debate_result(debate_result))
@@ -218,20 +218,20 @@ JSON 형식으로 응답해주세요:
             final_severity = max((r.severity for r in external_results), default=Severity.OK)
 
             if final_severity != Severity.OK:
-                messages.append(f"\n### 외부 LLM 검토 결과 ({final_severity.value}):")
+                messages.append(f"\n### External LLM Review Result ({final_severity.value}):")
                 for r in external_results:
                     if r.issues:
                         messages.append(f"\n**{r.adapter_name}**:")
                         for issue in r.issues:
                             messages.append(f"- [{issue.severity.value}] {issue.description}")
                             if issue.suggestion:
-                                messages.append(f"  → 제안: {issue.suggestion}")
+                                messages.append(f"  → Suggestion: {issue.suggestion}")
 
-        # 조건부 블록: CRITICAL만 블록, 나머지는 경고만
+        # Conditional block: Only CRITICAL blocks, others just warn
         should_block = final_severity == Severity.CRITICAL
 
         if should_block:
-            messages.append("\n⛔ **CRITICAL 이슈 발견**: 작업이 블록되었습니다. 위 문제를 해결한 후 다시 시도해주세요.")
+            messages.append("\n⛔ **CRITICAL issue found**: Task blocked. Please resolve the above issues and try again.")
 
         return {
             "continue": not should_block,
@@ -239,18 +239,18 @@ JSON 형식으로 응답해주세요:
         }
 
     def orchestrate(self, hook_input: Dict[str, Any]) -> Dict[str, Any]:
-        """메인 오케스트레이션"""
+        """Main orchestration"""
         session_id = hook_input.get("session_id", "unknown")
         todos = hook_input.get("tool_input", {}).get("todos", [])
 
-        # 1. 완료 상태 확인
+        # 1. Check completion status
         todo_state = self.todo_detector.detect_completion(session_id, todos)
 
         if not todo_state.just_completed:
-            # 방금 완료된 게 아니면 스킵
+            # Skip if not just completed
             return {"continue": True, "systemMessage": ""}
 
-        # 2. 검토 횟수 확인 (무한 루프 방지)
+        # 2. Check review count (prevent infinite loop)
         completion_config = self.config.get("completion_review", {})
         max_reviews = completion_config.get("max_reviews", 3)
         review_count = self.state_manager.get_completion_review_count(session_id)
@@ -263,18 +263,18 @@ JSON 형식으로 응답해주세요:
             })
             return {
                 "continue": True,
-                "systemMessage": f"[완료검토] 최대 검토 횟수({max_reviews})에 도달. 진행합니다."
+                "systemMessage": f"[Completion Review] Max review count ({max_reviews}) reached. Proceeding."
             }
 
         self.state_manager.increment_completion_review_count(session_id)
 
-        # 3. 컨텍스트 구축
+        # 3. Build context
         context = self._build_context(hook_input, todos)
 
-        # 4. 병렬 리뷰 실행
+        # 4. Run parallel reviews
         results = self._run_parallel_reviews(context)
 
-        # 4.5. 토론 필요 여부 확인 및 실행
+        # 4.5. Check if debate is needed and run
         debate_result = None
         external_results = [r for r in results if not r.is_self_review and r.success]
 
@@ -282,7 +282,7 @@ JSON 형식으로 응답해주세요:
             needs_debate, reason = self.debate_orchestrator.needs_debate(external_results)
 
             if needs_debate:
-                # 토론 실행
+                # Run debate
                 debate_result = self.debate_orchestrator.run_debate(
                     adapters=self.external_adapters,
                     initial_results=external_results,
@@ -290,11 +290,11 @@ JSON 형식으로 응답해주세요:
                     context=context
                 )
 
-                # 토론 결과로 외부 LLM 결과 교체
+                # Replace external LLM results with debate results
                 self_results = [r for r in results if r.is_self_review]
                 results = self_results + debate_result.results
 
-        # 5. 감사 로그 (쿼터 상태 + 토론 정보 포함)
+        # 5. Audit log (including quota status + debate info)
         audit_data = {
             "event_type": "completion_review",
             "session_id": session_id,
@@ -316,18 +316,18 @@ JSON 형식으로 응답해주세요:
 
         self.audit_logger.log(audit_data)
 
-        # 6. 출력 생성
+        # 6. Generate output
         return self._build_output(results, context, debate_result)
 
 
 def main():
-    """CLI 엔트리포인트"""
+    """CLI entrypoint"""
     try:
         input_data = json.load(sys.stdin)
     except json.JSONDecodeError:
         print(json.dumps({
             "continue": True,
-            "systemMessage": "[완료검토] 입력 파싱 실패"
+            "systemMessage": "[Completion Review] Input parsing failed"
         }))
         sys.exit(0)
 

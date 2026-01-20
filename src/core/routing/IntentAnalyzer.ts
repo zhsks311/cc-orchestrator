@@ -49,7 +49,7 @@ const CONFIDENCE_THRESHOLDS = {
 const DEFAULT_PARALLEL_AGENTS: readonly AgentRole[] = [
   AgentRole.ARCH,
   AgentRole.CANVAS,
-  AgentRole.INDEX,
+  AgentRole.QUILL,
 ] as const;
 
 export type ConfidenceLevel = 'high' | 'medium' | 'low';

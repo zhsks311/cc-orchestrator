@@ -55,45 +55,6 @@ Action Steps:
 - Do not use for trivial decisions (variable names, formatting)
 - No speculation - read the code and respond`;
 
-const INDEX_PROMPT = `You are an expert in understanding and analyzing open-source codebases.
-
-## Role
-- Library usage, implementation principles, example search
-- Official documentation and GitHub code analysis
-- Provide evidence (sources) for all claims
-
-## Request Classification (Perform First)
-
-| Type | Description | Required Action |
-|------|-------------|-----------------|
-| TYPE A | Conceptual questions | Documentation + web search |
-| TYPE B | Implementation details | Code analysis + permalinks |
-| TYPE C | Context/History | Issues/PRs + git log |
-| TYPE D | Comprehensive questions | All sources in parallel |
-
-## Behavioral Guidelines
-
-### 1. Parallel Execution Principle
-- TYPE A: 3+ parallel searches
-- TYPE B: 4+ parallel code analyses
-- TYPE C: 4+ parallel history investigations
-- TYPE D: 6+ all tools in parallel
-
-### 2. Evidence-Based Responses
-- Sources required for all claims
-- Include code permalinks when possible
-- No speculation - state "needs verification" if no evidence
-
-### 3. Use Current Year
-- Search based on 2025
-- Specify version for outdated information
-
-## Constraints (Prohibited)
-- Do not mention tool names ("used grep" -> "searched codebase")
-- No preambles ("I'll help you" -> direct answer)
-- No claims without evidence
-- No uncritical use of outdated info (pre-2024)`;
-
 const CANVAS_PROMPT = `You are a frontend developer with design sensibility.
 
 ## Role
@@ -205,77 +166,11 @@ const LENS_PROMPT = `You are a media file analysis expert.
 - Files requiring editing
 - Preambles ("I'll analyze this")`;
 
-const SCOUT_PROMPT = `You are an expert in codebase exploration and understanding.
-
-## Role
-- Understand and explain project structure
-- Find file/function/class locations
-- Track code flow and dependencies
-- Fast and accurate code search
-
-## Core Principles
-
-### 1. Efficient Exploration
-- From broad to narrow search
-- First understand file patterns with Glob
-- Search keywords with Grep
-- Verify details with Read
-
-### 2. Structural Understanding
-- Understand directory structure
-- Identify entry points
-- Understand inter-module dependencies
-- Distinguish core files vs auxiliary files
-
-### 3. Fast Response
-- Minimize unnecessary explanations
-- Provide only requested information
-- Specify file paths and line numbers
-
-## Exploration Patterns
-
-### Finding Files
-1. Pattern matching with Glob
-2. Narrow by directory if too many results
-3. Direct Read if filename is clear
-
-### Finding Code
-1. Keyword search with Grep
-2. Search function/class/variable names
-3. Track import/export
-
-### Tracking Flow
-1. Start from entry point
-2. Follow call chain
-3. Understand data flow
-
-## Response Format
-
-### File Location Questions
-File path: [path]
-Purpose: [one-line description]
-
-### Structure Questions
-[directory/file tree]
-Key files: [list]
-
-### Code Location Questions
-File: [path]:[line number]
-Context: [relevant code snippet]
-
-## Constraints (Prohibited)
-- Code modification/generation (exploration only)
-- Verbose explanations (be concise)
-- Speculation (state if not found)
-- External resource search (codebase only)`;
-
 const ROLE_PROMPTS: Record<AgentRole, string> = {
   [AgentRole.ARCH]: ARCH_PROMPT,
   [AgentRole.CANVAS]: CANVAS_PROMPT,
-  [AgentRole.INDEX]: INDEX_PROMPT,
   [AgentRole.QUILL]: QUILL_PROMPT,
   [AgentRole.LENS]: LENS_PROMPT,
-  [AgentRole.SCOUT]: SCOUT_PROMPT,
 };
 
 export function getSystemPromptForRole(role: AgentRole): string {
@@ -288,14 +183,10 @@ export function getRoleDescription(role: AgentRole): string {
       return 'Architecture design, strategic decision-making, code review';
     case AgentRole.CANVAS:
       return 'UI/UX design, frontend implementation';
-    case AgentRole.INDEX:
-      return 'Documentation search, codebase analysis, implementation research';
     case AgentRole.QUILL:
       return 'Technical documentation, README, API docs';
     case AgentRole.LENS:
       return 'Image, PDF analysis';
-    case AgentRole.SCOUT:
-      return 'Codebase exploration, file/function search, structure analysis';
     default:
       return 'Unknown role';
   }
@@ -381,70 +272,23 @@ Helps with decision-making considering overall system quality including technica
         shouldUse: true,
         reason: 'Performance analysis needed',
       },
-      { input: 'Change the button color', shouldUse: false, reason: 'UI work is for Canvas' },
+      {
+        input: 'Change the button color',
+        shouldUse: false,
+        reason: 'UI work is for Canvas',
+      },
       {
         input: 'How to install React',
         shouldUse: false,
-        reason: 'Documentation search is for Index',
+        reason: 'Documentation search - use Claude Code Task tool with index agent',
       },
-      { input: 'Where is this file?', shouldUse: false, reason: 'Exploration is for Scout' },
+      {
+        input: 'Where is this file?',
+        shouldUse: false,
+        reason: 'Exploration - use Claude Code Task tool with scout agent',
+      },
     ],
     aliases: ['arch', 'architect'],
-  },
-
-  [AgentRole.INDEX]: {
-    role: AgentRole.INDEX,
-    name: 'Index',
-    model: 'Claude Sonnet 4.5',
-    cost: 'CHEAP',
-    description: `Library and framework research specialist.
-Searches and analyzes official documentation, GitHub code, and implementation examples.
-Provides sources for all claims and guides on latest best practices.`,
-    expertise: [
-      'Library/framework usage',
-      'Official documentation search and interpretation',
-      'Implementation examples and patterns research',
-      'API reference analysis',
-      'Dependency and compatibility verification',
-      'Best practices and anti-patterns research',
-    ],
-    useWhen: [
-      'When unsure about library usage',
-      'When curious about framework best practices',
-      'When wanting to understand external API behavior',
-      'When looking for implementation examples',
-      'When checking latest version changes',
-    ],
-    avoidWhen: [
-      'Internal project code analysis',
-      'Already known content',
-      'When actual implementation is needed, not docs',
-    ],
-    examples: [
-      { input: 'How to use React useEffect', shouldUse: true, reason: 'Library usage question' },
-      {
-        input: 'Does Express middleware order matter?',
-        shouldUse: true,
-        reason: 'Framework behavior',
-      },
-      { input: 'How to do transactions in Prisma?', shouldUse: true, reason: 'ORM usage' },
-      {
-        input: 'zod vs yup - which is better?',
-        shouldUse: true,
-        reason: 'Library comparison analysis',
-      },
-      {
-        input: 'Explain our project structure',
-        shouldUse: false,
-        reason: 'Internal code is for Scout',
-      },
-      {
-        input: 'Is this architecture okay?',
-        shouldUse: false,
-        reason: 'Design judgment is for Arch',
-      },
-    ],
-    aliases: ['index', 'researcher'],
   },
 
   [AgentRole.CANVAS]: {
@@ -563,47 +407,6 @@ Converts visual content to text explanations.`,
       { input: 'Read this code file', shouldUse: false, reason: 'Text files can be read directly' },
     ],
     aliases: ['lens', 'image', 'pdf', 'analyzer'],
-  },
-
-  [AgentRole.SCOUT]: {
-    role: AgentRole.SCOUT,
-    name: 'Scout',
-    model: 'Claude Code (Free)',
-    cost: 'FREE',
-    description: `Codebase exploration expert.
-Quickly and accurately understands project structure, finds file/function locations, and tracks dependencies.
-Free to use and optimized for codebase understanding.`,
-    expertise: [
-      'Project structure understanding',
-      'Finding file/function/class locations',
-      'Code flow tracking',
-      'Dependency analysis',
-      'Fast code search',
-    ],
-    useWhen: [
-      'When finding file or function locations',
-      'When understanding project structure',
-      'When tracking code flow',
-      'When checking dependencies',
-      'When fast search is needed',
-    ],
-    avoidWhen: [
-      'Code modification or generation',
-      'External documentation search',
-      'Architecture decision-making',
-    ],
-    examples: [
-      { input: 'Where is this function?', shouldUse: true, reason: 'Location finding' },
-      {
-        input: 'Show me the project structure',
-        shouldUse: true,
-        reason: 'Structure understanding',
-      },
-      { input: 'Find where this class is used', shouldUse: true, reason: 'Reference tracking' },
-      { input: 'Modify this code', shouldUse: false, reason: 'Cannot modify' },
-      { input: 'How to use React', shouldUse: false, reason: 'External docs are for Index' },
-    ],
-    aliases: ['scout', 'explore', 'search', 'find'],
   },
 };
 

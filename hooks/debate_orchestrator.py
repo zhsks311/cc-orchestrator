@@ -1,12 +1,12 @@
 """
 LLM Debate Orchestrator
-이견 발생 시 토론을 통해 합의 도출
+Reach consensus through debate when disagreements occur
 
-동작 방식:
-1. 1차 라운드: 각 LLM 독립 리뷰
-2. 조건 확인: 이견 or HIGH+ 발견
-3. 2차 라운드: 상대 의견 공유 → 재검토
-4. 합의 도출 또는 가중 투표
+How it works:
+1. Round 1: Each LLM reviews independently
+2. Check conditions: Disagreement or HIGH+ severity found
+3. Round 2: Share other opinions -> Re-evaluate
+4. Reach consensus or weighted voting
 """
 import json
 from typing import Dict, Any, List, Optional, Tuple
@@ -17,7 +17,7 @@ from adapters.base import LLMAdapter, ReviewResult, Severity, Issue
 
 @dataclass
 class DebateRound:
-    """토론 라운드 결과"""
+    """Debate round result"""
     round_num: int
     results: List[ReviewResult]
     consensus_reached: bool
@@ -25,7 +25,7 @@ class DebateRound:
 
 
 class DebateOrchestrator:
-    """LLM 토론 오케스트레이터"""
+    """LLM debate orchestrator"""
 
     def __init__(self, config: Dict[str, Any]):
         self.config = config
@@ -36,7 +36,7 @@ class DebateOrchestrator:
         self.trigger_on_high = debate_config.get("trigger_on_high_severity", True)
 
     def needs_debate(self, results: List[ReviewResult]) -> Tuple[bool, str]:
-        """토론 필요 여부 판단"""
+        """Determine if debate is needed"""
         if not self.enabled:
             return False, "debate disabled"
 
@@ -46,16 +46,16 @@ class DebateOrchestrator:
 
         severities = [r.severity for r in successful]
 
-        # 조건 1: HIGH+ 발견
+        # Condition 1: HIGH+ severity found
         if self.trigger_on_high:
             if any(s in [Severity.HIGH, Severity.CRITICAL] for s in severities):
                 return True, "high severity found"
 
-        # 조건 2: 심각도 불일치 (2개 이상 결과가 있을 때)
+        # Condition 2: Severity disagreement (when 2+ results exist)
         if self.trigger_on_disagreement and len(severities) >= 2:
             severity_levels = set(severities)
             if len(severity_levels) > 1:
-                # 2단계 이상 차이 (예: OK vs HIGH)
+                # 2+ level difference (e.g., OK vs HIGH)
                 ordered = [Severity.OK, Severity.LOW, Severity.MEDIUM, Severity.HIGH, Severity.CRITICAL]
                 indices = [ordered.index(s) for s in severities]
                 if max(indices) - min(indices) >= 2:
@@ -69,36 +69,36 @@ class DebateOrchestrator:
         other_results: List[ReviewResult],
         round_num: int
     ) -> str:
-        """토론 프롬프트 생성"""
+        """Build debate prompt"""
         others_opinion = self._format_others_opinions(other_results)
 
-        return f"""## 코드 리뷰 토론 - Round {round_num}
+        return f"""## Code Review Debate - Round {round_num}
 
-다른 리뷰어의 의견을 검토하고 최종 판단을 내려주세요.
+Review other reviewers' opinions and make your final judgment.
 
-### 다른 리뷰어 의견:
+### Other Reviewers' Opinions:
 {others_opinion}
 
-### 원래 리뷰 요청:
+### Original Review Request:
 {original_prompt}
 
-### 지침:
-1. 다른 리뷰어의 의견을 신중히 검토하세요
-2. 동의하면 그 이유를, 반대하면 근거를 제시하세요
-3. 최종 severity와 이슈 목록을 결정하세요
-4. 새로운 이슈를 발견했다면 추가하세요
+### Instructions:
+1. Carefully review other reviewers' opinions
+2. If you agree, explain why; if you disagree, provide evidence
+3. Determine the final severity and issue list
+4. Add any new issues you discover
 
-### 응답 형식:
+### Response Format:
 ```json
 {{
   "severity": "OK|LOW|MEDIUM|HIGH|CRITICAL",
   "agree_with_others": true/false,
-  "reasoning": "동의/반대 이유",
+  "reasoning": "Reason for agreement/disagreement",
   "issues": [
     {{
-      "description": "문제 설명",
+      "description": "Issue description",
       "severity": "...",
-      "suggestion": "수정 제안"
+      "suggestion": "Fix suggestion"
     }}
   ]
 }}
@@ -106,7 +106,7 @@ class DebateOrchestrator:
 """
 
     def _format_others_opinions(self, results: List[ReviewResult]) -> str:
-        """다른 리뷰어 의견 포맷팅"""
+        """Format other reviewers' opinions"""
         parts = []
         for r in results:
             parts.append(f"**{r.adapter_name}** (Severity: {r.severity.value}):")
@@ -114,9 +114,9 @@ class DebateOrchestrator:
                 for issue in r.issues:
                     parts.append(f"  - [{issue.severity.value}] {issue.description}")
                     if issue.suggestion:
-                        parts.append(f"    → 제안: {issue.suggestion}")
+                        parts.append(f"    → Suggestion: {issue.suggestion}")
             else:
-                parts.append("  (이슈 없음)")
+                parts.append("  (No issues)")
             parts.append("")
         return "\n".join(parts)
 
@@ -127,14 +127,14 @@ class DebateOrchestrator:
         original_prompt: str,
         context: Dict[str, Any]
     ) -> DebateRound:
-        """토론 실행"""
+        """Run debate"""
         current_results = initial_results.copy()
 
-        for round_num in range(2, self.max_rounds + 2):  # 2라운드부터 시작
+        for round_num in range(2, self.max_rounds + 2):  # Start from round 2
             new_results = []
 
             for adapter in adapters:
-                # 해당 어댑터 이외의 결과를 보여줌
+                # Show results from other adapters
                 other_results = [r for r in current_results if r.adapter_name != adapter.name]
 
                 if not other_results:
@@ -152,7 +152,7 @@ class DebateOrchestrator:
 
             current_results = new_results
 
-            # 합의 확인
+            # Check consensus
             consensus, final_severity = self._check_consensus(current_results)
             if consensus:
                 return DebateRound(
@@ -162,7 +162,7 @@ class DebateOrchestrator:
                     final_severity=final_severity
                 )
 
-        # 합의 실패 → 가중 투표
+        # Consensus failed -> weighted voting
         final_severity = self._weighted_vote(current_results)
         return DebateRound(
             round_num=self.max_rounds + 1,
@@ -172,7 +172,7 @@ class DebateOrchestrator:
         )
 
     def _check_consensus(self, results: List[ReviewResult]) -> Tuple[bool, Optional[Severity]]:
-        """합의 확인"""
+        """Check consensus"""
         successful = [r for r in results if r.success]
         if not successful:
             return False, None
@@ -180,21 +180,21 @@ class DebateOrchestrator:
         severities = [r.severity for r in successful]
         unique = set(severities)
 
-        # 모두 같은 severity면 합의
+        # Consensus if all have same severity
         if len(unique) == 1:
             return True, severities[0]
 
-        # 1단계 차이까지는 합의로 간주 (예: LOW와 MEDIUM)
+        # Consider consensus if difference is within 1 level (e.g., LOW and MEDIUM)
         ordered = [Severity.OK, Severity.LOW, Severity.MEDIUM, Severity.HIGH, Severity.CRITICAL]
         indices = [ordered.index(s) for s in severities]
         if max(indices) - min(indices) <= 1:
-            # 더 높은 쪽으로 합의
+            # Consensus to the higher level
             return True, ordered[max(indices)]
 
         return False, None
 
     def _weighted_vote(self, results: List[ReviewResult]) -> Severity:
-        """가중 투표로 최종 결정"""
+        """Final decision by weighted voting"""
         weights = self.config.get("conflict_resolution", {}).get("weights", {})
 
         severity_scores = {
@@ -221,17 +221,17 @@ class DebateOrchestrator:
 
         avg_score = weighted_score / total_weight
 
-        # 반올림하여 severity 결정
+        # Round to determine severity
         score_to_severity = {v: k for k, v in severity_scores.items()}
         rounded_score = round(avg_score)
         return score_to_severity.get(rounded_score, Severity.MEDIUM)
 
     def format_debate_result(self, debate_round: DebateRound) -> str:
-        """토론 결과 포맷팅"""
+        """Format debate result"""
         parts = [
-            f"\n### 🗣️ LLM 토론 결과 (Round {debate_round.round_num})",
-            f"합의 도달: {'✅ 예' if debate_round.consensus_reached else '❌ 아니오 (가중 투표)'}",
-            f"최종 Severity: **{debate_round.final_severity.value}**",
+            f"\n### 🗣️ LLM Debate Result (Round {debate_round.round_num})",
+            f"Consensus reached: {'✅ Yes' if debate_round.consensus_reached else '❌ No (weighted voting)'}",
+            f"Final Severity: **{debate_round.final_severity.value}**",
             ""
         ]
 
@@ -239,7 +239,7 @@ class DebateOrchestrator:
             if r.success:
                 parts.append(f"**{r.adapter_name}**: {r.severity.value}")
                 if r.issues:
-                    for issue in r.issues[:3]:  # 최대 3개
+                    for issue in r.issues[:3]:  # Max 3
                         parts.append(f"  - {issue.description}")
 
         return "\n".join(parts)

@@ -42,7 +42,7 @@
 
   "override": {
     "enabled": true,
-    "keywords": ["/review-skip", "검열 스킵"],
+    "keywords": ["/review-skip", "skip review"],
     "require_audit_log": true
   },
 
@@ -65,7 +65,7 @@
     "exponential_backoff": true,
     "backoff_base_seconds": 1,
     "critical_triggers": ["security", "injection", "FAIL", "CRITICAL"],
-    "high_triggers": ["버그", "bug", "누락", "missing", "HIGH"]
+    "high_triggers": ["bug", "missing", "HIGH", "error"]
   },
 
   "stage_settings": {

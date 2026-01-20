@@ -1,8 +1,8 @@
 """
 Gemini API Adapter (v2)
-- REST API 직접 호출 (CLI 대체)
-- 무료 티어: 1500 requests/day
-- 모델: gemini-1.5-flash (빠르고 저렴)
+- Direct REST API call (CLI alternative)
+- Free tier: 1500 requests/day
+- Model: gemini-2.5-flash-lite (fast and cheap)
 """
 import os
 import sys
@@ -16,7 +16,7 @@ import urllib.error
 from typing import Dict, Any, Optional
 from pathlib import Path
 
-# certifi는 선택적 (Windows에서 없을 수 있음)
+# certifi is optional (may not be available on Windows)
 try:
     import certifi
     HAS_CERTIFI = True
@@ -25,7 +25,7 @@ except ImportError:
 
 from .base import LLMAdapter, ReviewResult, Severity
 
-# API Key Loader 임포트 (상위 디렉토리에서)
+# Import API Key Loader (from parent directory)
 sys.path.insert(0, str(Path(__file__).parent.parent))
 try:
     from api_key_loader import get_api_key
@@ -35,7 +35,7 @@ except ImportError:
 
 
 class GeminiAdapter(LLMAdapter):
-    """Gemini API를 사용한 리뷰 어댑터 (v2)"""
+    """Review adapter using Gemini API (v2)"""
 
     API_BASE = "https://generativelanguage.googleapis.com/v1beta"
     DEFAULT_MODEL = "gemini-2.5-flash-lite"
@@ -44,7 +44,7 @@ class GeminiAdapter(LLMAdapter):
         super().__init__("gemini", config)
         gemini_config = config.get("gemini", {})
 
-        # API 키: config > api_key_loader > 환경변수 순서로 시도
+        # API key: try config > api_key_loader > env var in order
         config_key = gemini_config.get("api_key", "")
         if config_key and not config_key.startswith("${"):
             self.api_key = config_key
@@ -53,11 +53,11 @@ class GeminiAdapter(LLMAdapter):
 
         self.model = gemini_config.get("model", self.DEFAULT_MODEL)
         self.use_api = gemini_config.get("use_api", True)
-        # CLI 폴백용
+        # For CLI fallback
         self.cli_path = shutil.which("gemini")
 
     def is_available(self) -> bool:
-        """API 키 또는 CLI 사용 가능 여부"""
+        """Check if API key or CLI is available"""
         if self.use_api and self.api_key:
             return True
         return self.cli_path is not None
@@ -77,7 +77,7 @@ class GeminiAdapter(LLMAdapter):
         full_prompt = self._build_prompt(prompt, context)
 
         try:
-            # API 우선, CLI 폴백
+            # API first, CLI fallback
             if self.use_api and self.api_key:
                 response = self._call_api(full_prompt)
             else:
@@ -123,7 +123,7 @@ class GeminiAdapter(LLMAdapter):
             )
 
     def _call_api(self, prompt: str) -> Optional[str]:
-        """Gemini REST API 직접 호출"""
+        """Call Gemini REST API directly"""
         url = f"{self.API_BASE}/models/{self.model}:generateContent?key={self.api_key}"
 
         payload = {
@@ -143,7 +143,7 @@ class GeminiAdapter(LLMAdapter):
             headers={"Content-Type": "application/json"}
         )
 
-        # SSL 컨텍스트 설정 (macOS/Windows 인증서 문제 해결)
+        # SSL context setup (fix macOS/Windows certificate issues)
         try:
             if HAS_CERTIFI:
                 ssl_context = ssl.create_default_context(cafile=certifi.where())
@@ -154,7 +154,7 @@ class GeminiAdapter(LLMAdapter):
 
         with urllib.request.urlopen(req, timeout=self.timeout, context=ssl_context) as response:
             result = json.loads(response.read().decode('utf-8'))
-            # Gemini API 응답 구조: candidates[0].content.parts[0].text
+            # Gemini API response structure: candidates[0].content.parts[0].text
             candidates = result.get("candidates", [])
             if candidates:
                 parts = candidates[0].get("content", {}).get("parts", [])
@@ -163,7 +163,7 @@ class GeminiAdapter(LLMAdapter):
             return None
 
     def _call_cli(self, prompt: str) -> Optional[str]:
-        """Gemini CLI 폴백"""
+        """Gemini CLI fallback"""
         result = subprocess.run(
             [self.cli_path, "-p", prompt],
             capture_output=True,
@@ -175,33 +175,33 @@ class GeminiAdapter(LLMAdapter):
         return result.stdout
 
     def _build_prompt(self, base_prompt: str, context: Dict[str, Any]) -> str:
-        """컨텍스트 정보를 포함한 프롬프트 생성"""
+        """Build prompt with context info"""
         parts = [base_prompt]
 
         if context.get("file_path"):
-            parts.append(f"\n## 파일 경로\n{context['file_path']}")
+            parts.append(f"\n## File Path\n{context['file_path']}")
 
         if context.get("diff"):
-            parts.append(f"\n## 변경 내용\n```\n{context['diff']}\n```")
+            parts.append(f"\n## Changes\n```\n{context['diff']}\n```")
 
         if context.get("code"):
-            parts.append(f"\n## 코드\n```\n{context['code']}\n```")
+            parts.append(f"\n## Code\n```\n{context['code']}\n```")
 
         if context.get("user_request"):
-            parts.append(f"\n## 사용자 요청\n{context['user_request']}")
+            parts.append(f"\n## User Request\n{context['user_request']}")
 
         parts.append("""
-## 응답 형식
-반드시 아래 JSON 형식으로 응답하세요:
+## Response Format
+You must respond in the following JSON format:
 ```json
 {
   "severity": "OK|LOW|MEDIUM|HIGH|CRITICAL",
   "issues": [
     {
-      "description": "문제 설명",
+      "description": "Issue description",
       "severity": "OK|LOW|MEDIUM|HIGH|CRITICAL",
-      "location": "파일:라인 (옵션)",
-      "suggestion": "수정 제안 (옵션)"
+      "location": "file:line (optional)",
+      "suggestion": "Fix suggestion (optional)"
     }
   ]
 }

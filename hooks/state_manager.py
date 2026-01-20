@@ -1,9 +1,10 @@
 """
-상태 관리 모듈 - 세션별 재시도 횟수, debounce, override 상태 관리
-filelock을 사용하여 race condition 방지
+State Management Module - Per-session retry count, debounce, override state management
+Uses filelock to prevent race conditions
 """
 import json
 import os
+import sys
 import time
 from pathlib import Path
 from typing import Optional, Dict, Any
@@ -11,8 +12,13 @@ from datetime import datetime
 
 try:
     from filelock import FileLock
+    _FILELOCK_AVAILABLE = True
 except ImportError:
-    # filelock 없으면 간단한 fallback
+    _FILELOCK_AVAILABLE = False
+    print("[state_manager] Warning: filelock not installed. Concurrent access may cause issues. "
+          "Install with: pip install filelock", file=sys.stderr)
+
+    # Simple fallback if filelock not available
     class FileLock:
         def __init__(self, path): pass
         def __enter__(self): return self
@@ -49,91 +55,157 @@ class StateManager:
         with FileLock(str(lock_path)):
             path.write_text(json.dumps(data, indent=2, ensure_ascii=False))
 
-    # ===== Retry Count 관리 =====
+    # ===== Retry Count Management =====
     def get_retry_count(self, session_id: str, stage: str) -> int:
         state = self._read_state(session_id, "retry")
         return state.get(stage, 0)
 
     def increment_retry_count(self, session_id: str, stage: str) -> int:
-        state = self._read_state(session_id, "retry")
-        state[stage] = state.get(stage, 0) + 1
-        self._write_state(session_id, "retry", state)
-        return state[stage]
+        """Atomic increment of retry count (read-modify-write in single lock)"""
+        path = self._get_state_path(session_id, "retry")
+        lock_path = self._get_lock_path(session_id, "retry")
+
+        with FileLock(str(lock_path)):
+            state = {}
+            if path.exists():
+                try:
+                    state = json.loads(path.read_text())
+                except json.JSONDecodeError:
+                    state = {}
+            state[stage] = state.get(stage, 0) + 1
+            path.write_text(json.dumps(state, indent=2, ensure_ascii=False))
+            return state[stage]
 
     def reset_retry_count(self, session_id: str, stage: str):
-        state = self._read_state(session_id, "retry")
-        state[stage] = 0
-        self._write_state(session_id, "retry", state)
+        """Atomic reset of retry count"""
+        path = self._get_state_path(session_id, "retry")
+        lock_path = self._get_lock_path(session_id, "retry")
 
-    # ===== Debounce 관리 =====
+        with FileLock(str(lock_path)):
+            state = {}
+            if path.exists():
+                try:
+                    state = json.loads(path.read_text())
+                except json.JSONDecodeError:
+                    state = {}
+            state[stage] = 0
+            path.write_text(json.dumps(state, indent=2, ensure_ascii=False))
+
+    # ===== Debounce Management =====
     def get_last_call_time(self, session_id: str, stage: str) -> Optional[float]:
         state = self._read_state(session_id, "debounce")
         return state.get(stage)
 
     def update_last_call_time(self, session_id: str, stage: str):
-        state = self._read_state(session_id, "debounce")
-        state[stage] = time.time()
-        self._write_state(session_id, "debounce", state)
+        """Atomic update of last call time"""
+        path = self._get_state_path(session_id, "debounce")
+        lock_path = self._get_lock_path(session_id, "debounce")
+
+        with FileLock(str(lock_path)):
+            state = {}
+            if path.exists():
+                try:
+                    state = json.loads(path.read_text())
+                except json.JSONDecodeError:
+                    state = {}
+            state[stage] = time.time()
+            path.write_text(json.dumps(state, indent=2, ensure_ascii=False))
 
     def should_debounce(self, session_id: str, stage: str, debounce_seconds: float) -> bool:
-        """debounce_seconds 내에 호출이 있었으면 True (스킵해야 함)"""
+        """Returns True if called within debounce_seconds (should skip)"""
         last_call = self.get_last_call_time(session_id, stage)
         if last_call is None:
             return False
         return (time.time() - last_call) < debounce_seconds
 
-    # ===== Override 관리 =====
+    # ===== Override Management =====
     def set_override(self, session_id: str, skip_count: int = 1):
-        """다음 N번의 검열을 스킵"""
-        state = self._read_state(session_id, "override")
-        state["skip_count"] = skip_count
-        state["set_at"] = datetime.now().isoformat()
-        self._write_state(session_id, "override", state)
+        """Skip next N reviews (atomic)"""
+        path = self._get_state_path(session_id, "override")
+        lock_path = self._get_lock_path(session_id, "override")
+
+        with FileLock(str(lock_path)):
+            state = {}
+            if path.exists():
+                try:
+                    state = json.loads(path.read_text())
+                except json.JSONDecodeError:
+                    state = {}
+            state["skip_count"] = skip_count
+            state["set_at"] = datetime.now().isoformat()
+            path.write_text(json.dumps(state, indent=2, ensure_ascii=False))
 
     def check_and_consume_override(self, session_id: str) -> bool:
-        """override가 설정되어 있으면 True 반환하고 카운트 감소"""
-        state = self._read_state(session_id, "override")
-        skip_count = state.get("skip_count", 0)
+        """Returns True if override is set and decrements count (atomic)"""
+        path = self._get_state_path(session_id, "override")
+        lock_path = self._get_lock_path(session_id, "override")
 
-        if skip_count > 0:
-            state["skip_count"] = skip_count - 1
-            self._write_state(session_id, "override", state)
-            return True
-        return False
+        with FileLock(str(lock_path)):
+            state = {}
+            if path.exists():
+                try:
+                    state = json.loads(path.read_text())
+                except json.JSONDecodeError:
+                    state = {}
+            skip_count = state.get("skip_count", 0)
 
-    # ===== Todo State 관리 =====
+            if skip_count > 0:
+                state["skip_count"] = skip_count - 1
+                path.write_text(json.dumps(state, indent=2, ensure_ascii=False))
+                return True
+            return False
+
+    # ===== Todo State Management =====
     def get_todo_state(self, session_id: str) -> Dict[str, Any]:
-        """현재 todo 상태 조회"""
+        """Get current todo state"""
         return self._read_state(session_id, "todo")
 
     def save_todo_state(self, session_id: str, state: Dict[str, Any]):
-        """todo 상태 저장"""
+        """Save todo state"""
         state["updated_at"] = datetime.now().isoformat()
         self._write_state(session_id, "todo", state)
 
-    # ===== Completion Review 횟수 관리 =====
+    # ===== Completion Review Count Management =====
     def get_completion_review_count(self, session_id: str) -> int:
-        """완료 검토 횟수 조회 (무한 루프 방지용)"""
+        """Get completion review count (for infinite loop prevention)"""
         state = self._read_state(session_id, "todo")
         return state.get("review_count", 0)
 
     def increment_completion_review_count(self, session_id: str) -> int:
-        """완료 검토 횟수 증가"""
-        state = self._read_state(session_id, "todo")
-        state["review_count"] = state.get("review_count", 0) + 1
-        state["last_review_at"] = datetime.now().isoformat()
-        self._write_state(session_id, "todo", state)
-        return state["review_count"]
+        """Increment completion review count (atomic)"""
+        path = self._get_state_path(session_id, "todo")
+        lock_path = self._get_lock_path(session_id, "todo")
+
+        with FileLock(str(lock_path)):
+            state = {}
+            if path.exists():
+                try:
+                    state = json.loads(path.read_text())
+                except json.JSONDecodeError:
+                    state = {}
+            state["review_count"] = state.get("review_count", 0) + 1
+            state["last_review_at"] = datetime.now().isoformat()
+            path.write_text(json.dumps(state, indent=2, ensure_ascii=False))
+            return state["review_count"]
 
     def reset_completion_review_count(self, session_id: str):
-        """완료 검토 횟수 초기화 (새 작업 시작 시)"""
-        state = self._read_state(session_id, "todo")
-        state["review_count"] = 0
-        self._write_state(session_id, "todo", state)
+        """Reset completion review count (atomic)"""
+        path = self._get_state_path(session_id, "todo")
+        lock_path = self._get_lock_path(session_id, "todo")
 
-    # ===== 세션 정리 =====
+        with FileLock(str(lock_path)):
+            state = {}
+            if path.exists():
+                try:
+                    state = json.loads(path.read_text())
+                except json.JSONDecodeError:
+                    state = {}
+            state["review_count"] = 0
+            path.write_text(json.dumps(state, indent=2, ensure_ascii=False))
+
+    # ===== Session Cleanup =====
     def cleanup_session(self, session_id: str):
-        """세션 종료 시 상태 파일 정리"""
+        """Cleanup state files on session end"""
         for state_type in ["retry", "debounce", "override", "todo"]:
             path = self._get_state_path(session_id, state_type)
             lock_path = self._get_lock_path(session_id, state_type)
@@ -143,7 +215,7 @@ class StateManager:
                 lock_path.unlink()
 
 
-# 싱글톤 인스턴스
+# Singleton instance
 _state_manager: Optional[StateManager] = None
 
 def get_state_manager() -> StateManager:

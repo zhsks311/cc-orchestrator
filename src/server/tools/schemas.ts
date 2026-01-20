@@ -8,9 +8,7 @@ import { AgentRole, AgentStatus, Priority, ContextScope } from '../../types/inde
 
 // background_task (was spawn_agent)
 export const BackgroundTaskInputSchema = z.object({
-  agent: z
-    .nativeEnum(AgentRole)
-    .describe('Agent to execute (arch, index, canvas, quill, lens, scout)'),
+  agent: z.nativeEnum(AgentRole).describe('Agent to execute (arch, canvas, quill, lens)'),
   prompt: z.string().min(1).max(10000).describe('Task prompt to send to the agent'),
   description: z
     .string()

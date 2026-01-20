@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
 Context Saver Wrapper
-PostToolUse 훅으로 동작하여 Edit, Write, TodoWrite 후 컨텍스트 자동 저장
+PostToolUse hook that auto-saves context after Edit, Write, TodoWrite
 
-사용법 (settings.json):
+Usage (settings.json):
 {
   "PostToolUse": [
     {
@@ -34,7 +34,7 @@ _resilience_imported = False
 
 
 def log(message: str):
-    """디버그 로그"""
+    """Debug log"""
     try:
         LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
         with open(LOG_FILE, "a", encoding="utf-8") as f:
@@ -44,19 +44,18 @@ def log(message: str):
 
 
 def extract_file_path(tool_input: Dict[str, Any]) -> Optional[str]:
-    """도구 입력에서 파일 경로 추출"""
+    """Extract file path from tool input"""
     return tool_input.get("file_path")
 
 
 def extract_todos(tool_input: Dict[str, Any]) -> list:
-    """TodoWrite 입력에서 todo 목록 추출"""
+    """Extract todo list from TodoWrite input"""
     return tool_input.get("todos", [])
 
 
 def detect_decision_keywords(text: str) -> bool:
-    """결정 관련 키워드 감지"""
+    """Detect decision-related keywords"""
     patterns = [
-        r'결정|선택|이렇게\s*하자|방법으로',
         r'decided|choose|let\'s go with|approach'
     ]
     for pattern in patterns:
@@ -66,9 +65,8 @@ def detect_decision_keywords(text: str) -> bool:
 
 
 def detect_error_resolved(text: str) -> bool:
-    """에러 해결 키워드 감지"""
+    """Detect error resolved keywords"""
     patterns = [
-        r'해결|수정\s*완료|고침|에러.*고침',
         r'fixed|resolved|working now|bug.*fixed'
     ]
     for pattern in patterns:
@@ -78,7 +76,7 @@ def detect_error_resolved(text: str) -> bool:
 
 
 def process_edit_write(session_id: str, tool_name: str, tool_input: Dict[str, Any], cwd: str):
-    """Edit/Write 도구 처리"""
+    """Process Edit/Write tool"""
     sys.path.insert(0, str(HOOKS_DIR))
     from context_resilience import (
         get_protected_context_manager,
@@ -93,22 +91,22 @@ def process_edit_write(session_id: str, tool_name: str, tool_input: Dict[str, An
     manager = get_protected_context_manager()
     anchor_manager = get_semantic_anchor_manager()
 
-    # 파일 경로 저장
+    # Save file path
     file_path = extract_file_path(tool_input)
     if file_path:
         manager.add_active_file(session_id, file_path)
         log(f"Added active file: {file_path}")
 
-        # Semantic Anchor: 파일 수정 기록
+        # Semantic Anchor: file modification record
         change_type = "created" if tool_name == "Write" else "modified"
         anchor_manager.add_file_modified_anchor(session_id, file_path, change_type)
         log(f"Added file anchor: {file_path} ({change_type})")
 
-    # 작업 디렉토리 저장
+    # Save working directory
     if cwd:
         manager.set_working_directory(session_id, cwd)
 
-    # CLAUDE.md 해시 업데이트
+    # Update CLAUDE.md hash
     if cwd:
         claude_md_hash = manager.compute_claude_md_hash(cwd)
         if claude_md_hash:
@@ -116,7 +114,7 @@ def process_edit_write(session_id: str, tool_name: str, tool_input: Dict[str, An
 
 
 def process_todo_write(session_id: str, tool_input: Dict[str, Any], cwd: str):
-    """TodoWrite 도구 처리"""
+    """Process TodoWrite tool"""
     sys.path.insert(0, str(HOOKS_DIR))
     from context_resilience import (
         get_protected_context_manager,
@@ -136,7 +134,7 @@ def process_todo_write(session_id: str, tool_input: Dict[str, Any], cwd: str):
     if not todos:
         return
 
-    # 미완료 작업 추출
+    # Extract pending tasks
     pending = [
         t.get("content", "")
         for t in todos
@@ -146,7 +144,7 @@ def process_todo_write(session_id: str, tool_input: Dict[str, Any], cwd: str):
         manager.set_pending_tasks(session_id, pending)
         log(f"Updated pending tasks: {len(pending)} items")
 
-    # 완료된 작업에서 결정사항/에러해결 추출
+    # Extract decisions/resolved errors from completed tasks
     completed = [
         t.get("content", "")
         for t in todos
@@ -154,49 +152,49 @@ def process_todo_write(session_id: str, tool_input: Dict[str, Any], cwd: str):
     ]
 
     for task in completed:
-        # 결정 키워드 감지
+        # Detect decision keywords
         if detect_decision_keywords(task):
-            manager.add_decision(session_id, f"[완료] {task}")
+            manager.add_decision(session_id, f"[Completed] {task}")
             anchor_manager.add_anchor(
                 session_id,
                 AnchorType.DECISION,
-                f"[Todo 완료] {task}",
+                f"[Todo Completed] {task}",
                 context={"source": "TodoWrite"},
                 importance=3
             )
             log(f"Added decision anchor: {task}")
 
-        # 에러 해결 키워드 감지
+        # Detect error resolved keywords
         if detect_error_resolved(task):
             manager.add_resolved_error(session_id, task)
             anchor_manager.add_anchor(
                 session_id,
                 AnchorType.ERROR_RESOLVED,
-                f"[해결] {task}",
+                f"[Resolved] {task}",
                 context={"source": "TodoWrite"},
                 importance=4
             )
             log(f"Added error resolved anchor: {task}")
 
-    # 모든 Todo 완료 시 자동 체크포인트
+    # Auto checkpoint when all todos completed
     if todos and all(t.get("status") == "completed" for t in todos):
         completed_summary = ", ".join(completed[:3])
         if len(completed) > 3:
-            completed_summary += f" 외 {len(completed) - 3}개"
+            completed_summary += f" and {len(completed) - 3} more"
 
         anchor_manager.add_checkpoint(
             session_id,
-            f"[Todo 전체 완료] {completed_summary}",
+            f"[All Todos Completed] {completed_summary}",
             context={
                 "completed_count": len(completed),
-                "tasks": completed[:5]  # 최대 5개만 저장
+                "tasks": completed[:5]  # Max 5 only
             }
         )
         log(f"Added checkpoint: All {len(completed)} todos completed")
 
 
 def main():
-    """메인 엔트리포인트"""
+    """Main entrypoint"""
     log("context_saver_wrapper.py executed")
 
     try:
@@ -224,7 +222,7 @@ def main():
         elif tool_name == "TodoWrite":
             process_todo_write(session_id, tool_input, cwd)
 
-        # 항상 continue=True 반환 (블로킹하지 않음)
+        # Always return continue=True (non-blocking)
         print(json.dumps({"continue": True}))
 
     except Exception as e:

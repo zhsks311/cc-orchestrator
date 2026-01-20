@@ -21,12 +21,6 @@ describe('IntentAnalyzer', () => {
       expect(result.decision.isExplicitMention).toBe(true);
     });
 
-    it('should detect @index mention', async () => {
-      const result = await analyzer.analyze('@index find API docs');
-      expect(result.decision.agent).toBe(AgentRole.INDEX);
-      expect(result.decision.confidence).toBe('high');
-    });
-
     it('should detect @canvas mention', async () => {
       const result = await analyzer.analyze('@canvas create button component');
       expect(result.decision.agent).toBe(AgentRole.CANVAS);
@@ -39,9 +33,9 @@ describe('IntentAnalyzer', () => {
       expect(result.decision.confidence).toBe('high');
     });
 
-    it('should detect @researcher mention (alias)', async () => {
-      const result = await analyzer.analyze('@researcher find API docs');
-      expect(result.decision.agent).toBe(AgentRole.INDEX);
+    it('should detect @quill mention', async () => {
+      const result = await analyzer.analyze('@quill write documentation');
+      expect(result.decision.agent).toBe(AgentRole.QUILL);
       expect(result.decision.confidence).toBe('high');
     });
   });
@@ -113,12 +107,6 @@ describe('IntentAnalyzer', () => {
   });
 
   describe('Heuristic analysis', () => {
-    it('should suggest index for API/library search', async () => {
-      // "API" and "library" are in Index's expertise
-      const result = await analyzer.analyze('search for API implementation examples');
-      expect(result.decision.agent).toBe(AgentRole.INDEX);
-    });
-
     it('should suggest canvas for UI/component tasks', async () => {
       // "UI", "component" are in Canvas's expertise
       const result = await analyzer.analyze('create login page UI component');
@@ -129,6 +117,12 @@ describe('IntentAnalyzer', () => {
       // "documentation", "README" are in Quill's expertise
       const result = await analyzer.analyze('write README documentation');
       expect(result.decision.agent).toBe(AgentRole.QUILL);
+    });
+
+    it('should suggest arch for architecture tasks', async () => {
+      // "architecture", "design" are in Arch's expertise
+      const result = await analyzer.analyze('review the system architecture design');
+      expect(result.decision.agent).toBe(AgentRole.ARCH);
     });
 
     it('should return low confidence for ambiguous queries', async () => {
@@ -150,15 +144,15 @@ describe('IntentAnalyzer', () => {
       expect(result.decision.agent).toBe(AgentRole.ARCH);
     });
 
-    it('should detect agent name in context', async () => {
+    it('should detect "canvas" agent name in context', async () => {
       // Uses the natural language detection (not @ mention)
-      const result = await analyzer.analyze('ask index to search for this');
-      expect(result.decision.agent).toBe(AgentRole.INDEX);
+      const result = await analyzer.analyze('ask canvas to create this UI');
+      expect(result.decision.agent).toBe(AgentRole.CANVAS);
     });
 
-    it('should detect aliases in natural language', async () => {
-      const result = await analyzer.analyze('let the researcher look into this');
-      expect(result.decision.agent).toBe(AgentRole.INDEX);
+    it('should detect "quill" alias in natural language', async () => {
+      const result = await analyzer.analyze('let quill write the documentation');
+      expect(result.decision.agent).toBe(AgentRole.QUILL);
     });
   });
 });

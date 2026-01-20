@@ -114,22 +114,6 @@ export const ROLE_MODEL_MAPPING: Record<AgentRole, ModelConfig> = {
     temperature: 0.5,
     rateLimitPerMinute: 100,
   },
-  [AgentRole.INDEX]: {
-    provider: ModelProvider.ANTHROPIC,
-    model: 'claude-sonnet-4-5-20250929',
-    fallbackModel: 'claude-sonnet-4-20250514',
-    providerFallbacks: [
-      { provider: ModelProvider.OPENAI, model: 'gpt-4o', fallbackModel: 'gpt-4o-mini' },
-      {
-        provider: ModelProvider.GOOGLE,
-        model: 'gemini-2.5-pro-preview-06-05',
-        fallbackModel: 'gemini-2.5-flash-preview-05-20',
-      },
-    ],
-    maxTokens: 32000,
-    temperature: 0.3,
-    rateLimitPerMinute: 80,
-  },
   [AgentRole.QUILL]: {
     provider: ModelProvider.GOOGLE,
     model: 'gemini-3-pro-preview',
@@ -161,21 +145,5 @@ export const ROLE_MODEL_MAPPING: Record<AgentRole, ModelConfig> = {
     maxTokens: 8000,
     temperature: 0.4,
     rateLimitPerMinute: 150,
-  },
-  [AgentRole.SCOUT]: {
-    provider: ModelProvider.ANTHROPIC,
-    model: 'claude-3-5-sonnet-latest',
-    fallbackModel: 'claude-3-haiku-latest',
-    providerFallbacks: [
-      {
-        provider: ModelProvider.GOOGLE,
-        model: 'gemini-2.5-flash-preview-05-20',
-        fallbackModel: 'gemini-2.0-flash',
-      },
-      { provider: ModelProvider.OPENAI, model: 'gpt-4o-mini', fallbackModel: 'gpt-4o-mini' },
-    ],
-    maxTokens: 8000,
-    temperature: 0.1,
-    rateLimitPerMinute: 100,
   },
 };

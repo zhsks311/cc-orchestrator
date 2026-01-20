@@ -134,11 +134,9 @@ export class ToolHandlers {
     const { SubagentType } = ToolHandlers;
     const subagentMap: Record<AgentRole, string> = {
       [AgentRole.ARCH]: SubagentType.PLAN,
-      [AgentRole.INDEX]: SubagentType.EXPLORE,
       [AgentRole.CANVAS]: SubagentType.GENERAL,
       [AgentRole.QUILL]: SubagentType.GENERAL,
       [AgentRole.LENS]: SubagentType.GENERAL,
-      [AgentRole.SCOUT]: SubagentType.EXPLORE,
     };
 
     const suggestedSubagent = subagentMap[agent] || 'general-purpose';

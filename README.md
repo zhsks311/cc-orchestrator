@@ -86,15 +86,21 @@ Talk to your agents naturally. They're listening. (Not in a creepy way.)
 | `simultaneously` | For when you feel fancy |
 | `together` | Teamwork makes the dream work |
 
-**Call a specific agent:**
+**Call an MCP agent:**
+
 | Mention | Who answers |
 |---------|-------------|
 | `@arch` or `@architect` | The overthinker arrives |
 | `@canvas`, `@ui`, `@frontend`, `@ux`, `@designer` | The pixel perfectionist |
-| `@index` | The documentation hoarder |
 | `@quill`, `@docs`, `@writer` | The prose professional |
 | `@lens`, `@image`, `@pdf`, `@analyzer` | The visual investigator |
-| `@scout`, `@find`, `@search` | The speedy scout |
+
+**Native agents (use Claude Code's Task tool):**
+
+| Command | Who answers |
+|---------|-------------|
+| `Task(subagent_type="scout")` | 🔍 The speedy scout - finds files and code |
+| `Task(subagent_type="index")` | 📚 The documentation hoarder - searches external docs |
 
 ---
 

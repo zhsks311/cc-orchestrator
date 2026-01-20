@@ -1,10 +1,10 @@
 """
-Claude 셀프 리뷰 어댑터
-systemMessage를 통해 Claude에게 자기 작업 검토를 유도
+Claude Self Review Adapter
+Guide Claude to self-review through systemMessage
 
-v2: Task 서브에이전트 기본 활용
-- code-reviewer 서브에이전트로 독립적인 코드 리뷰 수행
-- 메인 Claude와 분리된 관점에서 검토
+v2: Uses Task subagent by default
+- Performs independent code review via code-reviewer subagent
+- Reviews from a perspective separate from main Claude
 """
 from typing import Dict, Any, List
 
@@ -13,12 +13,12 @@ from .base import LLMAdapter, ReviewResult, Severity, Issue
 
 class ClaudeSelfAdapter(LLMAdapter):
     """
-    Claude 셀프 리뷰 어댑터 v2
+    Claude Self Review Adapter v2
 
-    특징:
-    - Task 서브에이전트(code-reviewer) 활용
-    - 메인 세션과 독립된 관점에서 코드 리뷰
-    - 무료, 쿼터 제한 없음
+    Features:
+    - Uses Task subagent (code-reviewer)
+    - Code review from perspective independent of main session
+    - Free, no quota limits
     """
 
     def __init__(self, config: Dict[str, Any]):
@@ -26,20 +26,21 @@ class ClaudeSelfAdapter(LLMAdapter):
         self.use_subagent = config.get("completion_review", {}).get("use_subagent", True)
 
     def is_available(self) -> bool:
-        """항상 사용 가능"""
+        """Always available"""
         return True
 
     def review(self, prompt: str, context: Dict[str, Any]) -> ReviewResult:
         """
-        셀프 리뷰 메시지 생성
+        Generate self review message
 
-        Note: 실제 검토는 하지 않고, Claude에게 검토를 요청하는 메시지만 생성
+        Note: Does not perform actual review, only generates message requesting Claude to review
         """
+        _ = prompt  # unused but required by interface
         message = self._build_self_review_message(context)
 
         return ReviewResult(
             adapter_name=self.name,
-            severity=Severity.OK,  # 셀프 리뷰는 severity 판단 안함
+            severity=Severity.OK,  # Self review doesn't judge severity
             issues=[],
             raw_response=message,
             success=True,
@@ -47,7 +48,7 @@ class ClaudeSelfAdapter(LLMAdapter):
         )
 
     def _build_self_review_message(self, context: Dict[str, Any]) -> str:
-        """셀프 리뷰 요청 메시지 생성"""
+        """Generate self review request message"""
         todos = context.get("todos", [])
         combined_intent = context.get("combined_intent", "")
         original_request = context.get("original_request", "")
@@ -55,10 +56,10 @@ class ClaudeSelfAdapter(LLMAdapter):
 
         todos_formatted = self._format_todos(todos)
 
-        # 원래 요청이 너무 길면 요약본 사용
+        # Use summary if original request is too long
         intent_display = combined_intent if combined_intent else original_request
         if len(intent_display) > 3000:
-            intent_display = intent_display[:3000] + "\n\n[...이하 생략...]"
+            intent_display = intent_display[:3000] + "\n\n[...truncated...]"
 
         if self.use_subagent:
             return self._build_subagent_review_message(
@@ -72,96 +73,96 @@ class ClaudeSelfAdapter(LLMAdapter):
     def _build_subagent_review_message(
         self, intent: str, todos: str, cwd: str
     ) -> str:
-        """서브에이전트를 활용한 리뷰 요청 메시지"""
-        return f"""## 작업 완료 - 서브에이전트 코드 리뷰 요청
+        """Generate review request message using subagent"""
+        return f"""## Task Complete - Subagent Code Review Request
 
-모든 TODO가 완료되었습니다. **Task 도구로 code-reviewer 서브에이전트를 실행**하여 독립적인 관점에서 코드를 검토해주세요.
+All TODOs have been completed. **Run code-reviewer subagent via Task tool** to review code from an independent perspective.
 
-### 실행 방법:
-Task 도구를 사용하여 다음과 같이 code-reviewer 에이전트를 실행하세요:
+### How to Execute:
+Use Task tool to run code-reviewer agent as follows:
 
 ```
 subagent_type: "pr-review-toolkit:code-reviewer"
 prompt: |
-  다음 작업의 코드 리뷰를 수행해주세요.
+  Please perform code review for the following task.
 
-  ## 사용자 요청:
+  ## User Request:
   {intent[:1500]}
 
-  ## 완료된 작업:
+  ## Completed Tasks:
   {todos}
 
-  ## 작업 디렉토리: {cwd}
+  ## Working Directory: {cwd}
 
-  최근 변경된 파일들을 git diff로 확인하고 리뷰해주세요.
+  Check recently changed files with git diff and review them.
 ```
 
-### 리뷰 후 조치:
-- **CRITICAL/HIGH 이슈**: 즉시 수정
-- **MEDIUM 이슈**: 수정 권장, 사용자 판단
-- **LOW 이슈**: 참고용
+### Post-Review Actions:
+- **CRITICAL/HIGH issues**: Fix immediately
+- **MEDIUM issues**: Recommended fix, user discretion
+- **LOW issues**: For reference
 
-서브에이전트 리뷰 결과를 바탕으로 필요한 수정을 진행해주세요."""
+Please proceed with necessary fixes based on subagent review results."""
 
     def _build_simple_review_message(self, intent: str, todos: str) -> str:
-        """구조화된 체크리스트 기반 셀프 리뷰 (v3)"""
-        return f"""## 작업 완료 - 구조화된 셀프 리뷰
+        """Structured checklist-based self review (v3)"""
+        return f"""## Task Complete - Structured Self Review
 
-모든 TODO가 완료되었습니다. **아래 체크리스트를 하나씩 검토**하고, 문제 발견 시 즉시 수정하세요.
+All TODOs have been completed. **Review each item in the checklist below** and fix immediately if issues are found.
 
-### 사용자 원래 요청:
+### Original User Request:
 {intent}
 
-### 완료된 작업:
+### Completed Tasks:
 {todos}
 
 ---
 
-## 필수 체크리스트 (각 항목을 명시적으로 확인)
+## Required Checklist (explicitly verify each item)
 
-### 1. 🎯 요구사항 충족
-- [ ] 사용자가 요청한 **모든 기능**이 구현되었는가?
-- [ ] 요청하지 않은 **불필요한 기능**을 추가하지 않았는가?
-- [ ] 암묵적으로 기대되는 **엣지 케이스**를 처리했는가?
+### 1. Requirements Fulfillment
+- [ ] Are **all features** the user requested implemented?
+- [ ] Were no **unnecessary features** added that weren't requested?
+- [ ] Are implicitly expected **edge cases** handled?
 
-### 2. 🔒 보안 (OWASP Top 10)
-- [ ] **SQL Injection**: 사용자 입력이 직접 쿼리에 포함되지 않는가?
-- [ ] **XSS**: 사용자 입력이 HTML에 이스케이프 없이 출력되지 않는가?
-- [ ] **Command Injection**: 사용자 입력이 shell 명령에 포함되지 않는가?
-- [ ] **Secrets**: API 키, 비밀번호가 하드코딩되지 않았는가?
+### 2. Security (OWASP Top 10)
+- [ ] **SQL Injection**: Is user input not directly included in queries?
+- [ ] **XSS**: Is user input not output to HTML without escaping?
+- [ ] **Command Injection**: Is user input not included in shell commands?
+- [ ] **Secrets**: Are API keys and passwords not hardcoded?
 
-### 3. ⚠️ 에러 핸들링
-- [ ] 외부 API 호출에 **타임아웃**이 설정되어 있는가?
-- [ ] 파일/네트워크 작업에 **예외 처리**가 있는가?
-- [ ] 에러 메시지가 **민감 정보를 노출**하지 않는가?
+### 3. Error Handling
+- [ ] Is **timeout** set for external API calls?
+- [ ] Is **exception handling** present for file/network operations?
+- [ ] Do error messages **not expose sensitive info**?
 
-### 4. 🧪 테스트 가능성
-- [ ] 작성한 코드가 **테스트 가능한 구조**인가?
-- [ ] 테스트가 요청된 경우, **실제로 테스트를 실행**했는가?
+### 4. Testability
+- [ ] Is the code written in a **testable structure**?
+- [ ] If tests were requested, were **tests actually run**?
 
-### 5. 📝 코드 품질
-- [ ] **중복 코드**가 없는가?
-- [ ] 변수/함수명이 **명확한 의도**를 표현하는가?
-- [ ] 불필요한 **주석이나 디버그 코드**가 남아있지 않은가?
+### 5. Code Quality
+- [ ] Is there no **duplicate code**?
+- [ ] Do variable/function names **express clear intent**?
+- [ ] Are there no leftover **comments or debug code**?
 
 ---
 
-## 검토 결과 보고
+## Review Result Report
 
-위 체크리스트를 검토한 후, 다음 형식으로 보고하세요:
+After reviewing the checklist above, report in the following format:
 
 ```
-✅ 통과: [통과한 항목 수]/[전체 항목 수]
-⚠️ 발견된 이슈: [있으면 나열]
-🔧 수정 필요: [있으면 즉시 수정 진행]
+Passed: [passed count]/[total count]
+Issues Found: [list if any]
+Fixes Needed: [proceed with fix immediately if any]
 ```
 
-**문제 발견 시 보고만 하지 말고, 즉시 수정 작업을 진행하세요.**"""
+**If issues are found, don't just report - proceed with fixes immediately.**"""
 
     def _format_todos(self, todos: List[Dict[str, Any]]) -> str:
-        """Todo 목록 포맷팅"""
+        """Format todo list"""
         if not todos:
-            return "(없음)"
+            return "(none)"
 
         lines = []
         for i, todo in enumerate(todos, 1):

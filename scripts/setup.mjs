@@ -28,6 +28,7 @@ const ccoDir = path.join(homeDir, '.cco');
 const ccoConfigPath = path.join(ccoDir, 'config.json');
 const claudeHooksDir = path.join(claudeDir, 'hooks');
 const claudeSkillsDir = path.join(claudeDir, 'skills');
+const claudeAgentsDir = path.join(claudeDir, 'agents');
 const claudeSettingsPath = path.join(claudeDir, 'settings.json');
 // Claude Code global config (NOT Claude Desktop)
 const claudeCodeConfigPath = path.join(homeDir, '.claude.json');
@@ -35,6 +36,7 @@ const claudeCodeConfigPath = path.join(homeDir, '.claude.json');
 // Manifest file paths for version tracking
 const hooksManifestPath = path.join(claudeHooksDir, '.cco-manifest.json');
 const skillsManifestPath = path.join(claudeSkillsDir, '.cco-manifest.json');
+const agentsManifestPath = path.join(claudeAgentsDir, '.cco-manifest.json');
 
 // Get current version from package.json
 const packageJsonPath = path.join(rootDir, 'package.json');
@@ -88,16 +90,12 @@ function loadExistingKeys() {
 }
 
 // Agent role to provider mapping (matching src/types/model.ts)
+// Note: scout and index are now Claude Code Agents (free, no API cost)
 const AGENT_PROVIDERS = {
   'arch': {
     primary: 'openai',
     fallbacks: ['anthropic', 'google'],
     description: 'Architecture design, strategic decisions, code review'
-  },
-  'index': {
-    primary: 'anthropic',
-    fallbacks: ['google', 'openai'],
-    description: 'Documentation search, codebase analysis'
   },
   'canvas': {
     primary: 'google',
@@ -113,11 +111,6 @@ const AGENT_PROVIDERS = {
     primary: 'google',
     fallbacks: ['anthropic', 'openai'],
     description: 'Image, PDF analysis'
-  },
-  'scout': {
-    primary: 'anthropic',
-    fallbacks: ['google', 'openai'],
-    description: 'Codebase exploration (Claude Sonnet)'
   }
 };
 
@@ -224,9 +217,6 @@ function generateConfig(keys) {
 
   // Set up role-specific provider priority based on original primary
   for (const [role, roleConfig] of Object.entries(AGENT_PROVIDERS)) {
-    // Skip scout (always uses anthropic/free)
-    if (role === 'scout') continue;
-
     // Build provider list: primary first if available, then fallbacks
     const available = checkApiKeys(keys);
     const roleProviders = [];
@@ -418,6 +408,7 @@ function verifyInstallation() {
     mcp: { ok: false, message: '' },
     hooks: { ok: false, message: '', count: 0 },
     skills: { ok: false, message: '', count: 0 },
+    agents: { ok: false, message: '', count: 0 },
     config: { ok: false, message: '' },
     serena: { ok: false, message: '', optional: true }
   };
@@ -476,6 +467,29 @@ function verifyInstallation() {
     results.skills = { ok: false, message: 'Not installed or different project', count: 0 };
   }
 
+  // Agents (Claude Code Agents - scout, index)
+  const agentsManifest = readManifest(agentsManifestPath);
+  if (agentsManifest?.name === 'cc-orchestrator') {
+    const missing = agentsManifest.files.filter(f =>
+      !fs.existsSync(path.join(claudeAgentsDir, f))
+    );
+    if (missing.length === 0) {
+      results.agents = {
+        ok: true,
+        message: `v${agentsManifest.version}`,
+        count: agentsManifest.files.length
+      };
+    } else {
+      results.agents = {
+        ok: false,
+        message: `Missing: ${missing.join(', ')}`,
+        count: agentsManifest.files.length - missing.length
+      };
+    }
+  } else {
+    results.agents = { ok: false, message: 'Not installed or different project', count: 0 };
+  }
+
   // Claude Code config (~/.claude.json)
   if (fs.existsSync(claudeCodeConfigPath)) {
     try {
@@ -513,10 +527,11 @@ function printVerificationResults(results) {
   console.log(`      MCP Server:     ${icon(results.mcp.ok)} ${results.mcp.message}`);
   console.log(`      Hooks:          ${icon(results.hooks.ok)} ${results.hooks.message}${results.hooks.count ? ` (${results.hooks.count} files)` : ''}`);
   console.log(`      Skills:         ${icon(results.skills.ok)} ${results.skills.message}${results.skills.count ? ` (${results.skills.count} files)` : ''}`);
+  console.log(`      Agents:         ${icon(results.agents.ok)} ${results.agents.message}${results.agents.count ? ` (${results.agents.count} files)` : ''}`);
   console.log(`      Claude Code:    ${icon(results.config.ok)} ${results.config.message}`);
   console.log(`      Serena MCP:     ${icon(results.serena.ok, true)} ${results.serena.message}`);
 
-  const allOk = results.mcp.ok && results.hooks.ok && results.skills.ok && results.config.ok;
+  const allOk = results.mcp.ok && results.hooks.ok && results.skills.ok && results.agents.ok && results.config.ok;
 
   if (allOk) {
     console.log('\n✅ All components installed successfully!');
@@ -532,6 +547,7 @@ function printVerificationResults(results) {
 function checkStatus() {
   const hooksManifest = readManifest(hooksManifestPath);
   const skillsManifest = readManifest(skillsManifestPath);
+  const agentsManifest = readManifest(agentsManifestPath);
 
   const status = {
     nodeModules: fs.existsSync(path.join(rootDir, 'node_modules')),
@@ -546,6 +562,12 @@ function checkStatus() {
       installed: skillsManifest?.name === 'cc-orchestrator',
       version: skillsManifest?.version || null,
       needsUpdate: needsUpdate(skillsManifestPath),
+      corrupted: false
+    },
+    agents: {
+      installed: agentsManifest?.name === 'cc-orchestrator',
+      version: agentsManifest?.version || null,
+      needsUpdate: needsUpdate(agentsManifestPath),
       corrupted: false
     },
     claudeCodeConfig: false,
@@ -571,6 +593,17 @@ function checkStatus() {
     if (missing.length > 0) {
       status.skills.installed = false;
       status.skills.corrupted = true;
+    }
+  }
+
+  // Verify actual agent files exist (not just manifest)
+  if (agentsManifest?.name === 'cc-orchestrator' && agentsManifest.files) {
+    const missing = agentsManifest.files.filter(f =>
+      !fs.existsSync(path.join(claudeAgentsDir, f))
+    );
+    if (missing.length > 0) {
+      status.agents.installed = false;
+      status.agents.corrupted = true;
     }
   }
 
@@ -624,6 +657,18 @@ async function main() {
     console.log(`  Skills:           ✗ Not installed`);
   }
 
+  // Agents status with version info
+  if (status.agents.corrupted) {
+    console.log(`  Agents:           ✗ Files corrupted (reinstall required)`);
+  } else if (status.agents.installed) {
+    const agentsStatus = status.agents.needsUpdate
+      ? `✓ v${status.agents.version} → v${CURRENT_VERSION} update available`
+      : `✓ v${status.agents.version} (latest)`;
+    console.log(`  Agents:           ${agentsStatus}`);
+  } else {
+    console.log(`  Agents:           ✗ Not installed`);
+  }
+
   console.log(`  Claude Code:      ${status.claudeCodeConfig ? '✓' : '✗'}`);
   console.log(`  CCO Config:       ${status.ccoConfig ? '✓' : '✗'}`);
   console.log('');
@@ -632,7 +677,7 @@ async function main() {
   let shouldProceed = true;
 
   // Skip if already up-to-date and no corruption
-  const hasCorruption = status.hooks.corrupted || status.skills.corrupted;
+  const hasCorruption = status.hooks.corrupted || status.skills.corrupted || status.agents.corrupted;
   const needsBuild = !status.dist;
   if (installMode.mode === 'current' && !forceMode && !hasCorruption && !needsBuild) {
     console.log(`✅ CC Orchestrator v${CURRENT_VERSION} is already up to date.`);
@@ -673,6 +718,7 @@ async function main() {
   const allInstalled = status.nodeModules && status.dist &&
                        status.hooks.installed && !status.hooks.needsUpdate &&
                        status.skills.installed && !status.skills.needsUpdate &&
+                       status.agents.installed && !status.agents.needsUpdate &&
                        status.claudeCodeConfig && status.ccoConfig;
 
   if (allInstalled && !forceMode) {
@@ -763,7 +809,7 @@ async function main() {
 
   // 1. npm install
   if (!status.nodeModules || forceMode) {
-    console.log('[1/7] Installing dependencies (npm install)...');
+    console.log('[1/8] Installing dependencies (npm install)...');
     try {
       execSync('npm install', { cwd: rootDir, stdio: 'inherit' });
       console.log('      ✓ Done');
@@ -773,12 +819,12 @@ async function main() {
       process.exit(1);
     }
   } else {
-    console.log('[1/7] node_modules: Already exists (skipped)');
+    console.log('[1/8] node_modules: Already exists (skipped)');
   }
 
   // 2. Build
   if (!status.dist || forceMode) {
-    console.log('[2/7] Building (npm run build)...');
+    console.log('[2/8] Building (npm run build)...');
     try {
       execSync('npm run build', { cwd: rootDir, stdio: 'inherit' });
       console.log('      ✓ Done');
@@ -788,13 +834,13 @@ async function main() {
       process.exit(1);
     }
   } else {
-    console.log('[2/7] Build: Already complete (skipped)');
+    console.log('[2/8] Build: Already complete (skipped)');
   }
 
   // 3. Install Hooks
   const shouldInstallHooks = !status.hooks.installed || status.hooks.needsUpdate || forceMode;
   if (shouldInstallHooks) {
-    console.log('[3/7] Installing Hooks...');
+    console.log('[3/8] Installing Hooks...');
     const srcHooksDir = path.join(rootDir, 'hooks');
     if (fs.existsSync(srcHooksDir)) {
       const copiedFiles = copyDirRecursive(srcHooksDir, claudeHooksDir, ['__pycache__', 'api_keys.json', 'logs', 'state', '.example', '.cco-manifest.json']);
@@ -817,13 +863,13 @@ async function main() {
       console.log(`      ✓ Done: ${claudeHooksDir} (${copiedFiles.length} files)`);
     }
   } else {
-    console.log(`[3/7] Hooks: v${status.hooks.version} is latest (skipped)`);
+    console.log(`[3/8] Hooks: v${status.hooks.version} is latest (skipped)`);
   }
 
   // 4. Install Skills
   const shouldInstallSkills = !status.skills.installed || status.skills.needsUpdate || forceMode;
   if (shouldInstallSkills) {
-    console.log('[4/7] Installing Skills...');
+    console.log('[4/8] Installing Skills...');
     const srcSkillsDir = path.join(rootDir, 'skills');
     if (fs.existsSync(srcSkillsDir)) {
       const copiedFiles = copyDirRecursive(srcSkillsDir, claudeSkillsDir, ['.cco-manifest.json']);
@@ -833,11 +879,27 @@ async function main() {
       console.log(`      ✓ Done: ${claudeSkillsDir} (${copiedFiles.length} files)`);
     }
   } else {
-    console.log(`[4/7] Skills: v${status.skills.version} is latest (skipped)`);
+    console.log(`[4/8] Skills: v${status.skills.version} is latest (skipped)`);
   }
 
-  // 5. Update settings.json and desktop config
-  console.log('[5/7] Updating Claude settings...');
+  // 5. Install Agents (Claude Code Agents - scout, index)
+  const shouldInstallAgents = !status.agents.installed || status.agents.needsUpdate || forceMode;
+  if (shouldInstallAgents) {
+    console.log('[5/8] Installing Agents...');
+    const srcAgentsDir = path.join(rootDir, 'agents');
+    if (fs.existsSync(srcAgentsDir)) {
+      const copiedFiles = copyDirRecursive(srcAgentsDir, claudeAgentsDir, ['.cco-manifest.json']);
+
+      // Write manifest
+      writeManifest(agentsManifestPath, copiedFiles);
+      console.log(`      ✓ Done: ${claudeAgentsDir} (${copiedFiles.length} files)`);
+    }
+  } else {
+    console.log(`[5/8] Agents: v${status.agents.version} is latest (skipped)`);
+  }
+
+  // 6. Update settings.json and desktop config
+  console.log('[6/8] Updating Claude settings...');
 
   // Update settings.json
   const templatePath = path.join(rootDir, 'templates', 'settings.template.json');
@@ -957,8 +1019,8 @@ async function main() {
     console.log('      ⚠ Claude Code config update failed: ' + e.message);
   }
 
-  // 6. Generate CCO config file
-  console.log('[6/7] Generating CCO config file...');
+  // 7. Generate CCO config file
+  console.log('[7/8] Generating CCO config file...');
   const ccoConfig = generateConfig(currentKeys);
   if (ccoConfig && saveConfig(ccoConfig)) {
     console.log('      ✓ Done: ' + ccoConfigPath);
@@ -970,8 +1032,8 @@ async function main() {
     console.log('      ⚠ No API keys, config file not generated');
   }
 
-  // 7. Verify installation
-  console.log('[7/7] Verifying installation...');
+  // 8. Verify installation
+  console.log('[8/8] Verifying installation...');
   const verifyResults = verifyInstallation();
   const allOk = printVerificationResults(verifyResults);
 

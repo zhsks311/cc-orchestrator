@@ -45,9 +45,9 @@ class CopilotAdapter(LLMAdapter):
                 temp_path = f.name
 
             try:
-                # Call Copilot CLI (pass prompt as argument)
+                # Call Copilot CLI (reference temp file containing the full prompt)
                 result = subprocess.run(
-                    [self.cli_path, "-p", f"Please review the contents of this file: {temp_path}. {full_prompt}"],
+                    [self.cli_path, "-p", f"Please review the contents of this file: {temp_path}"],
                     capture_output=True,
                     text=True,
                     timeout=self.timeout

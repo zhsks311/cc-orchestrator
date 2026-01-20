@@ -4,6 +4,7 @@ Uses filelock to prevent race conditions
 """
 import json
 import os
+import sys
 import time
 from pathlib import Path
 from typing import Optional, Dict, Any
@@ -11,7 +12,12 @@ from datetime import datetime
 
 try:
     from filelock import FileLock
+    _FILELOCK_AVAILABLE = True
 except ImportError:
+    _FILELOCK_AVAILABLE = False
+    print("[state_manager] Warning: filelock not installed. Concurrent access may cause issues. "
+          "Install with: pip install filelock", file=sys.stderr)
+
     # Simple fallback if filelock not available
     class FileLock:
         def __init__(self, path): pass

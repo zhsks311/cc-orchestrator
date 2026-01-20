@@ -11,6 +11,7 @@ class IntentExtractor:
     """Extract user intent from transcript"""
 
     MAX_CHARS = 10000  # Token limit (approx 2500 tokens)
+    SEPARATOR = "\n\n---\n\n"  # Message separator (used for both combining and truncation check)
 
     def extract_from_transcript(self, transcript_path: str) -> Dict[str, Any]:
         """
@@ -38,13 +39,14 @@ class IntentExtractor:
                 "original_request": user_messages[0],
                 "combined_intent": combined,
                 "message_count": len(user_messages),
-                "truncated": len("\n---\n".join(user_messages)) > self.MAX_CHARS
+                "truncated": len(self.SEPARATOR.join(user_messages)) > self.MAX_CHARS
             }
         except Exception as e:
             return {
                 "original_request": "",
                 "combined_intent": "",
                 "message_count": 0,
+                "truncated": False,
                 "error": str(e)
             }
 
@@ -88,8 +90,7 @@ class IntentExtractor:
 
         On limit exceeded: First message (original request) + last N messages
         """
-        separator = "\n\n---\n\n"
-        combined = separator.join(messages)
+        combined = self.SEPARATOR.join(messages)
 
         if len(combined) <= self.MAX_CHARS:
             return combined
@@ -101,13 +102,13 @@ class IntentExtractor:
         # Add messages from last in reverse order
         last_messages = []
         for msg in reversed(messages[1:]):
-            if len(separator.join(last_messages)) + len(msg) < remaining_chars:
+            if len(self.SEPARATOR.join(last_messages)) + len(msg) < remaining_chars:
                 last_messages.insert(0, msg)
             else:
                 break
 
         if last_messages:
-            return f"{first}\n\n[...{len(messages) - 1 - len(last_messages)} middle messages omitted...]\n\n{separator.join(last_messages)}"
+            return f"{first}\n\n[...{len(messages) - 1 - len(last_messages)} middle messages omitted...]\n\n{self.SEPARATOR.join(last_messages)}"
         else:
             # Return only first message (if too long)
             return first[:self.MAX_CHARS]
@@ -117,7 +118,8 @@ class IntentExtractor:
         return {
             "original_request": "",
             "combined_intent": "",
-            "message_count": 0
+            "message_count": 0,
+            "truncated": False
         }
 
 

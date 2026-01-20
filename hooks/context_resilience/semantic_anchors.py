@@ -12,6 +12,7 @@ Anchor types:
 
 import json
 import re
+import sys
 import hashlib
 from dataclasses import dataclass, field, asdict
 from datetime import datetime
@@ -102,7 +103,8 @@ class SemanticAnchorManager:
             with lock.acquire(timeout=5):
                 data = json.loads(path.read_text(encoding='utf-8'))
                 return [SemanticAnchor(**item) for item in data]
-        except Exception:
+        except Exception as e:
+            print(f"[semantic_anchors] Failed to load anchors for {session_id}: {e}", file=sys.stderr)
             return []
 
     def save_anchors(self, session_id: str, anchors: List[SemanticAnchor]) -> None:
@@ -117,8 +119,8 @@ class SemanticAnchorManager:
                     json.dumps(data, indent=2, ensure_ascii=False),
                     encoding='utf-8'
                 )
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[semantic_anchors] Failed to save anchors for {session_id}: {e}", file=sys.stderr)
 
     def add_anchor(
         self,
@@ -338,8 +340,8 @@ class SemanticAnchorManager:
                     if lock_file.exists():
                         lock_file.unlink()
                     deleted += 1
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"[semantic_anchors] Failed to cleanup {f}: {e}", file=sys.stderr)
 
         return deleted
 

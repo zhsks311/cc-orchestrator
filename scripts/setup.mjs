@@ -217,9 +217,6 @@ function generateConfig(keys) {
 
   // Set up role-specific provider priority based on original primary
   for (const [role, roleConfig] of Object.entries(AGENT_PROVIDERS)) {
-    // Skip scout (always uses anthropic/free)
-    if (role === 'scout') continue;
-
     // Build provider list: primary first if available, then fallbacks
     const available = checkApiKeys(keys);
     const roleProviders = [];

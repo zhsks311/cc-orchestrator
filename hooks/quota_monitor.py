@@ -80,7 +80,8 @@ class QuotaMonitor:
                         consecutive_failures=q.get("consecutive_failures", 0),
                         cooldown_until=q.get("cooldown_until")
                     )
-            except (json.JSONDecodeError, KeyError):
+            except (json.JSONDecodeError, KeyError, ValueError):
+                # ValueError: invalid QuotaStatus value in state file
                 self.quotas = {}
 
     def _save_state(self) -> None:
@@ -126,7 +127,8 @@ class QuotaMonitor:
 
         # Determine quota exhaustion
         quota_keywords = ["quota", "limit", "exceeded", "rate", "429", "exhausted"]
-        is_quota_error = any(kw in error.lower() for kw in quota_keywords)
+        error_str = str(error) if error else ""
+        is_quota_error = any(kw in error_str.lower() for kw in quota_keywords)
 
         if is_quota_error or quota.consecutive_failures >= 3:
             quota.status = QuotaStatus.EXHAUSTED
@@ -145,7 +147,13 @@ class QuotaMonitor:
         quota = self.quotas[adapter_name]
 
         if quota.cooldown_until:
-            cooldown_end = datetime.fromisoformat(quota.cooldown_until)
+            try:
+                cooldown_end = datetime.fromisoformat(quota.cooldown_until)
+            except ValueError:
+                # Invalid date format - clear cooldown
+                quota.cooldown_until = None
+                self._save_state()
+                return quota.status != QuotaStatus.EXHAUSTED
             if datetime.now() < cooldown_end:
                 return False
             quota.status = QuotaStatus.UNKNOWN

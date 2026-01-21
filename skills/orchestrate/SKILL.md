@@ -68,8 +68,8 @@ User request received
 | Resource | Cost | When to Use |
 |----------|------|-------------|
 | Grep, Glob, Read | FREE | Clear scope, simple search |
-| `scout` agent | FREE | Codebase exploration (Haiku, ~75% cheaper vs. Sonnet) |
-| `index` agent | FREE | External docs, API research (WebSearch) |
+| `scout` agent | FREE | Codebase exploration (Task tool) |
+| `index` agent | FREE | External docs, API research (Task tool) |
 | `canvas` | MODERATE | UI/UX, styling (Gemini 3) |
 | `quill` | MODERATE | Technical documentation (Gemini 3) |
 | `lens` | MODERATE | Image/PDF analysis (Gemini 3) |
@@ -79,13 +79,13 @@ User request received
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ CLAUDE CODE NATIVE AGENTS (.claude/agents/) - FREE          │
+│ CLAUDE CODE NATIVE AGENTS (Task tool) - FREE                │
 │                                                             │
-│   scout  → Codebase exploration (Haiku model)            │
-│              "Use scout agent to find X in codebase"     │
+│   scout  → Task(subagent_type="scout", prompt="...")     │
+│              Codebase exploration, file/function search  │
 │                                                             │
-│   index → External research (WebSearch + WebFetch)     │
-│              "Use index agent to find best practices"  │
+│   index  → Task(subagent_type="index", prompt="...")     │
+│              External research (WebSearch + WebFetch)    │
 │                                                             │
 │ MCP AGENTS (background_task) - PAID                         │
 │                                                             │
@@ -100,13 +100,13 @@ User request received
 
 ```bash
 # Correct: Mixed parallel execution (Native + MCP)
-"Use scout agent to find auth patterns"              // FREE (Haiku)
-background_task(agent="arch", prompt="Review security") // PAID (GPT-5.2)
+Task(subagent_type="scout", prompt="Find auth patterns")  // FREE
+background_task(agent="arch", prompt="Review security")   // PAID (GPT-5.2)
 // Both run in parallel - continue immediately
 
-# Wrong: Using MCP for Anthropic models (wasteful)
-background_task(agent="scout", ...)  // DON'T - use scout agent
-background_task(agent="index", ...)  // DON'T - use index agent
+# Wrong: MCP doesn't support scout/index
+background_task(agent="scout", ...)  // ERROR - use Task tool instead
+background_task(agent="index", ...)  // ERROR - use Task tool instead
 ```
 
 **Exploration Stop Conditions:**
@@ -158,12 +158,12 @@ background_cancel(all=true)  // Cancel all background tasks
 
 ### Agent Role Table
 
-**Claude Code Native Agents (.claude/agents/) - FREE:**
+**Claude Code Native Agents (Task tool) - FREE:**
 
-| Agent | Model | Purpose | Triggers |
-|-------|-------|---------|----------|
-| `scout` | Haiku | Codebase exploration, file/function search | "where is", "find", "how does X work" |
-| `index` | Sonnet | External docs, APIs, best practices | library names, "how to", tutorials |
+| Agent | Invocation | Purpose | Triggers |
+|-------|------------|---------|----------|
+| `scout` | `Task(subagent_type="scout")` | Codebase exploration, file/function search | "where is", "find", "how does X work" |
+| `index` | `Task(subagent_type="index")` | External docs, APIs, best practices | library names, "how to", tutorials |
 
 **MCP Agents (background_task) - PAID:**
 
@@ -237,7 +237,7 @@ animation, transition, hover, responsive, CSS
 ### Pattern A: Exploration + Implementation
 
 ```
-1. "Use scout agent to find similar patterns"  // FREE (Haiku)
+1. Task(subagent_type="scout", prompt="Find similar patterns")  // FREE
 2. Start basic implementation simultaneously
 3. Enhance implementation with exploration results
 ```
@@ -245,7 +245,7 @@ animation, transition, hover, responsive, CSS
 ### Pattern B: Research + Implementation
 
 ```
-1. "Use index agent to find best practices"  // FREE (Sonnet)
+1. Task(subagent_type="index", prompt="Find best practices")  // FREE
 2. Start basic implementation simultaneously
 3. Apply researched patterns
 ```
@@ -261,16 +261,16 @@ animation, transition, hover, responsive, CSS
 ### Pattern D: Multi-perspective Collection
 
 ```
-1. "Use scout agent to analyze codebase"               // FREE - Parallel
-2. background_task(arch, "Architecture perspective...")   // GPT-5.2 - Parallel
-3. background_task(canvas, "UX perspective...")           // Gemini - Parallel
+1. Task(subagent_type="scout", prompt="Analyze codebase")    // FREE - Parallel
+2. background_task(arch, "Architecture perspective...")      // GPT-5.2 - Parallel
+3. background_task(canvas, "UX perspective...")              // Gemini - Parallel
 4. Integrate all results
 ```
 
 ### Pattern E: Complex Implementation
 
 ```
-1. "Use scout agent to understand existing patterns"  // FREE
+1. Task(subagent_type="scout", prompt="Understand patterns") // FREE
 2. Confirm design direction with arch (MCP)
 3. Proceed with implementation
 4. Code review with arch (MCP)
@@ -281,11 +281,11 @@ animation, transition, hover, responsive, CSS
 ## Cost Optimization
 
 ```plaintext
-FREE (Native agents in .claude/agents/):
+FREE (Claude Code Task tool):
 ├─ Simple search          → Grep, Glob, Read (direct tools)
-├─ Codebase exploration   → scout agent (Haiku, ~75% cheaper vs. Sonnet)
-├─ External research      → index agent (WebSearch/WebFetch)
-└─ General tasks          → Task(general-purpose)
+├─ Codebase exploration   → Task(subagent_type="scout")
+├─ External research      → Task(subagent_type="index")
+└─ General tasks          → Task(subagent_type="general-purpose")
 
 PAID (MCP external APIs):
 ├─ Architecture decisions → arch (GPT-5.2, expensive)
@@ -386,19 +386,19 @@ User request: "$ARGUMENTS"
 
 [Step 1: Classification]
 ├─ Trivial?         → Handle directly (Grep, Glob, Read)
-├─ Codebase search? → Use scout agent (FREE, Haiku)
-├─ External docs?   → Use index agent (FREE, WebSearch)
-├─ Design?          → Consult arch (MCP, GPT-5.2)
-├─ UI/Visual?       → Delegate to canvas (MCP, Gemini)
-├─ Documentation?   → Delegate to quill (MCP, Gemini)
-├─ Image/PDF?       → Delegate to lens (MCP, Gemini)
+├─ Codebase search? → Task(subagent_type="scout") - FREE
+├─ External docs?   → Task(subagent_type="index") - FREE
+├─ Design?          → background_task(agent="arch") - PAID
+├─ UI/Visual?       → background_task(agent="canvas") - PAID
+├─ Documentation?   → background_task(agent="quill") - PAID
+├─ Image/PDF?       → background_task(agent="lens") - PAID
 ├─ Complex?         → Multi-agent parallel
 └─ Ambiguous?       → 1 question
 
 [Step 2: Agent Routing]
-├─ Native agents (.claude/agents/) - FREE
-│   ├─ scout  → Codebase exploration (Haiku)
-│   └─ index → External research (WebSearch)
+├─ Claude Code Task tool - FREE
+│   ├─ scout  → Task(subagent_type="scout")
+│   └─ index  → Task(subagent_type="index")
 └─ MCP agents (background_task) - PAID
     ├─ arch   → GPT-5.2
     ├─ canvas → Gemini 3

@@ -5,7 +5,7 @@
 
 **[한국어 문서 (Korean)](./README.ko.md)**
 
-> *"Why use one AI when you can summon an entire orchestra and make them fight over your code?"*
+> _"Why use one AI when you can summon an entire orchestra and make them fight over your code?"_
 
 **CC Orchestrator** transforms Claude Code into a maestro conducting a symphony of AI models. GPT-5.2 argues about architecture, Gemini obsesses over pixels, and Claude dives into documentation rabbit holes. All at the same time. Because waiting is for people who enjoy watching loading spinners.
 
@@ -15,7 +15,7 @@
 
 Picture this: You need to build something complex. Traditionally, you'd ask one AI to be an architect, designer, researcher, and writer all at once. That's like asking your dentist to also fix your car.
 
-**CC Orchestrator** says: *"What if we just... hired specialists?"*
+**CC Orchestrator** says: _"What if we just... hired specialists?"_
 
 <p align="center">
   <img src="./assets/orchestrator-diagram.jpg" alt="CC Orchestrator Diagram" width="600">
@@ -33,19 +33,19 @@ Each agent has exactly one job. They're very good at it. They will not shut up a
 
 **🏠 Native Agents (FREE - Live in `.claude/agents/`):**
 
-| Agent | Model | Personality |
-|-------|-------|-------------|
-| **Scout** | Haiku | 🔍 The speedster. Finds files faster than you can say "where did I put that". 75% cheaper than alternatives |
-| **Index** | Sonnet + WebSearch | 📚 The librarian. Reads every doc, cites every source. Uses WebSearch so it's actually up to date |
+| Agent     | Model              | Personality                                                                                                 |
+| --------- | ------------------ | ----------------------------------------------------------------------------------------------------------- |
+| **Scout** | Haiku              | 🔍 The speedster. Finds files faster than you can say "where did I put that". 75% cheaper than alternatives |
+| **Index** | Sonnet + WebSearch | 📚 The librarian. Reads every doc, cites every source. Uses WebSearch so it's actually up to date           |
 
 **🌐 MCP Agents (External APIs):**
 
-| Agent | Model | Personality |
-|-------|-------|-------------|
-| **Arch** | GPT-5.2 | 🧠 The overthinker. Will write 3 pages about why your variable name is "technically correct but philosophically questionable" |
-| **Canvas** | Gemini 3 Pro | 🎨 The artist. Believes every button deserves a 47ms cubic-bezier transition |
-| **Quill** | Gemini 3 Pro | ✍️ The poet. Writes README files so beautiful they make developers cry |
-| **Lens** | Gemini 3 Pro | 👁️ The detective. Stares at your screenshots and PDFs until they confess their secrets |
+| Agent      | Model        | Personality                                                                                                                   |
+| ---------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| **Arch**   | GPT-5.2      | 🧠 The overthinker. Will write 3 pages about why your variable name is "technically correct but philosophically questionable" |
+| **Canvas** | Gemini 3 Pro | 🎨 The artist. Believes every button deserves a 47ms cubic-bezier transition                                                  |
+| **Quill**  | Gemini 3 Pro | ✍️ The poet. Writes README files so beautiful they make developers cry                                                        |
+| **Lens**   | Gemini 3 Pro | 👁️ The detective. Stares at your screenshots and PDFs until they confess their secrets                                        |
 
 ### ⚡ Parallel Execution
 
@@ -73,6 +73,39 @@ Claude: "I was literally made for this"
 
 Automatic cross-provider fallbacks. Your work continues. Your deadline survives.
 
+### 🛡️ Circuit Breaker (The Safety Net Upgrade)
+
+APIs go down. It happens. We're prepared. Now we're **REALLY** prepared.
+
+```
+OLD: Retry until the heat death of the universe
+NEW: "Provider's down? Cool. Moving on." (automatic, instant)
+```
+
+**How it works**:
+
+- Detects cascading failures before your wallet does (5 errors = circuit opens)
+- Automatic recovery attempts (we're optimists, after 60 seconds)
+- Fast-fail when there's no hope (we're also realists)
+
+**State Machine** (because everything needs a state machine):
+
+```
+CLOSED (normal)
+  → 5 failures →
+OPEN (blocked, all requests rejected)
+  → 60s cooldown →
+HALF_OPEN (testing, 1 request allowed)
+  → success → CLOSED ✅
+  → failure → OPEN ❌ (back to timeout)
+```
+
+**What you get**:
+
+- No more thundering herd when APIs recover
+- Prevents burning money on doomed requests
+- Metrics for debugging ("Why is Arch down AGAIN?")
+
 ### 🎹 Trigger Keywords
 
 Talk to your agents naturally. They're listening. (Not in a creepy way.)
@@ -88,18 +121,18 @@ Talk to your agents naturally. They're listening. (Not in a creepy way.)
 
 **Call an MCP agent:**
 
-| Mention | Who answers |
-|---------|-------------|
-| `@arch` or `@architect` | The overthinker arrives |
+| Mention                                           | Who answers             |
+| ------------------------------------------------- | ----------------------- |
+| `@arch` or `@architect`                           | The overthinker arrives |
 | `@canvas`, `@ui`, `@frontend`, `@ux`, `@designer` | The pixel perfectionist |
-| `@quill`, `@docs`, `@writer` | The prose professional |
-| `@lens`, `@image`, `@pdf`, `@analyzer` | The visual investigator |
+| `@quill`, `@docs`, `@writer`                      | The prose professional  |
+| `@lens`, `@image`, `@pdf`, `@analyzer`            | The visual investigator |
 
 **Native agents (use Claude Code's Task tool):**
 
-| Command | Who answers |
-|---------|-------------|
-| `Task(subagent_type="scout")` | 🔍 The speedy scout - finds files and code |
+| Command                       | Who answers                                           |
+| ----------------------------- | ----------------------------------------------------- |
+| `Task(subagent_type="scout")` | 🔍 The speedy scout - finds files and code            |
 | `Task(subagent_type="index")` | 📚 The documentation hoarder - searches external docs |
 
 ---
@@ -113,18 +146,19 @@ npx cc-orchestrator@latest
 ```
 
 That's it. The installer will:
+
 - ✅ Ask you politely for API keys
 - ✅ Configure everything automagically
 - ✅ Not judge your messy home directory
 
 **Installer Options:**
 
-| Option | Description |
-|--------|-------------|
-| `--upgrade`, `-u` | Update existing installation |
-| `--force`, `-f` | Force reinstall all components |
-| `--keys`, `-k` | Reconfigure API keys only |
-| `--help`, `-h` | Show help message |
+| Option            | Description                    |
+| ----------------- | ------------------------------ |
+| `--upgrade`, `-u` | Update existing installation   |
+| `--force`, `-f`   | Force reinstall all components |
+| `--keys`, `-k`    | Reconfigure API keys only      |
+| `--help`, `-h`    | Show help message              |
 
 ```bash
 # Examples
@@ -202,6 +236,7 @@ The main entry point. Let Claude Code coordinate multiple AI agents for complex 
 ```
 
 The orchestrator will:
+
 1. Analyze your request and break it into steps
 2. Select the best agent for each step (arch, canvas, index, etc.)
 3. Run agents in parallel when possible
@@ -240,6 +275,7 @@ For simpler tasks that only need one specialist.
 ### Other Skills
 
 **UI Quality Assurance:**
+
 ```
 /ui-qa                              # Auto-detect dev server
 /ui-qa http://localhost:3000        # Test specific URL
@@ -248,6 +284,7 @@ For simpler tasks that only need one specialist.
 Takes screenshots, analyzes with AI, reports visual issues, accessibility problems, and layout bugs.
 
 **Context Checkpoint:**
+
 ```
 /checkpoint "Auth system done, JWT approach chosen"
 ```
@@ -258,27 +295,27 @@ Saves your conversation context. Survives `/compact`. Because losing context hur
 
 ```javascript
 // Launch an agent into the void
-background_task({ agent: "arch", prompt: "Judge my life choices (the code ones)" })
+background_task({ agent: 'arch', prompt: 'Judge my life choices (the code ones)' });
 
 // Check if they're still thinking
-background_output({ task_id: "abc123", block: false })
+background_output({ task_id: 'abc123', block: false });
 
 // Demand answers
-background_output({ task_id: "abc123", block: true })
+background_output({ task_id: 'abc123', block: true });
 
 // Cancel when you've had enough
-background_cancel({ task_id: "abc123" })  // Cancel one
-background_cancel({ all: true })          // Cancel everything
+background_cancel({ task_id: 'abc123' }); // Cancel one
+background_cancel({ all: true }); // Cancel everything
 
 // List all tasks
-list_tasks({ filter: { status: ["running"] } })
+list_tasks({ filter: { status: ['running'] } });
 
 // Share context between agents
-share_context({ key: "api_research", value: { findings: "..." } })
-get_context({ key: "api_research" })
+share_context({ key: 'api_research', value: { findings: '...' } });
+get_context({ key: 'api_research' });
 
 // Get agent recommendation
-suggest_agent({ query: "I need to review this architecture" })
+suggest_agent({ query: 'I need to review this architecture' });
 ```
 
 ### AST-Powered Code Search (The Smart Way)
@@ -287,21 +324,21 @@ Forget grep. Search code by structure, not text.
 
 ```javascript
 // Find all console.log calls
-ast_search({ pattern: "console.log($MSG)", path: "./src" })
+ast_search({ pattern: 'console.log($MSG)', path: './src' });
 
 // Find all function declarations
-ast_search({ pattern: "function $NAME($$$ARGS) { $$$BODY }", path: "./src" })
+ast_search({ pattern: 'function $NAME($$$ARGS) { $$$BODY }', path: './src' });
 
 // Find all if statements
-ast_search({ pattern: "if ($COND) { $$$BODY }", path: "./src" })
+ast_search({ pattern: 'if ($COND) { $$$BODY }', path: './src' });
 
 // Replace var with const (preview first)
 ast_replace({
-  pattern: "var $NAME = $VAL",
-  replacement: "const $NAME = $VAL",
-  path: "./src",
-  dry_run: true
-})
+  pattern: 'var $NAME = $VAL',
+  replacement: 'const $NAME = $VAL',
+  path: './src',
+  dry_run: true,
+});
 ```
 
 Supports TypeScript, JavaScript, Python, Rust, Go, Java, and more.
@@ -320,6 +357,7 @@ The `scout` and `index` agents live in `.claude/agents/` and use your Claude Cod
 ```
 
 Perfect for:
+
 - "Where the heck is that file?" → `scout`
 - "How do I use this library?" → `index`
 - "Show me the project structure" → `scout`
@@ -327,6 +365,7 @@ Perfect for:
 ### 2. Arch Is Expensive. Use Wisely.
 
 GPT-5.2 bills by the existential crisis. Save it for:
+
 - Architecture decisions you'll regret later anyway
 - Security reviews that make you lose sleep
 - When you've tried fixing a bug 3 times and it's personal now
@@ -334,11 +373,13 @@ GPT-5.2 bills by the existential crisis. Save it for:
 ### 3. Parallelize Everything
 
 Instead of this:
+
 ```
 "Research the API, then design the component, then review it"
 ```
 
 Try this:
+
 ```
 "Use scout to find existing patterns"     // FREE (Haiku)
 "Use index to find Stripe docs"         // FREE (WebSearch)
@@ -379,6 +420,13 @@ export CCO_ARCH_PROVIDERS=openai,anthropic
 
 # "I have patience" (timeout in seconds)
 export CCO_TIMEOUT_SECONDS=300
+
+# Circuit Breaker Settings (NEW!)
+# How many failures before we give up on a provider (default: 3)
+export CCO_CIRCUIT_FAILURE_THRESHOLD=5
+
+# How long to wait before trying again (milliseconds, default: 60000)
+export CCO_CIRCUIT_RESET_TIMEOUT=60000
 ```
 
 ---
@@ -414,12 +462,12 @@ cc-orchestrator/
 
 Automation that runs behind the scenes. Like a helpful ghost.
 
-| Hook | What it does |
-|------|--------------|
-| `context_resilience` | Auto-recovers context after `/compact`. Your memory, preserved |
-| `todo_enforcer` | Reminds you (aggressively) to use the todo list |
-| `review_orchestrator` | Coordinates multi-model code reviews |
-| `quota_monitor` | Tracks API usage before your wallet cries |
+| Hook                  | What it does                                                   |
+| --------------------- | -------------------------------------------------------------- |
+| `context_resilience`  | Auto-recovers context after `/compact`. Your memory, preserved |
+| `todo_enforcer`       | Reminds you (aggressively) to use the todo list                |
+| `review_orchestrator` | Coordinates multi-model code reviews                           |
+| `quota_monitor`       | Tracks API usage before your wallet cries                      |
 
 Hooks live in `~/.claude/hooks/` after installation.
 
@@ -427,17 +475,17 @@ Hooks live in `~/.claude/hooks/` after installation.
 
 ## 🧰 Full Tool Reference
 
-| Tool | Description |
-|------|-------------|
-| `background_task` | Launch agent in background |
-| `background_output` | Get task status/results |
-| `background_cancel` | Cancel running tasks |
-| `list_tasks` | List all tasks in session |
-| `share_context` | Share data between agents |
-| `get_context` | Retrieve shared data |
-| `suggest_agent` | Get agent recommendation for a query |
-| `ast_search` | Search code by AST pattern |
-| `ast_replace` | Replace code by AST pattern |
+| Tool                | Description                          |
+| ------------------- | ------------------------------------ |
+| `background_task`   | Launch agent in background           |
+| `background_output` | Get task status/results              |
+| `background_cancel` | Cancel running tasks                 |
+| `list_tasks`        | List all tasks in session            |
+| `share_context`     | Share data between agents            |
+| `get_context`       | Retrieve shared data                 |
+| `suggest_agent`     | Get agent recommendation for a query |
+| `ast_search`        | Search code by AST pattern           |
+| `ast_replace`       | Replace code by AST pattern          |
 
 ---
 
@@ -450,6 +498,7 @@ npm run uninstall
 ```
 
 Options:
+
 1. **Everything** — Nuclear option. Gone.
 2. **Local only** — Keep Claude config, delete project files
 3. **Claude config only** — Keep project, remove from Claude
@@ -458,12 +507,12 @@ Options:
 
 ## 🐛 Troubleshooting
 
-| Problem | Cause | Solution |
-|---------|-------|----------|
-| MCP won't connect | Someone used `console.log` | Find it. Delete it. Never speak of this. |
-| Agent stuck | API being dramatic | Check your keys. Check their status page. Curse. |
-| Timeout | Model is "thinking" | Increase `CCO_TIMEOUT_SECONDS`. Get coffee. |
-| No response | You broke it | `LOG_LEVEL=debug npm run dev`, then panic |
+| Problem           | Cause                      | Solution                                         |
+| ----------------- | -------------------------- | ------------------------------------------------ |
+| MCP won't connect | Someone used `console.log` | Find it. Delete it. Never speak of this.         |
+| Agent stuck       | API being dramatic         | Check your keys. Check their status page. Curse. |
+| Timeout           | Model is "thinking"        | Increase `CCO_TIMEOUT_SECONDS`. Get coffee.      |
+| No response       | You broke it               | `LOG_LEVEL=debug npm run dev`, then panic        |
 
 ---
 

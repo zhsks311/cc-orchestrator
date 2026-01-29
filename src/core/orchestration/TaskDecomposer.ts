@@ -56,7 +56,7 @@ export class TaskDecomposer implements ITaskDecomposer {
   }
 
   async decompose(request: string): Promise<DecompositionResult> {
-    this.logger.info('Decomposing task', { request });
+    this.logger.info('Decomposing task', { requestLength: request.length });
 
     try {
       const prompt = DECOMPOSITION_PROMPT.replace('{{REQUEST}}', request);
@@ -122,7 +122,12 @@ export class TaskDecomposer implements ITaskDecomposer {
     };
   }
 
-  private normalizeTaskType(type: string): TaskType {
+  private normalizeTaskType(type: unknown): TaskType {
+    if (typeof type !== 'string' || type.trim().length === 0) {
+      this.logger.warn('Missing task type, defaulting to IMPLEMENT', { type });
+      return TaskType.IMPLEMENT;
+    }
+
     const normalized = type.toLowerCase().trim();
     const validTypes = Object.values(TaskType);
 
@@ -169,35 +174,40 @@ export class TaskDecomposer implements ITaskDecomposer {
       adjList.set(task.id, task.dependencies);
     }
 
-    const visited = new Set<string>();
-    const recStack = new Set<string>();
+    const visitState = new Map<string, 'visiting' | 'visited'>();
+    const stack: string[] = [];
 
-    const hasCycle = (taskId: string): boolean => {
-      visited.add(taskId);
-      recStack.add(taskId);
+    const visit = (taskId: string): boolean => {
+      const state = visitState.get(taskId);
+      if (state === 'visiting') {
+        stack.push(taskId);
+        return true;
+      }
+      if (state === 'visited') {
+        return false;
+      }
+
+      visitState.set(taskId, 'visiting');
 
       const deps = adjList.get(taskId) || [];
       for (const depId of deps) {
-        if (!visited.has(depId)) {
-          if (hasCycle(depId)) {
-            return true;
-          }
-        } else if (recStack.has(depId)) {
+        if (visit(depId)) {
+          stack.push(taskId);
           return true;
         }
       }
 
-      recStack.delete(taskId);
+      visitState.set(taskId, 'visited');
       return false;
     };
 
-    for (const task of tasks) {
-      if (!visited.has(task.id)) {
-        if (hasCycle(task.id)) {
-          throw new TaskDecompositionError(
-            `Circular dependency detected involving task: ${task.id}`
-          );
-        }
+    for (const taskId of adjList.keys()) {
+      if (visitState.has(taskId)) {
+        continue;
+      }
+      if (visit(taskId)) {
+        const cyclePath = stack.reverse().join(' -> ');
+        throw new TaskDecompositionError(`Circular dependency detected: ${cyclePath}`);
       }
     }
   }

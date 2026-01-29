@@ -134,6 +134,8 @@ export class ToolHandlers {
     const { SubagentType } = ToolHandlers;
     const subagentMap: Record<AgentRole, string> = {
       [AgentRole.ARCH]: SubagentType.PLAN,
+      [AgentRole.SCOUT]: SubagentType.EXPLORE,
+      [AgentRole.INDEX]: SubagentType.GENERAL,
       [AgentRole.CANVAS]: SubagentType.GENERAL,
       [AgentRole.QUILL]: SubagentType.GENERAL,
       [AgentRole.LENS]: SubagentType.GENERAL,

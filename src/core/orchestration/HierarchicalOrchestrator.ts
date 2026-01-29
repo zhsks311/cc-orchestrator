@@ -58,7 +58,7 @@ export class HierarchicalOrchestrator implements IHierarchicalOrchestrator {
 
     this.logger.info('Hierarchical orchestration started', {
       orchestrationId,
-      request,
+      requestLength: request.length,
     });
 
     try {
@@ -129,7 +129,7 @@ export class HierarchicalOrchestrator implements IHierarchicalOrchestrator {
         return {
           ...assignment,
           agent: AgentRole.ARCH,
-          confidence: Math.max(assignment.confidence, minConfidence),
+          confidence: assignment.confidence,
           reasoning: `${assignment.reasoning ?? 'Low confidence selection.'} Fallback to Arch.`,
         };
       }

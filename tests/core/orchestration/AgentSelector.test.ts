@@ -21,7 +21,7 @@ describe('AgentSelector', () => {
   });
 
   describe('selectAgent', () => {
-    it('should select Arch for research tasks targeting external docs', () => {
+    it('should select Index for research tasks targeting external docs', () => {
       const task = createTask({
         type: TaskType.RESEARCH,
         description: 'Research external docs for API usage',
@@ -29,12 +29,12 @@ describe('AgentSelector', () => {
 
       const assignment = selector.selectAgent(task);
 
-      expect(assignment.agent).toBe(AgentRole.ARCH);
-      expect(assignment.confidence).toBe(0.7);
+      expect(assignment.agent).toBe(AgentRole.INDEX);
+      expect(assignment.confidence).toBe(0.85);
       expect(assignment.reasoning).toMatch(/External research/);
     });
 
-    it('should select Arch for codebase research tasks', () => {
+    it('should select Scout for codebase research tasks', () => {
       const task = createTask({
         type: TaskType.RESEARCH,
         description: 'Search the codebase for auth modules',
@@ -42,8 +42,8 @@ describe('AgentSelector', () => {
 
       const assignment = selector.selectAgent(task);
 
-      expect(assignment.agent).toBe(AgentRole.ARCH);
-      expect(assignment.confidence).toBe(0.7);
+      expect(assignment.agent).toBe(AgentRole.SCOUT);
+      expect(assignment.confidence).toBe(0.85);
       expect(assignment.reasoning).toMatch(/Codebase research/);
     });
 

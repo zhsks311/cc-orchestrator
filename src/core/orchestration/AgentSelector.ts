@@ -78,16 +78,25 @@ export class AgentSelector implements IAgentSelector {
 
   private selectResearch(task: DecomposedTask, combined: string): TaskAssignment {
     const scope = this.detectResearchScope(combined);
-    const reasoningMap: Record<ResearchScope, string> = {
-      external:
-        'External research detected; routing to Arch for synthesis (native research roles not available here).',
-      codebase:
-        'Codebase research detected; routing to Arch for analysis (native research roles not available here).',
-      unknown: 'Research task; routing to Arch for analysis.',
-    };
+    if (scope === 'external') {
+      return this.buildAssignment(
+        task,
+        AgentRole.INDEX,
+        0.85,
+        'External research detected; routing to Index for documentation and best practices.'
+      );
+    }
 
-    const confidence = scope === 'unknown' ? 0.65 : 0.7;
-    return this.buildAssignment(task, AgentRole.ARCH, confidence, reasoningMap[scope]);
+    if (scope === 'codebase') {
+      return this.buildAssignment(
+        task,
+        AgentRole.SCOUT,
+        0.85,
+        'Codebase research detected; routing to Scout for exploration and navigation.'
+      );
+    }
+
+    return this.buildAssignment(task, AgentRole.INDEX, 0.75, 'Research task; routing to Index.');
   }
 
   private selectImplementation(task: DecomposedTask, combined: string): TaskAssignment {
@@ -315,7 +324,8 @@ export class AgentSelector implements IAgentSelector {
 
     try {
       return JSON.stringify(context).toLowerCase();
-    } catch {
+    } catch (error) {
+      this.logger.warn('Failed to stringify task context', { error });
       return '';
     }
   }

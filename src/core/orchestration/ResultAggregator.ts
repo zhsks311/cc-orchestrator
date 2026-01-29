@@ -114,7 +114,8 @@ export class ResultAggregator implements IResultAggregator {
         ? parsed.nextSteps.filter((step: unknown) => typeof step === 'string')
         : undefined;
       return { summary, nextSteps };
-    } catch {
+    } catch (error) {
+      this.logger.warn('Failed to parse summary JSON from LLM response', { error, content });
       return { summary: content.trim() };
     }
   }

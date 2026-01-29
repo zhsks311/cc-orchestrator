@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { HierarchicalOrchestrator } from '../../src/core/orchestration/HierarchicalOrchestrator.js';
 import { ParallelExecutor } from '../../src/core/orchestration/ParallelExecutor.js';
 import { DAGBuilder } from '../../src/core/orchestration/DAGBuilder.js';
-import { AgentStatus, AgentRole, Priority } from '../../src/types/agent.js';
+import { AgentStatus, Priority } from '../../src/types/agent.js';
 import { IContextStore } from '../../src/core/context/ContextStore.js';
 import { ModelRouter } from '../../src/core/models/ModelRouter.js';
 import { IAgentManager } from '../../src/core/agents/AgentManager.js';

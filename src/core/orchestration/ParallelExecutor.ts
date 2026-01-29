@@ -43,14 +43,9 @@ export class ParallelExecutor implements IParallelExecutor {
     const results: ExecutionResult[] = [];
     const resultsByTask = new Map<string, ExecutionResult>();
 
-    const maxParallelTasks = Math.max(
-      1,
-      context.config.maxParallelTasks ?? parseInt(process.env.CCO_MAX_PARALLEL_TASKS ?? '5', 10)
-    );
-    const taskTimeout =
-      context.config.taskTimeout ?? parseInt(process.env.CCO_TASK_TIMEOUT ?? '300000', 10);
-    const maxRetries =
-      context.config.maxRetries ?? parseInt(process.env.CCO_MAX_RETRIES ?? '3', 10);
+    const maxParallelTasks = Math.max(1, context.config.maxParallelTasks ?? 5);
+    const taskTimeout = context.config.taskTimeout ?? 300000;
+    const maxRetries = context.config.maxRetries ?? 3;
     const failFast = context.config.failFast ?? false;
 
     for (const level of dag.levels) {
@@ -310,11 +305,7 @@ export class ParallelExecutor implements IParallelExecutor {
   }
 
   private serializeSharedContext(sharedContext: Map<string, unknown>): Record<string, unknown> {
-    const serialized: Record<string, unknown> = {};
-    for (const [key, value] of sharedContext.entries()) {
-      serialized[key] = value;
-    }
-    return serialized;
+    return Object.fromEntries(sharedContext);
   }
 
   private buildFailureResult(

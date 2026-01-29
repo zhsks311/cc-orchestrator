@@ -6,6 +6,8 @@ import { FallbackInfo } from './model.js';
 
 export enum AgentRole {
   ARCH = 'arch',
+  SCOUT = 'scout',
+  INDEX = 'index',
   CANVAS = 'canvas',
   QUILL = 'quill',
   LENS = 'lens',

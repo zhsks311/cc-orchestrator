@@ -49,8 +49,6 @@ export class CircuitBreaker {
       throw new CircuitBreakerOpenError(this.name);
     }
 
-    this.totalRequests++;
-
     if (this.state === CircuitState.HALF_OPEN) {
       this.halfOpenAttempts++;
     }
@@ -91,7 +89,8 @@ export class CircuitBreaker {
     return Date.now() >= this.nextAttemptAt.getTime();
   }
 
-  private onSuccess(): void {
+  recordSuccess(): void {
+    this.totalRequests++;
     this.successfulRequests++;
     this.failureCount = 0;
 
@@ -105,7 +104,8 @@ export class CircuitBreaker {
     }
   }
 
-  private onFailure(): void {
+  recordFailure(): void {
+    this.totalRequests++;
     this.failedRequests++;
     this.failureCount++;
     this.successCount = 0;
@@ -120,6 +120,14 @@ export class CircuitBreaker {
         this.transitionTo(CircuitState.OPEN);
       }
     }
+  }
+
+  private onSuccess(): void {
+    this.recordSuccess();
+  }
+
+  private onFailure(): void {
+    this.recordFailure();
   }
 
   private transitionTo(newState: CircuitState): void {

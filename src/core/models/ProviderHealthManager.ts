@@ -75,14 +75,15 @@ export class ProviderHealthManager {
     const state = this.getState(provider);
     const circuitBreaker = this.circuitBreakers.get(provider);
 
+    if (circuitBreaker) {
+      circuitBreaker.recordSuccess();
+      state.circuitState = circuitBreaker.getState();
+      state.circuitOpen = state.circuitState === CircuitState.OPEN;
+    }
+
     state.consecutiveErrors = 0;
     state.lastSuccess = new Date();
-    state.circuitOpen = false;
     state.cooldownUntil = undefined;
-
-    if (circuitBreaker) {
-      state.circuitState = circuitBreaker.getState();
-    }
 
     this.logger.debug('Provider marked healthy', { provider });
   }
@@ -99,17 +100,8 @@ export class ProviderHealthManager {
 
     const reason = this.classifyError(error);
 
-    // Apply cooldown for rate limits
-    if (reason === FallbackReason.RATE_LIMIT) {
-      const retryAfter = this.parseRetryAfter(error);
-      state.cooldownUntil = new Date(Date.now() + (retryAfter || DEFAULT_COOLDOWN_MS));
-      this.logger.warn('Provider rate limited', {
-        provider,
-        cooldownUntil: state.cooldownUntil.toISOString(),
-      });
-    }
-
     if (circuitBreaker) {
+      circuitBreaker.recordFailure();
       const circuitState = circuitBreaker.getState();
       state.circuitState = circuitState;
       state.circuitOpen = circuitState === CircuitState.OPEN;
@@ -120,6 +112,16 @@ export class ProviderHealthManager {
           state.cooldownUntil = new Date(Date.now() + cooldownMs);
         }
       }
+    }
+
+    // Apply cooldown for rate limits
+    if (reason === FallbackReason.RATE_LIMIT) {
+      const retryAfter = this.parseRetryAfter(error);
+      state.cooldownUntil = new Date(Date.now() + (retryAfter || DEFAULT_COOLDOWN_MS));
+      this.logger.warn('Provider rate limited', {
+        provider,
+        cooldownUntil: state.cooldownUntil.toISOString(),
+      });
     }
 
     return reason;

@@ -68,21 +68,45 @@ tags: [orchestration, multi-model, parallel, workflow]
 | 리소스 | 비용 | 사용 시점 |
 |--------|------|-----------|
 | Grep, Glob, Read | FREE | 범위 명확, 단순 검색 |
-| Task(Explore) | FREE | 코드베이스 내부 탐색 |
-| `index` | CHEAP | 외부 문서, API 레퍼런스 |
-| `canvas` | MODERATE | UI/UX, 스타일링 |
-| `arch` | EXPENSIVE | 아키텍처, 코드 리뷰, 전략 |
+| `scout` agent | FREE | 코드베이스 탐색 (Task tool) |
+| `index` agent | LOW | 외부 문서, API 리서치 (Task tool) |
+| `canvas` | MODERATE | UI/UX, 스타일링 (MCP) |
+| `quill` | MODERATE | 기술 문서 (MCP) |
+| `lens` | MODERATE | 이미지/PDF 분석 (MCP) |
+| `arch` | EXPENSIVE | 아키텍처, 코드 리뷰 (MCP) |
+
+**에이전트 라우팅 규칙 (CRITICAL):**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ CLAUDE CODE NATIVE AGENTS (Task tool) - FREE/LOW-COST       │
+│                                                             │
+│   scout  → Task(subagent_type="scout", prompt="...")     │
+│              FREE: 코드베이스 탐색, 파일/함수 검색       │
+│                                                             │
+│   index  → Task(subagent_type="index", prompt="...")     │
+│              LOW-COST: 외부 리서치 (WebSearch + Fetch)   │
+│                                                             │
+│ MCP AGENTS (background_task) - PAID                         │
+│                                                             │
+│   arch   → background_task(agent="arch")   // OpenAI GPT-5.2│
+│   canvas → background_task(agent="canvas") // Google Gemini │
+│   quill  → background_task(agent="quill")  // Google Gemini │
+│   lens   → background_task(agent="lens")   // Google Gemini │
+└─────────────────────────────────────────────────────────────┘
+```
 
 **병렬 실행 패턴:**
 
-```
-# 올바른 방법: 항상 병렬로 실행
-background_task(agent="index", prompt="JWT 모범 사례 조사...")
-background_task(agent="arch", prompt="인증 아키텍처 검토...")
-// 즉시 다음 작업 계속 - 대기하지 않음
+```bash
+# 올바른 방법: Native + MCP 혼합 병렬 실행
+Task(subagent_type="scout", prompt="인증 패턴 찾기")      // FREE
+background_task(agent="arch", prompt="보안 아키텍처 검토") // PAID (GPT-5.2)
+// 둘 다 병렬 실행 - 즉시 다음 작업 계속
 
-# 잘못된 방법: 순차 대기
-result = wait_agent(...)  // 절대 금지 - 병렬성 손실
+# 잘못된 방법: MCP는 scout/index 지원 안함
+background_task(agent="scout", ...)  // ERROR - Task tool 사용
+background_task(agent="index", ...)  // ERROR - Task tool 사용
 ```
 
 **탐색 중단 조건:**
@@ -134,20 +158,28 @@ background_cancel(all=true)  // 모든 백그라운드 작업 취소
 
 ### 에이전트 역할표
 
+**Claude Code Native Agents (Task tool) - FREE/LOW-COST:**
+
+| 에이전트 | 호출 방법 | 용도 | 트리거 |
+|----------|-----------|------|--------|
+| `scout` | `Task(subagent_type="scout")` | 코드베이스 탐색, 파일/함수 검색 | "어디에", "찾아줘", "어떻게 동작" |
+| `index` | `Task(subagent_type="index")` | 외부 문서, API, 모범 사례 (저렴) | 라이브러리명, "어떻게", 튜토리얼 |
+
+**MCP Agents (background_task) - PAID:**
+
 | 에이전트 | 모델 | 용도 | 비용 | 트리거 |
 |----------|------|------|------|--------|
 | `arch` | GPT-5.2 | 아키텍처, 전략, 코드 리뷰 | 높음 | 설계 결정, 복잡한 문제 |
-| `index` | Claude Sonnet | 문서 검색, 외부 API, 사례 조사 | 낮음 | 모르는 라이브러리, 외부 문서 |
-| `canvas` | Gemini Pro | UI/UX, 스타일링, 컴포넌트 | 중간 | Visual 변경, CSS, 애니메이션 |
-| `quill` | Gemini Pro | 기술 문서, README, API 문서 | 중간 | 문서화 요청 |
-| `lens` | Gemini 3 Pro | 이미지, PDF, 스크린샷 분석 | 중간 | 시각 자료 분석 |
+| `canvas` | Gemini 3 | UI/UX, 스타일링, 컴포넌트 | 중간 | Visual 변경, CSS, 애니메이션 |
+| `quill` | Gemini 3 | 기술 문서, README, API 문서 | 중간 | 문서화 요청 |
+| `lens` | Gemini 3 | 이미지, PDF, 스크린샷 분석 | 중간 | 시각 자료 분석 |
 
 ### 위임 테이블
 
 | 도메인 | 위임 대상 | 트리거 키워드 |
 |--------|-----------|---------------|
 | Frontend UI/UX | `canvas` | style, color, animation, layout, responsive |
-| 외부 리서치 | `index` | 라이브러리명, API, "어떻게 하는지", 모범 사례 |
+| 외부 리서치 | `index` (저렴) | 라이브러리명, API, "어떻게 하는지", 모범 사례 |
 | 아키텍처 | `arch` | 설계, 구조, 패턴 선택, 트레이드오프 |
 | 코드 리뷰 | `arch` | 리뷰, 검토, 개선점 |
 | 문서화 | `quill` | README, 문서, 설명서, API docs |
@@ -204,7 +236,7 @@ animation, transition, hover, responsive, CSS
 ### 패턴 A: 탐색 + 구현
 
 ```
-1. background_task(index, "레퍼런스 검색...")  // 병렬
+1. Task(subagent_type="index", prompt="레퍼런스 검색...")  // 병렬 (저렴)
 2. 동시에 기본 구현 시작
 3. index 결과로 구현 보강
 ```
@@ -221,7 +253,7 @@ animation, transition, hover, responsive, CSS
 
 ```
 1. background_task(arch, "아키텍처 관점...")    // 병렬
-2. background_task(index, "업계 사례...")      // 병렬
+2. Task(subagent_type="index", prompt="업계 사례...")      // 병렬 (저렴)
 3. background_task(canvas, "UX 관점...")       // 병렬
 4. 세 결과 통합
 ```
@@ -241,7 +273,7 @@ animation, transition, hover, responsive, CSS
 
 ```
 ├─ 간단한 조사         → index (저렴)
-├─ 코드베이스 탐색     → Task(Explore) 또는 직접 도구 (무료)
+├─ 코드베이스 탐색     → Task(subagent_type="scout") 또는 직접 도구 (무료)
 ├─ 아키텍처 결정       → arch (필요할 때만)
 ├─ UI 작업            → canvas (필요할 때만)
 └─ 단순 검색          → Grep, Glob (항상 무료 우선)
@@ -338,7 +370,7 @@ get_context(key, scope?)
 
 [Step 1: 분류]
 ├─ Trivial?      → 직접 처리
-├─ Research?     → index 실행
+├─ Research?     → index 실행 (저렴)
 ├─ Design?       → arch 상담
 ├─ UI/Visual?    → canvas 위임
 ├─ Complex?      → 다중 에이전트 병렬

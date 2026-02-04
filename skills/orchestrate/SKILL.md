@@ -204,6 +204,18 @@ background_cancel(all=true)  // Cancel all background tasks
 | `scout` | `Task(subagent_type="scout")` | Codebase exploration, file/function search | "where is", "find", "how does X work" |
 | `index` | `Task(subagent_type="index")` | External docs, APIs, best practices (low-cost) | library names, "how to", tutorials |
 
+**Claude Code Coding Agents (Task tool) - FREE:**
+
+| Agent | Invocation | Purpose | Triggers |
+|-------|------------|---------|----------|
+| `frontend-developer` | `Task(subagent_type="frontend-developer")` | React, Next.js, CSS, responsive layouts | "build UI", "create component", "style", "page layout" |
+| `backend-architect` | `Task(subagent_type="backend-architect")` | API design, microservices, server logic | "create API", "endpoint", "service layer", "middleware" |
+| `database-architect` | `Task(subagent_type="database-architect")` | Schema modeling, migrations, queries | "schema", "migration", "database", "model" |
+| `cloud-architect` | `Task(subagent_type="cloud-architect")` | AWS/Azure/GCP, IaC, deployment | "deploy", "infrastructure", "CI/CD", "Docker" |
+| `docs-architect` | `Task(subagent_type="docs-architect")` | Technical docs from code (free quill alternative) | "document", "guide", "technical docs" |
+| `architect-review` | `Task(subagent_type="architect-review")` | Architecture review (free arch alternative) | "review architecture", "design review", "clean arch" |
+| `general-purpose` | `Task(subagent_type="general-purpose")` | Any coding task, full tool access | Catch-all for implementation tasks |
+
 **MCP Agents (background_task) - PAID:**
 
 | Agent | Model | Purpose | Cost | Triggers |

@@ -234,7 +234,7 @@ background_cancel(all=true)  // Cancel all background tasks
 | Frontend UI/UX | `canvas` (MCP) | style, color, animation, layout, responsive |
 | Architecture | `arch` (MCP) | design, structure, pattern selection, tradeoffs |
 | Code Review | `arch` (MCP) | review, inspect, improvements |
-| Documentation | `quill` (MCP) | README, docs, guide, API docs |
+| Documentation | `docs-architect` (native) first, `quill` (MCP) fallback | README, docs, guide, API docs |
 | Image/PDF | `lens` (MCP) | screenshot, image, PDF, diagram |
 | Frontend coding | `frontend-developer` (native) | build, create component, React, page, layout |
 | Backend coding | `backend-architect` (native) | API, endpoint, service, server, middleware |
@@ -261,11 +261,41 @@ animation, transition, hover, responsive, CSS
 
 ---
 
+## Hybrid Swarm Operating Policy (BLOCKING)
+
+**Fixed policy for `/orchestrate`:**
+- Optimize for output quality first, then speed/cost.
+- Native coding agents are the default for implementation.
+- MCP agents are quality boosters (design/review/visual/document polish), not the default path.
+
+**Routing defaults:**
+- Implementation-heavy (multi-file edits): `frontend-developer`, `backend-architect`, `database-architect`, `cloud-architect`, `general-purpose`
+- Architecture decisions/tradeoffs: `arch` allowed
+- Visual/UI quality validation: `canvas` allowed
+- Documentation quality: `docs-architect` first, `quill` fallback only when quality requires it
+- Final quality review: exactly one of `architect-review` or `arch`
+
+**MCP soft guard:**
+- Recommended MCP usage: up to 2 calls per request (`design` 1 + `review` 1)
+- Do not hard-fail above 2 calls; report each extra call with one-line reason and expected quality gain
+
+---
+
 ## Delegation Prompt Structure
 
-**Required 7 Sections:**
+**Required 12 Sections (Hybrid Swarm Contract):**
 
 ```markdown
+## OPERATING_POLICY
+- Quality-first delivery
+- Native coding agents by default
+- MCP as selective quality booster
+
+## ROUTING_RULES
+- Implementation-heavy tasks → native coding agents
+- Design/review/visual quality tasks → MCP allowed
+- Final quality review → `architect-review` or `arch` (exactly one)
+
 ## TASK
 [Atomic goal - single action only]
 
@@ -283,6 +313,23 @@ animation, transition, hover, responsive, CSS
 
 ## CONTEXT
 [File paths, existing patterns, constraints]
+
+## QUALITY_GATE
+- Gate 1: Interface compatibility (I/O contracts, typed boundaries)
+- Gate 2: Integration conflicts (file overlap/conflicts)
+- Gate 3: Requirement coverage (must-have checklist)
+- Gate 4: Risk & omission report
+
+## MCP_SOFT_GUARD
+- Recommended MCP calls <= 2 per request
+- If exceeded, add one-line reason + expected quality gain per extra MCP call
+
+## REPORT_FORMAT
+- Agent Mix (native/MCP ratio)
+- File ownership by agent
+- Parallel execution summary (groups + elapsed time)
+- Quality gate pass/fail
+- MCP usage reasons and count
 
 ## SUCCESS_CRITERIA
 [Completion verification criteria]
@@ -374,6 +421,12 @@ Include design output in each worker prompt using delegation structure:
 └─ architect-review   → Analysis only (no file modifications)
 ```
 
+**Execution Constraints (BLOCKING):**
+- Delegate parallelizable worker tasks in the same turn/message.
+- Assign absolute-path scope per worker.
+- Include scope guardrails in `MUST_NOT_DO` (no out-of-scope edits, no duplicate ownership).
+- For each MCP call, log one-line reason + expected quality gain.
+
 ### Pattern F-iso: Parallel Implementation with Git Worktree Isolation
 
 Use when multiple agents need to modify overlapping files, or when safe rollback is required:
@@ -441,6 +494,41 @@ PAID (MCP external APIs):
 4. Parallel execution for time optimization
 5. Delegate parallel coding to native coding agents - they are FREE and can write code
 6. `docs-architect` and `architect-review` are free alternatives to `quill` and `arch`
+7. Quality first: use MCP only when it materially increases output quality
+8. Soft guard target: MCP calls <= 2 per request (design 1 + review 1)
+9. If MCP > 2, include explicit reason and expected quality gain in the final report
+
+---
+
+## Standard Report Format (Required Output)
+
+```markdown
+### Agent Mix
+- Native tasks: <count>
+- MCP tasks: <count>
+- Ratio: <native:mcp>
+
+### File Ownership
+| File | Owner Agent | Scope Validated |
+|------|-------------|-----------------|
+| ...  | ...         | yes/no |
+
+### Parallel Execution
+- Parallel groups: <groups>
+- Total elapsed time: <duration>
+- Blocking waits: <list>
+
+### Quality Gate
+- Gate 1 (interface compatibility): pass/fail + note
+- Gate 2 (integration conflicts): pass/fail + note
+- Gate 3 (requirement coverage): pass/fail + note
+- Gate 4 (risk/omissions): pass/fail + note
+
+### MCP Usage
+- Total MCP calls: <count>
+- Soft guard target (<=2): met/exceeded
+- If exceeded, include one-line reason + expected quality gain per extra call
+```
 
 ---
 
@@ -532,7 +620,7 @@ User request: "$ARGUMENTS"
 ├─ External docs?   → Task(subagent_type="index") - LOW-COST
 ├─ Design?          → background_task(agent="arch") - PAID
 ├─ UI/Visual?       → background_task(agent="canvas") - PAID
-├─ Documentation?   → background_task(agent="quill") - PAID
+├─ Documentation?   → Task(subagent_type="docs-architect") first, quill fallback
 ├─ Image/PDF?       → background_task(agent="lens") - PAID
 ├─ Implementation?  → Coding agents (frontend/backend/database/cloud) - FREE
 ├─ Complex?         → Multi-agent parallel

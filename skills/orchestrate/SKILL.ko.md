@@ -233,7 +233,7 @@ background_cancel(all=true)  // 모든 백그라운드 작업 취소
 | 외부 리서치 | `index` (저렴) | 라이브러리명, API, "어떻게 하는지", 모범 사례 |
 | 아키텍처 | `arch` | 설계, 구조, 패턴 선택, 트레이드오프 |
 | 코드 리뷰 | `arch` | 리뷰, 검토, 개선점 |
-| 문서화 | `quill` | README, 문서, 설명서, API docs |
+| 문서화 | `docs-architect` 우선, 필요 시 `quill` fallback | README, 문서, 설명서, API docs |
 | 이미지/PDF | `lens` | 스크린샷, 이미지, PDF, 다이어그램 |
 | 프론트엔드 코딩 | `frontend-developer` (native) | 빌드, 컴포넌트, React, 페이지, 레이아웃 |
 | 백엔드 코딩 | `backend-architect` (native) | API, 엔드포인트, 서비스, 서버, 미들웨어 |
@@ -260,11 +260,41 @@ animation, transition, hover, responsive, CSS
 
 ---
 
+## Hybrid Swarm 운영 정책 (BLOCKING)
+
+**`/orchestrate` 고정 운영 정책:**
+- 속도/비용보다 결과 품질을 우선한다.
+- 구현 작업의 기본 경로는 네이티브 코딩 에이전트다.
+- MCP 에이전트는 설계/리뷰/시각 품질 보강 용도로만 선택적으로 사용한다.
+
+**라우팅 기본값:**
+- 구현 중심(다중 파일 생성/수정): `frontend-developer`, `backend-architect`, `database-architect`, `cloud-architect`, `general-purpose`
+- 설계 의사결정/트레이드오프: `arch` 허용
+- UI/시각 완성도 검증: `canvas` 허용
+- 문서 품질 보강: `docs-architect` 우선, 필요 시 `quill` fallback
+- 최종 품질 리뷰: `architect-review` 또는 `arch` 정확히 1회
+
+**MCP 소프트 가드:**
+- 요청당 MCP 권장 상한: 2회(`설계` 1 + `리뷰` 1)
+- 2회를 초과해도 강제 차단하지 않음. 초과 호출마다 1줄 사유 + 기대 품질 이득을 보고에 기록
+
+---
+
 ## 위임 프롬프트 작성법
 
-**필수 7개 섹션:**
+**필수 12개 섹션 (Hybrid Swarm 계약):**
 
 ```markdown
+## OPERATING_POLICY
+- 품질 우선 원칙
+- 구현은 네이티브 코딩 에이전트 우선
+- MCP는 선택적 품질 보강
+
+## ROUTING_RULES
+- 구현 중심 작업 → 네이티브 코딩 에이전트
+- 설계/리뷰/시각 품질 작업 → MCP 허용
+- 최종 품질 리뷰 → `architect-review` 또는 `arch` 정확히 1회
+
 ## TASK
 [원자적 목표 - 액션 1개만]
 
@@ -282,6 +312,23 @@ animation, transition, hover, responsive, CSS
 
 ## CONTEXT
 [파일 경로, 기존 패턴, 제약사항]
+
+## QUALITY_GATE
+- 게이트 1: 인터페이스 호환성 (입출력 계약, 타입 경계)
+- 게이트 2: 통합 충돌 (파일 겹침/충돌)
+- 게이트 3: 요구사항 충족도 (필수 체크리스트)
+- 게이트 4: 리스크/누락 보고
+
+## MCP_SOFT_GUARD
+- 요청당 MCP 권장 상한 <= 2회
+- 초과 시 extra MCP마다 1줄 사유 + 기대 품질 이득 기록
+
+## REPORT_FORMAT
+- Agent Mix (네이티브/MCP 비율)
+- 파일별 소유 에이전트
+- 병렬 실행 요약 (그룹 + 소요 시간)
+- 품질 게이트 통과 여부
+- MCP 사용 사유 및 횟수
 
 ## SUCCESS_CRITERIA
 [완료 검증 기준]
@@ -365,6 +412,12 @@ animation, transition, hover, responsive, CSS
 └─ architect-review   → 분석만 수행 (파일 수정 없음)
 ```
 
+**실행 제약 (BLOCKING):**
+- 병렬 가능한 워커 작업은 같은 턴/메시지에서 동시에 위임
+- 각 워커에 절대경로 스코프 지정
+- `MUST_NOT_DO`에 스코프 외 수정 금지/작업 중복 금지 명시
+- MCP 호출마다 1줄 사유 + 기대 품질 이득 기록
+
 ### 패턴 E-iso: Git Worktree 격리 병렬 구현
 
 여러 에이전트가 같은 파일을 수정해야 하거나 안전한 롤백이 필요할 때:
@@ -431,6 +484,41 @@ PAID (MCP external APIs):
 3. 외부 모델 기능이 필요할 때만 MCP 에이전트 사용
 4. 병렬 코딩은 네이티브 코딩 에이전트에 위임 - 무료이며 코드 작성 가능
 5. `docs-architect`는 `quill`의, `architect-review`는 `arch`의 무료 대안
+6. 품질 우선 원칙: 품질 향상 근거가 있을 때만 MCP 추가 사용
+7. 소프트 가드 목표: 요청당 MCP <= 2회 (설계 1 + 리뷰 1)
+8. MCP가 2회를 넘으면 초과 사유와 기대 품질 이득을 최종 보고에 명시
+
+---
+
+## 표준 보고 포맷 (Required Output)
+
+```markdown
+### Agent Mix
+- Native tasks: <count>
+- MCP tasks: <count>
+- Ratio: <native:mcp>
+
+### File Ownership
+| 파일 | 소유 에이전트 | 스코프 검증 |
+|------|---------------|-------------|
+| ...  | ...           | yes/no |
+
+### Parallel Execution
+- 병렬 그룹: <groups>
+- 총 소요 시간: <duration>
+- block 대기 구간: <list>
+
+### Quality Gate
+- Gate 1 (인터페이스 호환성): pass/fail + note
+- Gate 2 (통합 충돌): pass/fail + note
+- Gate 3 (요구사항 충족): pass/fail + note
+- Gate 4 (리스크/누락): pass/fail + note
+
+### MCP Usage
+- 총 MCP 호출 수: <count>
+- 소프트 가드(<=2) 충족 여부: met/exceeded
+- 초과 시 extra MCP별 1줄 사유 + 기대 품질 이득
+```
 
 ---
 
@@ -521,6 +609,7 @@ get_context(key, scope?)
 ├─ Research?     → index 실행 (저렴)
 ├─ Design?       → arch 상담
 ├─ UI/Visual?    → canvas 위임
+├─ Documentation? → docs-architect 우선, 필요 시 quill fallback
 ├─ Implementation? → 코딩 에이전트 (frontend/backend/database/cloud) - FREE
 ├─ Complex?      → 다중 에이전트 병렬
 └─ Ambiguous?    → 질문 1개

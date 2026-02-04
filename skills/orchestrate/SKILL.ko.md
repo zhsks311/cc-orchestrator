@@ -241,6 +241,10 @@ background_cancel(all=true)  // 모든 백그라운드 작업 취소
 | 인프라 | `cco-cloud-architect` (native) | 배포, Docker, CI/CD, 인프라, 클라우드 |
 | 기술 문서 (무료) | `cco-docs-architect` (native) | 문서, 가이드 (quill 대비 비용 절감) |
 | 아키텍처 리뷰 (무료) | `cco-architect-review` (native) | 리뷰, 검토 (arch 대비 비용 절감) |
+| 블록체인/Web3 | `cco-blockchain-developer` (native) | 블록체인, 스마트 컨트랙트, Web3, DeFi |
+| GraphQL API | `cco-graphql-architect` (native) | GraphQL, 페더레이션, 스키마, 리졸버 |
+| 하이브리드/멀티클라우드 | `cco-hybrid-cloud-architect` (native) | 하이브리드 클라우드, 멀티클라우드, 엣지 컴퓨팅 |
+| Kubernetes/GitOps | `cco-kubernetes-architect` (native) | kubernetes, k8s, GitOps, helm, ArgoCD |
 | 범용 코딩 | `general-purpose` (native) | 구현, 코드, 빌드 (범용) |
 
 ### Frontend 위임 게이트 (BLOCKING)
@@ -412,12 +416,16 @@ animation, transition, hover, responsive, CSS
 
 **파일 범위 지정 (충돌 방지):**
 ```text
-├─ cco-frontend-developer → src/components/, src/pages/, src/styles/
-├─ cco-backend-architect  → src/api/, src/services/, src/middleware/
-├─ cco-database-architect → src/models/, src/migrations/, prisma/
-├─ cco-cloud-architect    → infra/, docker/, .github/workflows/
-├─ cco-docs-architect     → docs/
-└─ cco-architect-review   → 분석만 수행 (파일 수정 없음)
+├─ cco-frontend-developer      → src/components/, src/pages/, src/styles/
+├─ cco-backend-architect       → src/api/, src/services/, src/middleware/
+├─ cco-database-architect      → src/models/, src/migrations/, prisma/
+├─ cco-cloud-architect         → infra/, docker/, .github/workflows/
+├─ cco-blockchain-developer    → contracts/, src/web3/, hardhat/
+├─ cco-graphql-architect       → src/graphql/, schema/, resolvers/
+├─ cco-hybrid-cloud-architect  → infra/multi-cloud/, terraform/
+├─ cco-kubernetes-architect    → k8s/, helm/, argocd/
+├─ cco-docs-architect          → docs/
+└─ cco-architect-review        → 분석만 수행 (파일 수정 없음)
 ```
 
 **실행 제약 (BLOCKING):**

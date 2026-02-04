@@ -242,6 +242,10 @@ background_cancel(all=true)  // Cancel all background tasks
 | Infrastructure | `cco-cloud-architect` (native) | deploy, Docker, CI/CD, infra, cloud |
 | Technical docs (free) | `cco-docs-architect` (native) | document, guide (cost-saving over quill) |
 | Architecture review (free) | `cco-architect-review` (native) | review, inspect (cost-saving over arch) |
+| Blockchain/Web3 | `cco-blockchain-developer` (native) | blockchain, smart contract, Web3, DeFi |
+| GraphQL APIs | `cco-graphql-architect` (native) | GraphQL, federation, schema, resolver |
+| Hybrid/Multi-cloud | `cco-hybrid-cloud-architect` (native) | hybrid cloud, multi-cloud, edge computing |
+| Kubernetes/GitOps | `cco-kubernetes-architect` (native) | kubernetes, k8s, GitOps, helm, ArgoCD |
 | General coding | `general-purpose` (native) | implement, code, build (catch-all) |
 
 ### Frontend Delegation Gate (BLOCKING)
@@ -413,12 +417,16 @@ Include design output in each worker prompt using delegation structure:
 
 **File Scope Assignment (prevent conflicts):**
 ```text
-├─ cco-frontend-developer → src/components/, src/pages/, src/styles/
-├─ cco-backend-architect  → src/api/, src/services/, src/middleware/
-├─ cco-database-architect → src/models/, src/migrations/, prisma/
-├─ cco-cloud-architect    → infra/, docker/, .github/workflows/
-├─ cco-docs-architect     → docs/
-└─ cco-architect-review   → Analysis only (no file modifications)
+├─ cco-frontend-developer      → src/components/, src/pages/, src/styles/
+├─ cco-backend-architect       → src/api/, src/services/, src/middleware/
+├─ cco-database-architect      → src/models/, src/migrations/, prisma/
+├─ cco-cloud-architect         → infra/, docker/, .github/workflows/
+├─ cco-blockchain-developer    → contracts/, src/web3/, hardhat/
+├─ cco-graphql-architect       → src/graphql/, schema/, resolvers/
+├─ cco-hybrid-cloud-architect  → infra/multi-cloud/, terraform/
+├─ cco-kubernetes-architect    → k8s/, helm/, argocd/
+├─ cco-docs-architect          → docs/
+└─ cco-architect-review        → Analysis only (no file modifications)
 ```
 
 **Execution Constraints (BLOCKING):**

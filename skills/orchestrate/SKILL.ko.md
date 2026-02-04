@@ -427,8 +427,10 @@ PAID (MCP external APIs):
 
 **원칙:**
 1. 무료 도구로 해결 가능하면 에이전트 호출 안함
-2. 저렴한 에이전트(index)로 충분하면 비싼 에이전트 안씀
-3. 병렬 실행으로 시간 최적화
+2. `scout`(FREE)로 충분한지 먼저 확인하고, 외부 리서치는 `index`(LOW-COST) 사용
+3. 외부 모델 기능이 필요할 때만 MCP 에이전트 사용
+4. 병렬 코딩은 네이티브 코딩 에이전트에 위임 - 무료이며 코드 작성 가능
+5. `docs-architect`는 `quill`의, `architect-review`는 `arch`의 무료 대안
 
 ---
 

@@ -192,39 +192,49 @@ describe('CircuitBreaker', () => {
 
   describe('config validation', () => {
     it('should reject failureThreshold < 1', () => {
-      expect(() => new CircuitBreaker('bad', { failureThreshold: 0 }))
-        .toThrow(CircuitBreakerConfigError);
+      expect(() => new CircuitBreaker('bad', { failureThreshold: 0 })).toThrow(
+        CircuitBreakerConfigError
+      );
     });
 
     it('should reject halfOpenMaxAttempts < 1', () => {
-      expect(() => new CircuitBreaker('bad', { halfOpenMaxAttempts: 0 }))
-        .toThrow(CircuitBreakerConfigError);
+      expect(() => new CircuitBreaker('bad', { halfOpenMaxAttempts: 0 })).toThrow(
+        CircuitBreakerConfigError
+      );
     });
 
     it('should reject successThreshold < 1', () => {
-      expect(() => new CircuitBreaker('bad', { successThreshold: 0 }))
-        .toThrow(CircuitBreakerConfigError);
+      expect(() => new CircuitBreaker('bad', { successThreshold: 0 })).toThrow(
+        CircuitBreakerConfigError
+      );
     });
 
     it('should reject negative resetTimeout', () => {
-      expect(() => new CircuitBreaker('bad', { resetTimeout: -1 }))
-        .toThrow(CircuitBreakerConfigError);
+      expect(() => new CircuitBreaker('bad', { resetTimeout: -1 })).toThrow(
+        CircuitBreakerConfigError
+      );
     });
 
     it('should reject successThreshold > halfOpenMaxAttempts', () => {
-      expect(() => new CircuitBreaker('bad', {
-        successThreshold: 3,
-        halfOpenMaxAttempts: 2,
-      })).toThrow(CircuitBreakerConfigError);
+      expect(
+        () =>
+          new CircuitBreaker('bad', {
+            successThreshold: 3,
+            halfOpenMaxAttempts: 2,
+          })
+      ).toThrow(CircuitBreakerConfigError);
     });
 
     it('should accept valid config', () => {
-      expect(() => new CircuitBreaker('good', {
-        failureThreshold: 5,
-        resetTimeout: 0,
-        halfOpenMaxAttempts: 3,
-        successThreshold: 2,
-      })).not.toThrow();
+      expect(
+        () =>
+          new CircuitBreaker('good', {
+            failureThreshold: 5,
+            resetTimeout: 0,
+            halfOpenMaxAttempts: 3,
+            successThreshold: 2,
+          })
+      ).not.toThrow();
     });
   });
 

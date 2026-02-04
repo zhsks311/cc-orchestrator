@@ -273,7 +273,7 @@ animation, transition, hover, responsive, CSS
 
 ```
 ├─ 간단한 조사         → index (저렴)
-├─ 코드베이스 탐색     → Task(Explore) 또는 직접 도구 (무료)
+├─ 코드베이스 탐색     → Task(subagent_type="scout") 또는 직접 도구 (무료)
 ├─ 아키텍처 결정       → arch (필요할 때만)
 ├─ UI 작업            → canvas (필요할 때만)
 └─ 단순 검색          → Grep, Glob (항상 무료 우선)

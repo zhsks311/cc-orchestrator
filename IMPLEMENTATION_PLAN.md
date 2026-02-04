@@ -1,47 +1,47 @@
 # Implementation Plan: Orchestration Patterns Enhancement
 
-## 목표
+## Objectives
 
-CC Orchestrator에 2가지 핵심 패턴 추가:
+Adding 2 core patterns to CC Orchestrator:
 
-1. **Circuit Breaker Pattern** - 시스템 안정성 향상
-2. **Hierarchical Orchestration Pattern** - 복잡한 작업 자동 분해
+1. **Circuit Breaker Pattern** - Improve system stability
+2. **Hierarchical Orchestration Pattern** - Automatic decomposition of complex tasks
 
 ---
 
-## Phase 1: Circuit Breaker Pattern (예상 소요: 4-6시간)
+## Phase 1: Circuit Breaker Pattern (Estimated: 4-6 hours)
 
-### 1.1 요구사항 분석
+### 1.1 Requirements Analysis
 
-- [x] 현재 재시도 메커니즘 분석 (RetryStrategy)
-- [x] ProviderHealthManager 구조 파악
-- [x] Circuit Breaker 상태 전이 설계
+- [x] Analyze current retry mechanism (RetryStrategy)
+- [x] Understand ProviderHealthManager structure
+- [x] Design Circuit Breaker state transitions
 
-### 1.2 타입 정의
+### 1.2 Type Definitions
 
-**파일**: `src/types/circuit-breaker.ts` (신규)
+**File**: `src/types/circuit-breaker.ts` (new)
 
-- [x] CircuitState enum 정의 (CLOSED, OPEN, HALF_OPEN)
+- [x] Define CircuitState enum (CLOSED, OPEN, HALF_OPEN)
 - [x] CircuitBreakerConfig interface
 - [x] CircuitBreakerMetrics interface
 
-**상태 전이**:
+**State Transitions**:
 
+```text
+CLOSED (normal)
+  ↓ (consecutive failures >= threshold)
+OPEN (blocked)
+  ↓ (timeout elapsed)
+HALF_OPEN (testing)
+  ↓ (success) → CLOSED
+  ↓ (failure) → OPEN
 ```
-CLOSED (정상)
-  ↓ (연속 실패 >= threshold)
-OPEN (차단)
-  ↓ (timeout 경과)
-HALF_OPEN (테스트)
-  ↓ (성공) → CLOSED
-  ↓ (실패) → OPEN
-```
 
-### 1.3 Circuit Breaker 구현
+### 1.3 Circuit Breaker Implementation
 
-**파일**: `src/infrastructure/CircuitBreaker.ts` (신규)
+**File**: `src/infrastructure/CircuitBreaker.ts` (new)
 
-- [x] CircuitBreaker 클래스 구현
+- [x] Implement CircuitBreaker class
   - [x] execute<T>(fn: () => Promise<T>): Promise<T>
   - [x] onSuccess(): void
   - [x] onFailure(): void
@@ -49,78 +49,78 @@ HALF_OPEN (테스트)
   - [x] getState(): CircuitState
   - [x] getMetrics(): CircuitBreakerMetrics
 
-**설정값**:
+**Configuration** (via environment variables):
 
 ```typescript
 {
-  failureThreshold: 5,      // 연속 실패 임계값
-  resetTimeout: 60000,      // 1분 후 HALF_OPEN 전환
-  halfOpenMaxAttempts: 1,   // HALF_OPEN에서 테스트 요청 수
+  failureThreshold: process.env.CCO_CIRCUIT_FAILURE_THRESHOLD ?? 5,
+  resetTimeout: process.env.CCO_CIRCUIT_RESET_TIMEOUT ?? 60000, // 1 minute
+  halfOpenMaxAttempts: 1,
 }
 ```
 
-### 1.4 ProviderHealthManager 통합
+### 1.4 ProviderHealthManager Integration
 
-**파일**: `src/core/models/ProviderHealthManager.ts` (수정)
+**File**: `src/core/models/ProviderHealthManager.ts` (modified)
 
-- [x] Circuit Breaker 인스턴스 추가 (프로바이더별)
-- [x] markError() → Circuit Breaker 상태 업데이트
-- [x] markSuccess() → Circuit Breaker 상태 업데이트
-- [x] checkHealth() → Circuit Breaker 상태 확인 추가
+- [x] Add Circuit Breaker instance per provider
+- [x] markError() → Update Circuit Breaker state
+- [x] markSuccess() → Update Circuit Breaker state
+- [x] checkHealth() → Include Circuit Breaker state check
 
-### 1.5 에러 클래스 검증
+### 1.5 Error Class Verification
 
-**파일**: `src/types/errors.ts` (수정)
+**File**: `src/types/errors.ts` (modified)
 
-- [x] CircuitBreakerOpenError 존재 확인 완료
+- [x] Verified CircuitBreakerOpenError exists
 
-### 1.6 테스트
+### 1.6 Testing
 
-**파일**: `tests/infrastructure/circuit-breaker.test.ts` (신규)
+**File**: `tests/infrastructure/circuit-breaker.test.ts` (new)
 
-- [x] CLOSED → OPEN 전환 테스트
-- [x] OPEN → HALF_OPEN 전환 테스트 (2개 skip - 타이밍 이슈)
-- [x] HALF_OPEN → CLOSED 전환 테스트 (성공 시)
-- [x] HALF_OPEN → OPEN 전환 테스트 (실패 시)
-- [x] 메트릭 추적 테스트
-- [x] 상태 변경 콜백 테스트
+- [x] CLOSED → OPEN transition test
+- [x] OPEN → HALF_OPEN transition test (2 skipped - timing issues)
+- [x] HALF_OPEN → CLOSED transition test (on success)
+- [x] HALF_OPEN → OPEN transition test (on failure)
+- [x] Metrics tracking test
+- [x] State change callback test
 
-### 1.7 검증
+### 1.7 Verification
 
-- [x] `npm run typecheck` 통과
-- [x] `npm run test` 통과 (13/15 tests, 2 skipped due to timing issues)
-- [-] 수동 테스트: 프로바이더 다운 시나리오 (생략 - 통합 테스트 필요)
+- [x] `npm run typecheck` passed
+- [x] `npm run test` passed (13/15 tests, 2 skipped due to timing issues)
+- [-] Manual test: Provider down scenario (skipped - requires integration testing)
 
 ---
 
-## Phase 2: Hierarchical Orchestration Pattern (예상 소요: 8-12시간)
+## Phase 2: Hierarchical Orchestration Pattern (Estimated: 8-12 hours)
 
-### 2.1 요구사항 분석
+### 2.1 Requirements Analysis
 
-- [x] 현재 OrchestrationEngine 구조 파악
-- [x] DAG 실행 메커니즘 이해
-- [ ] LLM 기반 작업 분해 전략 설계
+- [x] Understand current OrchestrationEngine structure
+- [x] Understand DAG execution mechanism
+- [ ] Design LLM-based task decomposition strategy
 
-### 2.2 타입 정의
+### 2.2 Type Definitions
 
-**파일**: `src/types/orchestration.ts` (수정)
+**File**: `src/types/orchestration.ts` (modified)
 
-- [ ] OrchestrationPattern enum 추가
+- [ ] Add OrchestrationPattern enum
   ```typescript
   enum OrchestrationPattern {
-    PARALLEL = 'parallel', // 기존 (기본값)
-    HIERARCHICAL = 'hierarchical', // 신규
+    PARALLEL = 'parallel', // existing (default)
+    HIERARCHICAL = 'hierarchical', // new
   }
   ```
-- [ ] HierarchicalConfig interface 추가
+- [ ] Add HierarchicalConfig interface
   ```typescript
   interface HierarchicalConfig {
-    orchestrator: AgentRole; // 작업 분해 담당 (기본: ARCH)
-    maxDepth: number; // 최대 분해 깊이 (기본: 3)
-    autoAssign: boolean; // 자동 Agent 할당 (기본: true)
+    orchestrator: AgentRole; // task decomposition handler (default: ARCH)
+    maxDepth: number; // maximum decomposition depth (default: 3)
+    autoAssign: boolean; // automatic agent assignment (default: true)
   }
   ```
-- [ ] Task interface 추가 (하위 작업 표현)
+- [ ] Add Task interface (represents subtasks)
   ```typescript
   interface Task {
     id: string;
@@ -132,21 +132,21 @@ HALF_OPEN (테스트)
   }
   ```
 
-### 2.3 Task Decomposer 구현
+### 2.3 Task Decomposer Implementation
 
-**파일**: `src/core/routing/TaskDecomposer.ts` (신규)
+**File**: `src/core/routing/TaskDecomposer.ts` (new)
 
-- [ ] TaskDecomposer 클래스
+- [ ] TaskDecomposer class
   - [ ] decompose(goal: string, context: Context): Promise<Task[]>
-    - [ ] LLM에게 JSON 형식으로 작업 분해 요청
-    - [ ] 파싱 및 검증 (Zod 스키마)
-    - [ ] 순환 의존성 검증
-    - [ ] 실패 시 fallback: 단일 ARCH 작업 반환
+    - [ ] Request task decomposition from LLM in JSON format
+    - [ ] Parse and validate (Zod schema)
+    - [ ] Validate for circular dependencies
+    - [ ] On failure, fallback: return single ARCH task
   - [ ] assignAgents(tasks: Task[]): Task[]
-    - [ ] suggest_agent 로직 재사용
-    - [ ] 각 작업에 최적 Agent 할당
+    - [ ] Reuse suggest_agent logic
+    - [ ] Assign optimal agent to each task
 
-**LLM 프롬프트**:
+**LLM Prompt**:
 
 ```typescript
 const DECOMPOSITION_PROMPT = `
@@ -178,7 +178,7 @@ Rules:
 `;
 ```
 
-**Zod 스키마**:
+**Zod Schema**:
 
 ```typescript
 const DecompositionResultSchema = z.object({
@@ -196,18 +196,18 @@ const DecompositionResultSchema = z.object({
 });
 ```
 
-### 2.4 Hierarchical Pattern 구현
+### 2.4 Hierarchical Pattern Implementation
 
-**파일**: `src/core/orchestration/patterns/HierarchicalPattern.ts` (신규)
+**File**: `src/core/orchestration/patterns/HierarchicalPattern.ts` (new)
 
-- [ ] HierarchicalPattern 클래스
+- [ ] HierarchicalPattern class
   - [ ] execute(params: OrchestrationParams): Promise<OrchestrationResult>
-    1. [ ] TaskDecomposer로 작업 분해
-    2. [ ] 분해된 Task를 Stage로 변환
-    3. [ ] OrchestrationEngine에 전달하여 실행
-    4. [ ] 결과 집계 및 반환
+    1. [ ] Decompose tasks using TaskDecomposer
+    2. [ ] Convert decomposed Tasks to Stages
+    3. [ ] Pass to OrchestrationEngine for execution
+    4. [ ] Aggregate and return results
 
-**Stage 변환 로직**:
+**Stage Conversion Logic**:
 
 ```typescript
 private convertTasksToStages(tasks: Task[]): Stage[] {
@@ -223,20 +223,20 @@ private convertTasksToStages(tasks: Task[]): Stage[] {
 }
 ```
 
-### 2.5 OrchestrationEngine 통합
+### 2.5 OrchestrationEngine Integration
 
-**파일**: `src/core/orchestration/OrchestrationEngine.ts` (수정)
+**File**: `src/core/orchestration/OrchestrationEngine.ts` (modified)
 
-- [ ] createOrchestration() 수정
-  - [ ] pattern 파라미터 추가 (OrchestrationParams)
-  - [ ] pattern === HIERARCHICAL일 때 HierarchicalPattern 사용
-  - [ ] 기존 로직 유지 (PARALLEL이 기본값)
+- [ ] Modify createOrchestration()
+  - [ ] Add pattern parameter (OrchestrationParams)
+  - [ ] Use HierarchicalPattern when pattern === HIERARCHICAL
+  - [ ] Maintain existing logic (PARALLEL is default)
 
-### 2.6 MCP Tool 추가
+### 2.6 MCP Tool Addition
 
-**파일**: `src/server/tools/definitions.ts` (수정)
+**File**: `src/server/tools/definitions.ts` (modified)
 
-- [ ] orchestrate 도구 정의 추가
+- [ ] Add orchestrate tool definition
   ```typescript
   {
     name: 'orchestrate',
@@ -267,13 +267,13 @@ private convertTasksToStages(tasks: Task[]): Stage[] {
   }
   ```
 
-**파일**: `src/server/tools/schemas.ts` (수정)
+**File**: `src/server/tools/schemas.ts` (modified)
 
-- [ ] OrchestrateInputSchema 추가
+- [ ] Add OrchestrateInputSchema
 
-**파일**: `src/server/handlers/index.ts` (수정)
+**File**: `src/server/handlers/index.ts` (modified)
 
-- [ ] handleOrchestrate() 메서드 추가
+- [ ] Add handleOrchestrate() method
 
   ```typescript
   private async handleOrchestrate(args: unknown): Promise<ToolResult> {
@@ -287,7 +287,7 @@ private convertTasksToStages(tasks: Task[]): Stage[] {
       config: input.config,
     });
 
-    // 백그라운드 실행 (기존 background_task와 동일 패턴)
+    // Background execution (same pattern as existing background_task)
     this.executeOrchestrationInBackground(orchestration.id);
 
     return this.formatResult({
@@ -298,44 +298,44 @@ private convertTasksToStages(tasks: Task[]): Stage[] {
   }
   ```
 
-### 2.7 테스트
+### 2.7 Testing
 
-**파일**: `tests/core/routing/task-decomposer.test.ts` (신규)
+**File**: `tests/core/routing/task-decomposer.test.ts` (new)
 
-- [ ] 기본 작업 분해 테스트
-- [ ] 순환 의존성 감지 테스트
-- [ ] LLM 응답 파싱 실패 시 fallback 테스트
-- [ ] Agent 자동 할당 테스트
+- [ ] Basic task decomposition test
+- [ ] Circular dependency detection test
+- [ ] LLM response parsing failure fallback test
+- [ ] Automatic agent assignment test
 
-**파일**: `tests/core/orchestration/hierarchical-pattern.test.ts` (신규)
+**File**: `tests/core/orchestration/hierarchical-pattern.test.ts` (new)
 
-- [ ] 단순 작업 분해 및 실행 테스트
-- [ ] 의존성 있는 작업 순차 실행 테스트
-- [ ] 병렬 가능한 작업 동시 실행 테스트
+- [ ] Simple task decomposition and execution test
+- [ ] Sequential execution for dependent tasks test
+- [ ] Parallel execution for independent tasks test
 
-### 2.8 검증
+### 2.8 Verification
 
-- [ ] `npm run typecheck` 통과
-- [ ] `npm run test` 통과
-- [ ] 수동 테스트: 복잡한 goal 입력 시 자동 분해 확인
+- [ ] `npm run typecheck` passed
+- [ ] `npm run test` passed
+- [ ] Manual test: Verify automatic decomposition with complex goal input
 
 ---
 
-## Phase 3: README 업데이트
+## Phase 3: README Update
 
-### 3.1 기존 어투 분석
+### 3.1 Analyze Existing Tone
 
-- [x] README.md 어투 확인
-  - 유머러스하고 캐주얼함
+- [x] Verify README.md tone
+  - Humorous and casual
   - "Why use one AI when you can summon an entire orchestra..."
-  - 풍자적이면서 친근한 톤
-  - 이모지 적극 활용
+  - Satirical yet friendly tone
+  - Active use of emojis
 
-### 3.2 새 기능 문서화
+### 3.2 Document New Features
 
-**파일**: `README.md` (수정)
+**File**: `README.md` (modified)
 
-- [ ] Features 섹션에 추가
+- [x] Add to Features section
 
   ```markdown
   ### 🛡️ Circuit Breaker (The Safety Net Upgrade)
@@ -364,7 +364,7 @@ private convertTasksToStages(tasks: Task[]): Stage[] {
   YOU: _sips coffee_
   ```
 
-- [ ] Usage 섹션에 예제 추가
+- [ ] Add examples to Usage section
 
   ````markdown
   ### Hierarchical Orchestration
@@ -388,135 +388,129 @@ private convertTasksToStages(tasks: Task[]): Stage[] {
   ```
   ````
 
-  ```
-
-  ```
-
-- [ ] Configuration 섹션에 추가
+- [ ] Add to Configuration section
 
   ````markdown
   ### Circuit Breaker Settings
 
   ```bash
-  # How many failures before we give up on a provider
+  # How many failures before we give up on a provider (default: 5)
   export CCO_CIRCUIT_FAILURE_THRESHOLD=5
 
-  # How long to wait before trying again (milliseconds)
-  export CCO_CIRCUIT_RESET_TIMEOUT=60000  # 1 minute
+  # How long to wait before trying again (milliseconds, default: 60000)
+  export CCO_CIRCUIT_RESET_TIMEOUT=60000 # 1 minute
   ```
   ````
 
-  ```
+### 3.3 README.ko.md Synchronization
 
-  ```
-
-### 3.3 README.ko.md 동기화
-
-- [ ] 동일 내용을 한국어로 번역 (기존 어투 유지)
+- [ ] Translate same content to Korean (maintain existing tone)
 
 ---
 
-## Phase 4: 통합 테스트 및 검증
+## Phase 4: Integration Testing and Verification
 
-### 4.1 통합 테스트
+### 4.1 Integration Testing
 
-**파일**: `tests/integration/orchestration-patterns.test.ts` (신규)
+**File**: `tests/integration/orchestration-patterns.test.ts` (new)
 
-- [ ] Circuit Breaker + Fallback 조합 테스트
-  - [ ] 주 프로바이더 Circuit Open → 폴백 프로바이더 자동 전환
-  - [ ] 모든 프로바이더 Circuit Open → 적절한 에러 반환
-- [ ] Hierarchical Orchestration 엔드투엔드 테스트
-  - [ ] 복잡한 goal → 자동 분해 → 실행 → 결과 집계
-  - [ ] 일부 작업 실패 시 전체 실패 처리
+- [ ] Circuit Breaker + Fallback combination test
+  - [ ] Primary provider Circuit Open → Automatic fallback to secondary provider
+  - [ ] All providers Circuit Open → Appropriate error returned
+- [ ] Hierarchical Orchestration end-to-end test
+  - [ ] Complex goal → Automatic decomposition → Execution → Result aggregation
+  - [ ] Partial task failure handling
 
-### 4.2 성능 테스트
+### 4.2 Performance Testing
 
-- [ ] Circuit Breaker 오버헤드 측정 (< 1ms)
-- [ ] Hierarchical Orchestration 실행 시간 측정
-  - [ ] 작업 분해 시간
-  - [ ] 전체 실행 시간 vs 수동 실행 비교
+- [ ] Measure Circuit Breaker overhead (< 1ms)
+- [ ] Measure Hierarchical Orchestration execution time
+  - [ ] Task decomposition time
+  - [ ] Total execution time vs manual execution comparison
 
-### 4.3 최종 검증 체크리스트
+### 4.3 Final Verification Checklist
 
-- [ ] TypeScript 타입 체크 통과
-- [ ] 모든 테스트 통과 (unit + integration)
-- [ ] Lint 규칙 준수
-- [ ] README 문서 완성도 확인
-- [ ] CLAUDE.md 가이드 준수 확인
-  - [ ] 모든 코드/커밋 영어로 작성
-  - [ ] MCP 프로토콜 준수 (stdout/stderr 분리)
-  - [ ] Interface-first 설계
-  - [ ] ESM .js 확장자 사용
+- [ ] TypeScript type check passed
+- [ ] All tests passed (unit + integration)
+- [ ] Lint rules compliance
+- [ ] README documentation completeness
+- [ ] CLAUDE.md guideline compliance
+  - [ ] All code/commits in English
+  - [ ] MCP protocol compliance (stdout/stderr separation)
+  - [ ] Interface-first design
+  - [ ] ESM .js extension usage
 
 ---
 
-## 진행 상황 추적
+## Progress Tracking
 
 ### Circuit Breaker Pattern
 
-- [x] Phase 1.1: 요구사항 분석
-- [x] Phase 1.2: 타입 정의
-- [x] Phase 1.3: Circuit Breaker 구현
-- [x] Phase 1.4: ProviderHealthManager 통합
-- [x] Phase 1.5: 에러 클래스 검증
-- [x] Phase 1.6: 테스트 (13/15 passed)
-- [x] Phase 1.7: 검증
+- [x] Phase 1.1: Requirements analysis
+- [x] Phase 1.2: Type definitions
+- [x] Phase 1.3: Circuit Breaker implementation
+- [x] Phase 1.4: ProviderHealthManager integration
+- [x] Phase 1.5: Error class verification
+- [x] Phase 1.6: Testing (13/15 passed)
+- [x] Phase 1.7: Verification
 
 ### Hierarchical Orchestration Pattern
 
-- [ ] Phase 2.1: 요구사항 분석
-- [ ] Phase 2.2: 타입 정의
-- [ ] Phase 2.3: Task Decomposer 구현
-- [ ] Phase 2.4: Hierarchical Pattern 구현
-- [ ] Phase 2.5: OrchestrationEngine 통합
-- [ ] Phase 2.6: MCP Tool 추가
-- [ ] Phase 2.7: 테스트
-- [ ] Phase 2.8: 검증
+- [ ] Phase 2.1: Requirements analysis
+- [ ] Phase 2.2: Type definitions
+- [ ] Phase 2.3: Task Decomposer implementation
+- [ ] Phase 2.4: Hierarchical Pattern implementation
+- [ ] Phase 2.5: OrchestrationEngine integration
+- [ ] Phase 2.6: MCP Tool addition
+- [ ] Phase 2.7: Testing
+- [ ] Phase 2.8: Verification
 
-### README 업데이트
+### README Update
 
-- [ ] Phase 3.1: 기존 어투 분석
-- [ ] Phase 3.2: README.md 업데이트
-- [ ] Phase 3.3: README.ko.md 동기화
+- [x] Phase 3.1: Analyze existing tone
+- [x] Phase 3.2: README.md update
+- [ ] Phase 3.3: README.ko.md synchronization
 
-### 통합 및 검증
+### Integration and Verification
 
-- [ ] Phase 4.1: 통합 테스트
-- [ ] Phase 4.2: 성능 테스트
-- [ ] Phase 4.3: 최종 검증
-
----
-
-## 예상 일정
-
-- **Circuit Breaker**: 1일 (4-6시간)
-- **Hierarchical Orchestration**: 1.5일 (8-12시간)
-- **README 업데이트**: 0.5일 (2-4시간)
-- **통합 테스트 및 검증**: 0.5일 (2-4시간)
-- **총 예상**: 3.5일
+- [ ] Phase 4.1: Integration testing
+- [ ] Phase 4.2: Performance testing
+- [ ] Phase 4.3: Final verification
 
 ---
 
-## 회고 (구현 완료 후 작성)
+## Estimated Schedule
 
-### 잘된 점
+- **Circuit Breaker**: 1 day (4-6 hours)
+- **Hierarchical Orchestration**: 1.5 days (8-12 hours)
+- **README Update**: 0.5 days (2-4 hours)
+- **Integration Testing and Verification**: 0.5 days (2-4 hours)
+- **Total Estimate**: 3.5 days
+
+---
+
+## Retrospective (To be written after implementation)
+
+### What Went Well
 
 -
 
-### 어려웠던 점
+### Challenges Faced
 
 -
 
-### 배운 점
+### Lessons Learned
 
 -
 
-### 개선할 점
+### Areas for Improvement
 
-- ***
+-
 
-## 참고 자료
+---
+
+## References
 
 - CrewAI Hierarchical Process: https://github.com/joaomdmoura/crewAI/blob/main/src/crewai/process.py
 - Circuit Breaker Pattern: https://martinfowler.com/bliki/CircuitBreaker.html
-- CC Orchestrator 현재 코드베이스 분석 결과
+- CC Orchestrator current codebase analysis results

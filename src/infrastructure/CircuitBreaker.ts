@@ -5,11 +5,11 @@ import {
   CircuitBreakerMetrics,
   CircuitBreakerEvent,
 } from '../types/circuit-breaker.js';
-import { CircuitBreakerOpenError } from '../types/errors.js';
+import { CircuitBreakerOpenError, CircuitBreakerConfigError } from '../types/errors.js';
 
 const DEFAULT_CONFIG: CircuitBreakerConfig = {
-  failureThreshold: 5,
-  resetTimeout: 60000,
+  failureThreshold: parseInt(process.env.CCO_CIRCUIT_FAILURE_THRESHOLD ?? '5', 10),
+  resetTimeout: parseInt(process.env.CCO_CIRCUIT_RESET_TIMEOUT ?? '60000', 10),
   halfOpenMaxAttempts: 1,
   successThreshold: 1,
 };
@@ -34,7 +34,19 @@ export class CircuitBreaker {
     config: Partial<CircuitBreakerConfig> = {},
     onStateChange?: (event: CircuitBreakerEvent) => void
   ) {
-    this.config = { ...DEFAULT_CONFIG, ...config };
+    const merged = { ...DEFAULT_CONFIG, ...config };
+
+    if (
+      merged.failureThreshold < 1 ||
+      merged.halfOpenMaxAttempts < 1 ||
+      merged.successThreshold < 1 ||
+      merged.resetTimeout < 0 ||
+      merged.successThreshold > merged.halfOpenMaxAttempts
+    ) {
+      throw new CircuitBreakerConfigError(name, merged as unknown as Record<string, unknown>);
+    }
+
+    this.config = merged;
     this.logger = new Logger(`CircuitBreaker:${name}`);
     this.onStateChange = onStateChange;
   }

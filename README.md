@@ -51,7 +51,7 @@ Each agent has exactly one job. They're very good at it. They will not shut up a
 
 Why do things one at a time like some kind of single-threaded peasant?
 
-```
+```text
 The old way:    Task A → Task B → Task C    (3 hours of your life, gone)
 
 The new way:    Task A ─┐
@@ -63,7 +63,7 @@ The new way:    Task A ─┐
 
 APIs go down. It happens. We're prepared.
 
-```
+```text
 You: "Arch, review this code"
 Arch: *tries to call GPT-5.2*
 OpenAI: "lol no" (503)
@@ -77,7 +77,7 @@ Automatic cross-provider fallbacks. Your work continues. Your deadline survives.
 
 APIs go down. It happens. We're prepared. Now we're **REALLY** prepared.
 
-```
+```text
 OLD: Retry until the heat death of the universe
 NEW: "Provider's down? Cool. Moving on." (automatic, instant)
 ```
@@ -90,7 +90,7 @@ NEW: "Provider's down? Cool. Moving on." (automatic, instant)
 
 **State Machine** (because everything needs a state machine):
 
-```
+```text
 CLOSED (normal)
   → 5 failures →
 OPEN (blocked, all requests rejected)
@@ -276,7 +276,7 @@ For simpler tasks that only need one specialist.
 
 **UI Quality Assurance:**
 
-```
+```bash
 /ui-qa                              # Auto-detect dev server
 /ui-qa http://localhost:3000        # Test specific URL
 ```
@@ -285,7 +285,7 @@ Takes screenshots, analyzes with AI, reports visual issues, accessibility proble
 
 **Context Checkpoint:**
 
-```
+```bash
 /checkpoint "Auth system done, JWT approach chosen"
 ```
 
@@ -374,13 +374,13 @@ GPT-5.2 bills by the existential crisis. Save it for:
 
 Instead of this:
 
-```
+```text
 "Research the API, then design the component, then review it"
 ```
 
 Try this:
 
-```
+```text
 "Use scout to find existing patterns"     // FREE (Haiku)
 "Use index to find Stripe docs"         // FREE (WebSearch)
 background_task(arch, "Review security...")  // GPT-5.2
@@ -422,7 +422,7 @@ export CCO_ARCH_PROVIDERS=openai,anthropic
 export CCO_TIMEOUT_SECONDS=300
 
 # Circuit Breaker Settings (NEW!)
-# How many failures before we give up on a provider (default: 3)
+# How many failures before we give up on a provider (default: 5)
 export CCO_CIRCUIT_FAILURE_THRESHOLD=5
 
 # How long to wait before trying again (milliseconds, default: 60000)
@@ -433,7 +433,7 @@ export CCO_CIRCUIT_RESET_TIMEOUT=60000
 
 ## 📦 Project Structure
 
-```
+```text
 cc-orchestrator/
 ├── .claude/                # Claude Code native config
 │   └── agents/             # Native agents (FREE, no API calls)

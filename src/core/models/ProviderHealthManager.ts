@@ -10,7 +10,6 @@ import { CircuitState } from '../../types/circuit-breaker.js';
 
 export interface ProviderState {
   available: boolean;
-  consecutiveErrors: number;
   lastError?: Date;
   lastSuccess?: Date;
   cooldownUntil?: Date;
@@ -25,8 +24,6 @@ export interface HealthCheckResult {
 }
 
 const DEFAULT_COOLDOWN_MS = 60000; // 1 minute
-const MAX_CONSECUTIVE_ERRORS = 3;
-const CIRCUIT_RESET_MS = 300000; // 5 minutes
 
 export class ProviderHealthManager {
   private states: Map<ModelProvider, ProviderState> = new Map();
@@ -40,14 +37,12 @@ export class ProviderHealthManager {
 
   private initializeStates(): void {
     for (const provider of Object.values(ModelProvider)) {
+      // CircuitBreaker uses defaults from environment variables:
+      // - CCO_CIRCUIT_FAILURE_THRESHOLD (default: 5)
+      // - CCO_CIRCUIT_RESET_TIMEOUT (default: 60000ms)
       const circuitBreaker = new CircuitBreaker(
         provider,
-        {
-          failureThreshold: MAX_CONSECUTIVE_ERRORS,
-          resetTimeout: CIRCUIT_RESET_MS,
-          halfOpenMaxAttempts: 1,
-          successThreshold: 1,
-        },
+        {}, // Use defaults from CircuitBreaker (reads from env vars)
         (event) => {
           this.logger.info('Circuit breaker state changed', {
             provider,
@@ -61,7 +56,6 @@ export class ProviderHealthManager {
       this.circuitBreakers.set(provider, circuitBreaker);
       this.states.set(provider, {
         available: true,
-        consecutiveErrors: 0,
         circuitOpen: false,
         circuitState: CircuitState.CLOSED,
       });
@@ -81,7 +75,6 @@ export class ProviderHealthManager {
       state.circuitOpen = state.circuitState === CircuitState.OPEN;
     }
 
-    state.consecutiveErrors = 0;
     state.lastSuccess = new Date();
     state.cooldownUntil = undefined;
 
@@ -95,9 +88,7 @@ export class ProviderHealthManager {
     const state = this.getState(provider);
     const circuitBreaker = this.circuitBreakers.get(provider);
 
-    state.consecutiveErrors++;
     state.lastError = new Date();
-
     const reason = this.classifyError(error);
 
     if (circuitBreaker) {
@@ -206,7 +197,6 @@ export class ProviderHealthManager {
     }
     this.states.set(provider, {
       available: true,
-      consecutiveErrors: 0,
       circuitOpen: false,
       circuitState: CircuitState.CLOSED,
     });
@@ -227,7 +217,6 @@ export class ProviderHealthManager {
       const circuitBreaker = this.circuitBreakers.get(provider);
       state = {
         available: true,
-        consecutiveErrors: 0,
         circuitOpen: false,
         circuitState: circuitBreaker?.getState() ?? CircuitState.CLOSED,
       };

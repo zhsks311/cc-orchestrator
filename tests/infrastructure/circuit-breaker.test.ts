@@ -1,18 +1,23 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { CircuitBreaker } from '../../src/infrastructure/CircuitBreaker.js';
 import { CircuitState } from '../../src/types/circuit-breaker.js';
-import { CircuitBreakerOpenError } from '../../src/types/errors.js';
+import { CircuitBreakerOpenError, CircuitBreakerConfigError } from '../../src/types/errors.js';
 
 describe('CircuitBreaker', () => {
   let circuitBreaker: CircuitBreaker;
 
   beforeEach(() => {
+    vi.useFakeTimers();
     circuitBreaker = new CircuitBreaker('test-service', {
       failureThreshold: 3,
       resetTimeout: 1000,
       halfOpenMaxAttempts: 1,
       successThreshold: 1,
     });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   describe('CLOSED state', () => {
@@ -90,25 +95,15 @@ describe('CircuitBreaker', () => {
       expect(metrics.rejectedRequests).toBe(1);
     });
 
-    it.skip('should transition to HALF_OPEN after reset timeout', async () => {
-      let stateBeforeSuccess: CircuitState = CircuitState.OPEN;
+    it('should transition to HALF_OPEN after reset timeout', async () => {
+      // Advance time past the resetTimeout (1000ms)
+      vi.advanceTimersByTime(1001);
 
-      await vi.waitFor(
-        async () => {
-          stateBeforeSuccess = circuitBreaker.getState();
-          if (stateBeforeSuccess !== CircuitState.HALF_OPEN) {
-            throw new Error('Not half-open yet');
-          }
-        },
-        { timeout: 2000, interval: 100 }
-      );
-
-      expect(stateBeforeSuccess).toBe(CircuitState.HALF_OPEN);
-
+      // The next execute triggers HALF_OPEN transition internally via canExecute()
       const result = await circuitBreaker.execute(async () => 'success');
       expect(result).toBe('success');
       expect(circuitBreaker.getState()).toBe(CircuitState.CLOSED);
-    }, 3000);
+    });
 
     it('should have nextAttemptAt set', () => {
       const metrics = circuitBreaker.getMetrics();
@@ -124,7 +119,8 @@ describe('CircuitBreaker', () => {
   });
 
   describe('HALF_OPEN state', () => {
-    beforeEach(async () => {
+    it('should transition to CLOSED on success', async () => {
+      // Drive to OPEN
       for (let i = 0; i < 3; i++) {
         await expect(
           circuitBreaker.execute(async () => {
@@ -132,27 +128,18 @@ describe('CircuitBreaker', () => {
           })
         ).rejects.toThrow('failure');
       }
+      expect(circuitBreaker.getState()).toBe(CircuitState.OPEN);
 
-      await vi.waitFor(
-        async () => {
-          await circuitBreaker.execute(async () => 'success');
-        },
-        { timeout: 2000, interval: 100 }
-      );
-    }, 3000);
+      // Advance past resetTimeout
+      vi.advanceTimersByTime(1001);
 
-    it('should transition to CLOSED on success', () => {
+      // Success in HALF_OPEN → CLOSED
+      await circuitBreaker.execute(async () => 'success');
       expect(circuitBreaker.getState()).toBe(CircuitState.CLOSED);
     });
 
     it('should transition back to OPEN on failure', async () => {
-      circuitBreaker = new CircuitBreaker('test-service-2', {
-        failureThreshold: 3,
-        resetTimeout: 1000,
-        halfOpenMaxAttempts: 1,
-        successThreshold: 1,
-      });
-
+      // Drive to OPEN
       for (let i = 0; i < 3; i++) {
         await expect(
           circuitBreaker.execute(async () => {
@@ -160,50 +147,85 @@ describe('CircuitBreaker', () => {
           })
         ).rejects.toThrow('failure');
       }
+      expect(circuitBreaker.getState()).toBe(CircuitState.OPEN);
 
-      await vi.waitFor(
-        async () => {
-          await expect(
-            circuitBreaker.execute(async () => {
-              throw new Error('still failing');
-            })
-          ).rejects.toThrow('still failing');
-          expect(circuitBreaker.getState()).toBe(CircuitState.OPEN);
-        },
-        { timeout: 2000, interval: 100 }
-      );
-    }, 3000);
+      // Advance past resetTimeout
+      vi.advanceTimersByTime(1001);
 
-    it.skip('should limit attempts in half-open state', async () => {
-      circuitBreaker = new CircuitBreaker('test-service-3', {
+      // Failure in HALF_OPEN → back to OPEN
+      await expect(
+        circuitBreaker.execute(async () => {
+          throw new Error('still failing');
+        })
+      ).rejects.toThrow('still failing');
+      expect(circuitBreaker.getState()).toBe(CircuitState.OPEN);
+    });
+
+    it('should limit attempts in half-open state', async () => {
+      const cb = new CircuitBreaker('test-service-3', {
         failureThreshold: 3,
         resetTimeout: 500,
         halfOpenMaxAttempts: 2,
         successThreshold: 2,
       });
 
+      // Drive to OPEN
       for (let i = 0; i < 3; i++) {
         await expect(
-          circuitBreaker.execute(async () => {
+          cb.execute(async () => {
             throw new Error('failure');
           })
         ).rejects.toThrow('failure');
       }
+      expect(cb.getState()).toBe(CircuitState.OPEN);
 
-      await vi.waitFor(
-        async () => {
-          if (circuitBreaker.getState() !== CircuitState.HALF_OPEN) {
-            throw new Error('Not half-open yet');
-          }
-        },
-        { timeout: 1000, interval: 100 }
-      );
+      // Advance past resetTimeout
+      vi.advanceTimersByTime(501);
 
-      await circuitBreaker.execute(async () => 'success');
-      await circuitBreaker.execute(async () => 'success');
+      // Two successes needed (successThreshold: 2) within halfOpenMaxAttempts: 2
+      await cb.execute(async () => 'success');
+      await cb.execute(async () => 'success');
 
-      expect(circuitBreaker.getState()).toBe(CircuitState.CLOSED);
-    }, 3000);
+      expect(cb.getState()).toBe(CircuitState.CLOSED);
+    });
+  });
+
+  describe('config validation', () => {
+    it('should reject failureThreshold < 1', () => {
+      expect(() => new CircuitBreaker('bad', { failureThreshold: 0 }))
+        .toThrow(CircuitBreakerConfigError);
+    });
+
+    it('should reject halfOpenMaxAttempts < 1', () => {
+      expect(() => new CircuitBreaker('bad', { halfOpenMaxAttempts: 0 }))
+        .toThrow(CircuitBreakerConfigError);
+    });
+
+    it('should reject successThreshold < 1', () => {
+      expect(() => new CircuitBreaker('bad', { successThreshold: 0 }))
+        .toThrow(CircuitBreakerConfigError);
+    });
+
+    it('should reject negative resetTimeout', () => {
+      expect(() => new CircuitBreaker('bad', { resetTimeout: -1 }))
+        .toThrow(CircuitBreakerConfigError);
+    });
+
+    it('should reject successThreshold > halfOpenMaxAttempts', () => {
+      expect(() => new CircuitBreaker('bad', {
+        successThreshold: 3,
+        halfOpenMaxAttempts: 2,
+      })).toThrow(CircuitBreakerConfigError);
+    });
+
+    it('should accept valid config', () => {
+      expect(() => new CircuitBreaker('good', {
+        failureThreshold: 5,
+        resetTimeout: 0,
+        halfOpenMaxAttempts: 3,
+        successThreshold: 2,
+      })).not.toThrow();
+    });
   });
 
   describe('metrics', () => {

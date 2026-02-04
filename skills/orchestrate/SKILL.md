@@ -540,8 +540,15 @@ User request: "$ARGUMENTS"
 
 [Step 2: Agent Routing]
 ├─ Claude Code Task tool - MIXED COST
-│   ├─ scout  → Task(subagent_type="scout")
-│   └─ index  → Task(subagent_type="index") (LOW-COST)
+│   ├─ scout              → Task(subagent_type="scout")
+│   ├─ index              → Task(subagent_type="index") (LOW-COST)
+│   ├─ frontend-developer → Task(subagent_type="frontend-developer")
+│   ├─ backend-architect  → Task(subagent_type="backend-architect")
+│   ├─ database-architect → Task(subagent_type="database-architect")
+│   ├─ cloud-architect    → Task(subagent_type="cloud-architect")
+│   ├─ docs-architect     → Task(subagent_type="docs-architect")
+│   ├─ architect-review   → Task(subagent_type="architect-review")
+│   └─ general-purpose    → Task(subagent_type="general-purpose")
 └─ MCP agents (background_task) - PAID
     ├─ arch   → GPT-5.2
     ├─ canvas → Gemini 3

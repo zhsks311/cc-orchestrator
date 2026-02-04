@@ -1,7 +1,7 @@
 ---
 name: orchestrate
 description: 멀티모델 오케스트레이션 - 멀티모델 에이전트 오케스트레이션 가이드
-version: 2.0.0
+version: 2.1.0
 author: CC Orchestrator
 tags: [orchestration, multi-model, parallel, workflow]
 ---

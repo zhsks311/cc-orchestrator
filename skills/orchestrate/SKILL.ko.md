@@ -325,6 +325,46 @@ animation, transition, hover, responsive, CSS
 4. arch로 코드 리뷰
 ```
 
+### 패턴 E: 병렬 구현
+
+```
+1. Task(subagent_type="scout", prompt="코드베이스 구조 분석")        // FREE
+2. background_task(arch, "구현 계획 설계...")                        // GPT-5.2
+   또는 Task(subagent_type="architect-review", prompt="계획 설계...") // FREE 대안
+3. background_output(task_id, block=true)로 설계 결과 수집
+4. 병렬 코딩 위임 (한 메시지에서 여러 Task 호출):
+   Task(subagent_type="frontend-developer", prompt="[설계 컨텍스트] UI 구현...")
+   Task(subagent_type="backend-architect", prompt="[설계 컨텍스트] API 구현...")
+   // 각 에이전트는 Read/Grep/Glob + Edit/Write/Bash 접근 가능
+5. 모든 결과 수집
+6. 통합 검증, 충돌 시 수정
+```
+
+**컨텍스트 전달 (CRITICAL):**
+```
+위임 프롬프트 구조를 사용하여 설계 출력을 각 워커에 포함:
+
+## CONTEXT
+[설계 계획 출력을 여기에 붙여넣기]
+
+## YOUR SCOPE
+[이 에이전트가 다룰 파일/디렉토리 - 절대 경로 사용]
+
+## MUST_NOT_DO
+- 담당 범위 밖의 파일 수정 금지
+- 다른 에이전트에 할당된 작업 중복 금지
+```
+
+**파일 범위 지정 (충돌 방지):**
+```
+├─ frontend-developer → src/components/, src/pages/, src/styles/
+├─ backend-architect  → src/api/, src/services/, src/middleware/
+├─ database-architect → src/models/, src/migrations/, prisma/
+├─ cloud-architect    → infra/, docker/, .github/workflows/
+├─ docs-architect     → docs/
+└─ architect-review   → 분석만 수행 (파일 수정 없음)
+```
+
 ---
 
 ## 비용 최적화

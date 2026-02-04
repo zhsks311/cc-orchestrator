@@ -334,6 +334,46 @@ animation, transition, hover, responsive, CSS
 4. Code review with arch (MCP)
 ```
 
+### Pattern F: Parallel Implementation
+
+```
+1. Task(subagent_type="scout", prompt="Analyze codebase structure")     // FREE
+2. background_task(arch, "Design implementation plan...")                // GPT-5.2
+   OR Task(subagent_type="architect-review", prompt="Design plan...")    // FREE alternative
+3. Collect design via background_output(task_id, block=true)
+4. Parallel coding delegation (single message, multiple Task calls):
+   Task(subagent_type="frontend-developer", prompt="[design context] Implement UI...")
+   Task(subagent_type="backend-architect", prompt="[design context] Implement API...")
+   // Each agent has Read/Grep/Glob + Edit/Write/Bash access
+5. Collect all results
+6. Verify integration, fix conflicts if any
+```
+
+**Context Passing (CRITICAL):**
+```
+Include design output in each worker prompt using delegation structure:
+
+## CONTEXT
+[Paste design plan output here]
+
+## YOUR SCOPE
+[Only files/directories this agent should touch - use absolute paths]
+
+## MUST_NOT_DO
+- Do NOT modify files outside your scope
+- Do NOT duplicate work assigned to other agents
+```
+
+**File Scope Assignment (prevent conflicts):**
+```
+├─ frontend-developer → src/components/, src/pages/, src/styles/
+├─ backend-architect  → src/api/, src/services/, src/middleware/
+├─ database-architect → src/models/, src/migrations/, prisma/
+├─ cloud-architect    → infra/, docker/, .github/workflows/
+├─ docs-architect     → docs/
+└─ architect-review   → Analysis only (no file modifications)
+```
+
 ---
 
 ## Cost Optimization

@@ -69,7 +69,7 @@ User request received
 |----------|------|-------------|
 | Grep, Glob, Read | FREE | Clear scope, simple search |
 | `scout` agent | FREE | Codebase exploration (Task tool) |
-| `index` agent | FREE | External docs, API research (Task tool) |
+| `index` agent | LOW | External docs, API research (Task tool) |
 | `canvas` | MODERATE | UI/UX, styling (Gemini 3) |
 | `quill` | MODERATE | Technical documentation (Gemini 3) |
 | `lens` | MODERATE | Image/PDF analysis (Gemini 3) |
@@ -79,13 +79,13 @@ User request received
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ CLAUDE CODE NATIVE AGENTS (Task tool) - FREE                │
+│ CLAUDE CODE NATIVE AGENTS (Task tool) - FREE/LOW-COST       │
 │                                                             │
 │   scout  → Task(subagent_type="scout", prompt="...")     │
-│              Codebase exploration, file/function search  │
+│              FREE: Codebase exploration, file/function search│
 │                                                             │
 │   index  → Task(subagent_type="index", prompt="...")     │
-│              External research (WebSearch + WebFetch)    │
+│              LOW-COST: External research (WebSearch + Fetch)│
 │                                                             │
 │ MCP AGENTS (background_task) - PAID                         │
 │                                                             │
@@ -158,12 +158,12 @@ background_cancel(all=true)  // Cancel all background tasks
 
 ### Agent Role Table
 
-**Claude Code Native Agents (Task tool) - FREE:**
+**Claude Code Native Agents (Task tool) - FREE/LOW-COST:**
 
 | Agent | Invocation | Purpose | Triggers |
 |-------|------------|---------|----------|
 | `scout` | `Task(subagent_type="scout")` | Codebase exploration, file/function search | "where is", "find", "how does X work" |
-| `index` | `Task(subagent_type="index")` | External docs, APIs, best practices | library names, "how to", tutorials |
+| `index` | `Task(subagent_type="index")` | External docs, APIs, best practices (low-cost) | library names, "how to", tutorials |
 
 **MCP Agents (background_task) - PAID:**
 
@@ -179,7 +179,7 @@ background_cancel(all=true)  // Cancel all background tasks
 | Domain | Delegate To | Trigger Keywords |
 |--------|-------------|------------------|
 | Codebase exploration | `scout` (native) | find, where, search, structure |
-| External Research | `index` (native) | library names, API, "how to", best practices |
+| External Research | `index` (native, low-cost) | library names, API, "how to", best practices |
 | Frontend UI/UX | `canvas` (MCP) | style, color, animation, layout, responsive |
 | Architecture | `arch` (MCP) | design, structure, pattern selection, tradeoffs |
 | Code Review | `arch` (MCP) | review, inspect, improvements |
@@ -245,7 +245,7 @@ animation, transition, hover, responsive, CSS
 ### Pattern B: Research + Implementation
 
 ```
-1. Task(subagent_type="index", prompt="Find best practices")  // FREE
+1. Task(subagent_type="index", prompt="Find best practices")  // LOW-COST
 2. Start basic implementation simultaneously
 3. Apply researched patterns
 ```
@@ -284,8 +284,10 @@ animation, transition, hover, responsive, CSS
 FREE (Claude Code Task tool):
 ├─ Simple search          → Grep, Glob, Read (direct tools)
 ├─ Codebase exploration   → Task(subagent_type="scout")
-├─ External research      → Task(subagent_type="index")
 └─ General tasks          → Task(subagent_type="general-purpose")
+
+LOW-COST (Claude Code Task tool):
+└─ External research      → Task(subagent_type="index")
 
 PAID (MCP external APIs):
 ├─ Architecture decisions → arch (GPT-5.2, expensive)
@@ -296,7 +298,7 @@ PAID (MCP external APIs):
 
 **Principles:**
 1. Always try FREE tools first (Grep, Glob, direct Read)
-2. Use native agents (scout, index) for exploration/research
+2. Use `scout` first (FREE), then `index` for external research (LOW-COST)
 3. Only use MCP agents for external model capabilities (GPT, Gemini)
 4. Parallel execution for time optimization
 
@@ -387,7 +389,7 @@ User request: "$ARGUMENTS"
 [Step 1: Classification]
 ├─ Trivial?         → Handle directly (Grep, Glob, Read)
 ├─ Codebase search? → Task(subagent_type="scout") - FREE
-├─ External docs?   → Task(subagent_type="index") - FREE
+├─ External docs?   → Task(subagent_type="index") - LOW-COST
 ├─ Design?          → background_task(agent="arch") - PAID
 ├─ UI/Visual?       → background_task(agent="canvas") - PAID
 ├─ Documentation?   → background_task(agent="quill") - PAID
@@ -396,9 +398,9 @@ User request: "$ARGUMENTS"
 └─ Ambiguous?       → 1 question
 
 [Step 2: Agent Routing]
-├─ Claude Code Task tool - FREE
+├─ Claude Code Task tool - MIXED COST
 │   ├─ scout  → Task(subagent_type="scout")
-│   └─ index  → Task(subagent_type="index")
+│   └─ index  → Task(subagent_type="index") (LOW-COST)
 └─ MCP agents (background_task) - PAID
     ├─ arch   → GPT-5.2
     ├─ canvas → Gemini 3

@@ -69,7 +69,7 @@ tags: [orchestration, multi-model, parallel, workflow]
 |--------|------|-----------|
 | Grep, Glob, Read | FREE | 범위 명확, 단순 검색 |
 | `scout` agent | FREE | 코드베이스 탐색 (Task tool) |
-| `index` agent | FREE | 외부 문서, API 리서치 (Task tool) |
+| `index` agent | LOW | 외부 문서, API 리서치 (Task tool) |
 | `canvas` | MODERATE | UI/UX, 스타일링 (MCP) |
 | `quill` | MODERATE | 기술 문서 (MCP) |
 | `lens` | MODERATE | 이미지/PDF 분석 (MCP) |
@@ -79,13 +79,13 @@ tags: [orchestration, multi-model, parallel, workflow]
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ CLAUDE CODE NATIVE AGENTS (Task tool) - FREE                │
+│ CLAUDE CODE NATIVE AGENTS (Task tool) - FREE/LOW-COST       │
 │                                                             │
 │   scout  → Task(subagent_type="scout", prompt="...")     │
-│              코드베이스 탐색, 파일/함수 검색             │
+│              FREE: 코드베이스 탐색, 파일/함수 검색       │
 │                                                             │
 │   index  → Task(subagent_type="index", prompt="...")     │
-│              외부 리서치 (WebSearch + WebFetch)          │
+│              LOW-COST: 외부 리서치 (WebSearch + Fetch)   │
 │                                                             │
 │ MCP AGENTS (background_task) - PAID                         │
 │                                                             │
@@ -158,12 +158,12 @@ background_cancel(all=true)  // 모든 백그라운드 작업 취소
 
 ### 에이전트 역할표
 
-**Claude Code Native Agents (Task tool) - FREE:**
+**Claude Code Native Agents (Task tool) - FREE/LOW-COST:**
 
 | 에이전트 | 호출 방법 | 용도 | 트리거 |
 |----------|-----------|------|--------|
 | `scout` | `Task(subagent_type="scout")` | 코드베이스 탐색, 파일/함수 검색 | "어디에", "찾아줘", "어떻게 동작" |
-| `index` | `Task(subagent_type="index")` | 외부 문서, API, 모범 사례 | 라이브러리명, "어떻게", 튜토리얼 |
+| `index` | `Task(subagent_type="index")` | 외부 문서, API, 모범 사례 (저렴) | 라이브러리명, "어떻게", 튜토리얼 |
 
 **MCP Agents (background_task) - PAID:**
 
@@ -179,7 +179,7 @@ background_cancel(all=true)  // 모든 백그라운드 작업 취소
 | 도메인 | 위임 대상 | 트리거 키워드 |
 |--------|-----------|---------------|
 | Frontend UI/UX | `canvas` | style, color, animation, layout, responsive |
-| 외부 리서치 | `index` | 라이브러리명, API, "어떻게 하는지", 모범 사례 |
+| 외부 리서치 | `index` (저렴) | 라이브러리명, API, "어떻게 하는지", 모범 사례 |
 | 아키텍처 | `arch` | 설계, 구조, 패턴 선택, 트레이드오프 |
 | 코드 리뷰 | `arch` | 리뷰, 검토, 개선점 |
 | 문서화 | `quill` | README, 문서, 설명서, API docs |
@@ -236,7 +236,7 @@ animation, transition, hover, responsive, CSS
 ### 패턴 A: 탐색 + 구현
 
 ```
-1. background_task(index, "레퍼런스 검색...")  // 병렬
+1. Task(subagent_type="index", prompt="레퍼런스 검색...")  // 병렬 (저렴)
 2. 동시에 기본 구현 시작
 3. index 결과로 구현 보강
 ```
@@ -253,7 +253,7 @@ animation, transition, hover, responsive, CSS
 
 ```
 1. background_task(arch, "아키텍처 관점...")    // 병렬
-2. background_task(index, "업계 사례...")      // 병렬
+2. Task(subagent_type="index", prompt="업계 사례...")      // 병렬 (저렴)
 3. background_task(canvas, "UX 관점...")       // 병렬
 4. 세 결과 통합
 ```
@@ -370,7 +370,7 @@ get_context(key, scope?)
 
 [Step 1: 분류]
 ├─ Trivial?      → 직접 처리
-├─ Research?     → index 실행
+├─ Research?     → index 실행 (저렴)
 ├─ Design?       → arch 상담
 ├─ UI/Visual?    → canvas 위임
 ├─ Complex?      → 다중 에이전트 병렬

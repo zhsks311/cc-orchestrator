@@ -17,12 +17,13 @@ This change enables:
 1. **Parallel coding**: After arch designs, frontend/backend/DB agents write code simultaneously
 2. **Cost savings**: Coding agents are FREE (Claude Code quota), providing free alternatives to PAID MCP agents
 3. **File conflict prevention**: Two strategies — directory scope separation (basic) + git worktree isolation (advanced)
-4. **Zero code changes**: Only skill documentation is modified, no MCP server code changes
+4. **Zero runtime code changes**: No MCP server code changes (skill docs + setup guidance only)
 
 ## Files to Modify
 
 - `skills/orchestrate/SKILL.md`
 - `skills/orchestrate/SKILL.ko.md`
+- `scripts/setup.mjs`
 
 ## Coding Agents to Add (7)
 

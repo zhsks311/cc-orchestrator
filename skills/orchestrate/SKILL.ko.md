@@ -24,6 +24,7 @@ tags: [orchestration, multi-model, parallel, workflow]
 ├─ Explicit       → 지시대로 직접 실행
 ├─ Exploratory    → scout/index 병렬 실행
 ├─ Open-ended     → Phase 1로 (코드베이스 평가 필요)
+├─ Implementation → 코딩 에이전트에 위임 (다중 파일 시 패턴 E)
 ├─ Research       → index 우선 실행
 ├─ Design/Review  → arch 상담
 └─ Ambiguous      → 명확화 질문 1개만

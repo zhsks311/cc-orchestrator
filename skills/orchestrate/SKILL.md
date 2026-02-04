@@ -71,6 +71,13 @@ User request received
 | Grep, Glob, Read | FREE | Clear scope, simple search |
 | `scout` agent | FREE | Codebase exploration (Task tool) |
 | `index` agent | LOW | External docs, API research (Task tool) |
+| `frontend-developer` | FREE | Frontend implementation (React, CSS, layouts) (Task tool) |
+| `backend-architect` | FREE | Backend implementation (APIs, services) (Task tool) |
+| `database-architect` | FREE | DB schema, migrations (Task tool) |
+| `cloud-architect` | FREE | Infrastructure, deployment configs (Task tool) |
+| `docs-architect` | FREE | Technical docs from code (quill free alternative) (Task tool) |
+| `architect-review` | FREE | Architecture review (arch free alternative) (Task tool) |
+| `general-purpose` | FREE | Any coding task, full tool access (Task tool) |
 | `canvas` | MODERATE | UI/UX, styling (Gemini 3) |
 | `quill` | MODERATE | Technical documentation (Gemini 3) |
 | `lens` | MODERATE | Image/PDF analysis (Gemini 3) |

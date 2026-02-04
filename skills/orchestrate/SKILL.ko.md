@@ -521,6 +521,7 @@ get_context(key, scope?)
 ├─ Research?     → index 실행 (저렴)
 ├─ Design?       → arch 상담
 ├─ UI/Visual?    → canvas 위임
+├─ Implementation? → 코딩 에이전트 (frontend/backend/database/cloud) - FREE
 ├─ Complex?      → 다중 에이전트 병렬
 └─ Ambiguous?    → 질문 1개
 

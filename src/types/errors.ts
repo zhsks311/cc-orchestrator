@@ -103,3 +103,16 @@ export class ConfigurationError extends CCOError {
     super(message, 'CONFIGURATION_ERROR', false, 500);
   }
 }
+
+export class CircuitBreakerConfigError extends CCOError {
+  constructor(name: string, config: Record<string, unknown>) {
+    super(
+      `Invalid CircuitBreaker config for "${name}": ${JSON.stringify(config)}. ` +
+        'Requires: failureThreshold >= 1, halfOpenMaxAttempts >= 1, successThreshold >= 1, ' +
+        'resetTimeout >= 0, successThreshold <= halfOpenMaxAttempts',
+      'CIRCUIT_BREAKER_CONFIG_ERROR',
+      false,
+      400
+    );
+  }
+}

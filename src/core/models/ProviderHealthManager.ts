@@ -5,14 +5,16 @@
 
 import { ModelProvider, FallbackReason } from '../../types/index.js';
 import { Logger } from '../../infrastructure/Logger.js';
+import { CircuitBreaker } from '../../infrastructure/CircuitBreaker.js';
+import { CircuitState } from '../../types/circuit-breaker.js';
 
 export interface ProviderState {
   available: boolean;
-  consecutiveErrors: number;
   lastError?: Date;
   lastSuccess?: Date;
   cooldownUntil?: Date;
   circuitOpen: boolean;
+  circuitState: CircuitState;
 }
 
 export interface HealthCheckResult {
@@ -22,11 +24,10 @@ export interface HealthCheckResult {
 }
 
 const DEFAULT_COOLDOWN_MS = 60000; // 1 minute
-const MAX_CONSECUTIVE_ERRORS = 3;
-const CIRCUIT_RESET_MS = 300000; // 5 minutes
 
 export class ProviderHealthManager {
   private states: Map<ModelProvider, ProviderState> = new Map();
+  private circuitBreakers: Map<ModelProvider, CircuitBreaker> = new Map();
   private logger: Logger;
 
   constructor() {
@@ -36,10 +37,27 @@ export class ProviderHealthManager {
 
   private initializeStates(): void {
     for (const provider of Object.values(ModelProvider)) {
+      // CircuitBreaker uses defaults from environment variables:
+      // - CCO_CIRCUIT_FAILURE_THRESHOLD (default: 5)
+      // - CCO_CIRCUIT_RESET_TIMEOUT (default: 60000ms)
+      const circuitBreaker = new CircuitBreaker(
+        provider,
+        {}, // Use defaults from CircuitBreaker (reads from env vars)
+        (event) => {
+          this.logger.info('Circuit breaker state changed', {
+            provider,
+            previousState: event.previousState,
+            newState: event.state,
+            metrics: event.metrics,
+          });
+        }
+      );
+
+      this.circuitBreakers.set(provider, circuitBreaker);
       this.states.set(provider, {
         available: true,
-        consecutiveErrors: 0,
         circuitOpen: false,
+        circuitState: CircuitState.CLOSED,
       });
     }
   }
@@ -49,9 +67,15 @@ export class ProviderHealthManager {
    */
   markSuccess(provider: ModelProvider): void {
     const state = this.getState(provider);
-    state.consecutiveErrors = 0;
+    const circuitBreaker = this.circuitBreakers.get(provider);
+
+    if (circuitBreaker) {
+      circuitBreaker.recordSuccess();
+      state.circuitState = circuitBreaker.getState();
+      state.circuitOpen = state.circuitState === CircuitState.OPEN;
+    }
+
     state.lastSuccess = new Date();
-    state.circuitOpen = false;
     state.cooldownUntil = undefined;
 
     this.logger.debug('Provider marked healthy', { provider });
@@ -62,10 +86,24 @@ export class ProviderHealthManager {
    */
   markError(provider: ModelProvider, error: Error): FallbackReason {
     const state = this.getState(provider);
-    state.consecutiveErrors++;
-    state.lastError = new Date();
+    const circuitBreaker = this.circuitBreakers.get(provider);
 
+    state.lastError = new Date();
     const reason = this.classifyError(error);
+
+    if (circuitBreaker) {
+      circuitBreaker.recordFailure();
+      const circuitState = circuitBreaker.getState();
+      state.circuitState = circuitState;
+      state.circuitOpen = circuitState === CircuitState.OPEN;
+
+      if (circuitState === CircuitState.OPEN) {
+        const cooldownMs = circuitBreaker.getCooldownRemaining();
+        if (cooldownMs > 0) {
+          state.cooldownUntil = new Date(Date.now() + cooldownMs);
+        }
+      }
+    }
 
     // Apply cooldown for rate limits
     if (reason === FallbackReason.RATE_LIMIT) {
@@ -77,17 +115,6 @@ export class ProviderHealthManager {
       });
     }
 
-    // Open circuit breaker after max consecutive errors
-    if (state.consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
-      state.circuitOpen = true;
-      state.cooldownUntil = new Date(Date.now() + CIRCUIT_RESET_MS);
-      this.logger.warn('Circuit breaker opened', {
-        provider,
-        consecutiveErrors: state.consecutiveErrors,
-        resetAt: state.cooldownUntil.toISOString(),
-      });
-    }
-
     return reason;
   }
 
@@ -96,6 +123,22 @@ export class ProviderHealthManager {
    */
   checkHealth(provider: ModelProvider): HealthCheckResult {
     const state = this.getState(provider);
+    const circuitBreaker = this.circuitBreakers.get(provider);
+
+    if (circuitBreaker) {
+      const circuitState = circuitBreaker.getState();
+      state.circuitState = circuitState;
+      state.circuitOpen = circuitState === CircuitState.OPEN;
+
+      if (circuitState === CircuitState.OPEN) {
+        const cooldownRemainingMs = circuitBreaker.getCooldownRemaining();
+        return {
+          isHealthy: false,
+          reason: FallbackReason.SERVER_ERROR,
+          cooldownRemainingMs,
+        };
+      }
+    }
 
     // Check if in cooldown
     if (state.cooldownUntil && state.cooldownUntil > new Date()) {
@@ -110,10 +153,6 @@ export class ProviderHealthManager {
     // Reset cooldown if expired
     if (state.cooldownUntil && state.cooldownUntil <= new Date()) {
       state.cooldownUntil = undefined;
-      if (state.circuitOpen) {
-        // Half-open state - allow one request to test
-        this.logger.info('Circuit breaker half-open, allowing test request', { provider });
-      }
     }
 
     return { isHealthy: true };
@@ -152,10 +191,14 @@ export class ProviderHealthManager {
    * Reset a provider's health state
    */
   reset(provider: ModelProvider): void {
+    const circuitBreaker = this.circuitBreakers.get(provider);
+    if (circuitBreaker) {
+      circuitBreaker.reset();
+    }
     this.states.set(provider, {
       available: true,
-      consecutiveErrors: 0,
       circuitOpen: false,
+      circuitState: CircuitState.CLOSED,
     });
     this.logger.info('Provider state reset', { provider });
   }
@@ -171,10 +214,11 @@ export class ProviderHealthManager {
   private getState(provider: ModelProvider): ProviderState {
     let state = this.states.get(provider);
     if (!state) {
+      const circuitBreaker = this.circuitBreakers.get(provider);
       state = {
         available: true,
-        consecutiveErrors: 0,
         circuitOpen: false,
+        circuitState: circuitBreaker?.getState() ?? CircuitState.CLOSED,
       };
       this.states.set(provider, state);
     }

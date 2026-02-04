@@ -401,13 +401,13 @@ GPT-5.2 bills by the existential crisis. Save it for:
 
 Instead of this:
 
-```
+```text
 "Research the API, then design the component, then review it"
 ```
 
 Try this:
 
-```
+```text
 "Use scout to find existing patterns"     // FREE (Haiku)
 "Use index to find Stripe docs"         // FREE (WebSearch)
 background_task(arch, "Review security...")  // GPT-5.2

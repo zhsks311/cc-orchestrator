@@ -6,7 +6,7 @@ Hierarchical Orchestration enables CC Orchestrator to automatically decompose co
 
 ## Architecture
 
-```
+```text
 User Request
     ↓
 TaskDecomposer (LLM-based)
@@ -60,7 +60,7 @@ interface DecomposedTask {
 
 **Example**:
 
-```
+```text
 User: "Implement user authentication with JWT"
 
 Tasks:
@@ -143,7 +143,7 @@ interface DAGNode {
 
 **Example**:
 
-```
+```text
 Level 0: [t1] (research - no dependencies)
 Level 1: [t2] (design - depends on t1)
 Level 2: [t3, t4] (implement - both depend on t2, can run in parallel)
@@ -234,7 +234,7 @@ interface AggregatedResult {
 
 ## File Structure
 
-```
+```text
 src/
 ├── core/
 │   ├── orchestration/

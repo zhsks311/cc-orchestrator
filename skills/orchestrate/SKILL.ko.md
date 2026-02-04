@@ -71,6 +71,13 @@ tags: [orchestration, multi-model, parallel, workflow]
 | Grep, Glob, Read | FREE | 범위 명확, 단순 검색 |
 | `scout` agent | FREE | 코드베이스 탐색 (Task tool) |
 | `index` agent | LOW | 외부 문서, API 리서치 (Task tool) |
+| `frontend-developer` | FREE | 프론트엔드 구현 (React, CSS, 레이아웃) (Task tool) |
+| `backend-architect` | FREE | 백엔드 구현 (API, 서비스) (Task tool) |
+| `database-architect` | FREE | DB 스키마, 마이그레이션 (Task tool) |
+| `cloud-architect` | FREE | 인프라, 배포 설정 (Task tool) |
+| `docs-architect` | FREE | 코드 기반 기술 문서 (quill 무료 대안) (Task tool) |
+| `architect-review` | FREE | 아키텍처 리뷰 (arch 무료 대안) (Task tool) |
+| `general-purpose` | FREE | 범용 코딩, 전체 도구 접근 (Task tool) |
 | `canvas` | MODERATE | UI/UX, 스타일링 (MCP) |
 | `quill` | MODERATE | 기술 문서 (MCP) |
 | `lens` | MODERATE | 이미지/PDF 분석 (MCP) |

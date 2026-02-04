@@ -166,8 +166,14 @@ const LENS_PROMPT = `You are a media file analysis expert.
 - Files requiring editing
 - Preambles ("I'll analyze this")`;
 
+const SCOUT_PROMPT = ARCH_PROMPT;
+
+const INDEX_PROMPT = ARCH_PROMPT;
+
 const ROLE_PROMPTS: Record<AgentRole, string> = {
   [AgentRole.ARCH]: ARCH_PROMPT,
+  [AgentRole.SCOUT]: SCOUT_PROMPT,
+  [AgentRole.INDEX]: INDEX_PROMPT,
   [AgentRole.CANVAS]: CANVAS_PROMPT,
   [AgentRole.QUILL]: QUILL_PROMPT,
   [AgentRole.LENS]: LENS_PROMPT,
@@ -181,6 +187,10 @@ export function getRoleDescription(role: AgentRole): string {
   switch (role) {
     case AgentRole.ARCH:
       return 'Architecture design, strategic decision-making, code review';
+    case AgentRole.SCOUT:
+      return 'Codebase exploration and navigation';
+    case AgentRole.INDEX:
+      return 'External documentation research and best practices';
     case AgentRole.CANVAS:
       return 'UI/UX design, frontend implementation';
     case AgentRole.QUILL:
@@ -280,15 +290,77 @@ Helps with decision-making considering overall system quality including technica
       {
         input: 'How to install React',
         shouldUse: false,
-        reason: 'Documentation search - use Claude Code Task tool with index agent',
+        reason: 'Documentation search - use Index',
       },
       {
         input: 'Where is this file?',
         shouldUse: false,
-        reason: 'Exploration - use Claude Code Task tool with scout agent',
+        reason: 'Exploration - use Scout',
       },
     ],
     aliases: ['arch', 'architect'],
+  },
+
+  [AgentRole.SCOUT]: {
+    role: AgentRole.SCOUT,
+    name: 'Scout',
+    model: 'Fast explorer',
+    cost: 'FREE',
+    description: `Codebase exploration specialist.
+Finds files, definitions, and references quickly and summarizes relevant structure.`,
+    expertise: [
+      'Finding where code lives',
+      'Locating definitions and references',
+      'Project structure discovery',
+      'Dependency and call-flow tracing',
+    ],
+    useWhen: [
+      'When you need to find files, symbols, or usage locations',
+      'When you need to understand module boundaries quickly',
+      'When scoping changes across multiple packages/modules',
+    ],
+    avoidWhen: [
+      'Deep architecture trade-offs (use Arch)',
+      'UI/UX design (use Canvas)',
+      'Long-form documentation writing (use Quill)',
+    ],
+    examples: [
+      { input: 'Where is authentication handled?', shouldUse: true, reason: 'Codebase navigation' },
+      { input: 'Find all uses of validateToken', shouldUse: true, reason: 'References search' },
+      { input: 'Design a new architecture', shouldUse: false, reason: 'Architecture is for Arch' },
+    ],
+    aliases: ['scout', 'explore', 'search', 'find'],
+  },
+
+  [AgentRole.INDEX]: {
+    role: AgentRole.INDEX,
+    name: 'Index',
+    model: 'Docs researcher',
+    cost: 'FREE',
+    description: `External research specialist.
+Finds official docs, best practices, and implementation examples with concise guidance.`,
+    expertise: [
+      'Official documentation lookup',
+      'Best practices and security guidance',
+      'Reference implementations and examples',
+      'Version differences and migration notes',
+    ],
+    useWhen: [
+      'When official docs are needed for a library/framework',
+      'When best practices or security recommendations are needed',
+      'When you need examples from OSS or reference implementations',
+    ],
+    avoidWhen: [
+      'Pure codebase navigation (use Scout)',
+      'UI/UX implementation (use Canvas)',
+      'Deep multi-system architecture decisions (use Arch)',
+    ],
+    examples: [
+      { input: 'JWT refresh token best practices', shouldUse: true, reason: 'Docs + security' },
+      { input: 'How does x library handle retries?', shouldUse: true, reason: 'External research' },
+      { input: 'Where is this file?', shouldUse: false, reason: 'Exploration is for Scout' },
+    ],
+    aliases: ['index', 'docs', 'research', 'web'],
   },
 
   [AgentRole.CANVAS]: {

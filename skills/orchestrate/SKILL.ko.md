@@ -365,6 +365,40 @@ animation, transition, hover, responsive, CSS
 └─ architect-review   → 분석만 수행 (파일 수정 없음)
 ```
 
+### 패턴 E-iso: Git Worktree 격리 병렬 구현
+
+여러 에이전트가 같은 파일을 수정해야 하거나 안전한 롤백이 필요할 때:
+
+```
+1-3. 패턴 E와 동일
+4. Git worktree 생성 (메인 세션이 Bash로 실행):
+   git worktree add ../wt-frontend -b swarm/frontend
+   git worktree add ../wt-backend -b swarm/backend
+5. 절대 경로 기반 위임 (Task tool에 cwd 파라미터 없음):
+   Task(subagent_type="frontend-developer", prompt="
+     작업 디렉토리: {abs_path}/wt-frontend
+     모든 파일은 {abs_path}/wt-frontend 기준 절대 경로 사용.
+     Bash 명령은 반드시 cd {abs_path}/wt-frontend && 로 시작.
+     [설계 컨텍스트]...")
+   Task(subagent_type="backend-architect", prompt="
+     작업 디렉토리: {abs_path}/wt-backend
+     모든 파일은 {abs_path}/wt-backend 기준 절대 경로 사용.
+     Bash 명령은 반드시 cd {abs_path}/wt-backend && 로 시작.
+     [설계 컨텍스트]...")
+6. 결과 수집 후 머지:
+   git merge swarm/frontend
+   git merge swarm/backend
+7. 정리:
+   git worktree remove ../wt-frontend
+   git worktree remove ../wt-backend
+   git branch -d swarm/frontend swarm/backend
+```
+
+**제약사항:**
+- Task tool에 `cwd` 파라미터 없음 (Feature Request #12748)
+- 워크어라운드: 프롬프트에 절대 경로 + Bash에 `cd path &&` 접두사
+- 설정에 `additionalDirectories` 추가 필요할 수 있음
+
 ---
 
 ## 비용 최적화

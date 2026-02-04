@@ -1048,7 +1048,10 @@ async function main() {
 
   console.log('\nNext steps:');
   console.log('  1. Restart Claude Code');
-  console.log('  2. Test with "ask arch to review this project"\n');
+  console.log('  2. Test agents:');
+  console.log('     - MCP: "ask arch to review this project"');
+  console.log('     - Native: "use scout to find main entry point"');
+  console.log('  3. Run /orchestrate for multi-model orchestration guide\n');
 
   rl.close();
 }

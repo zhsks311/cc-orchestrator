@@ -242,6 +242,66 @@ The orchestrator will:
 3. Run agents in parallel when possible
 4. Collect and integrate results
 
+### 🎯 Hierarchical Orchestration (Auto-Pilot Mode)
+
+> _"Why plan tasks yourself when the orchestra can do it better?"_
+
+**Hierarchical Orchestration** automatically breaks down complex requests into atomic tasks, assigns the best agent for each, and executes them in parallel when it can.
+
+**How It Works:**
+
+1. **Decompose**: LLM splits your request into discrete work units
+2. **Select**: Rules assign the best agent for each task
+3. **Build DAG**: Dependencies become a graph, not a mess
+4. **Execute**: Parallelize per level, wait when you must
+5. **Aggregate**: Results stitched into a coherent response
+
+**Usage:**
+
+```typescript
+import { HierarchicalOrchestrator } from './src/core/orchestration/HierarchicalOrchestrator.js';
+
+const orchestrator = new HierarchicalOrchestrator(modelRouter, agentManager, contextStore);
+
+const result = await orchestrator.orchestrate(
+  'Implement JWT authentication with tests and documentation'
+);
+
+console.log(result.summary);
+// "Implemented JWT auth with token service, middleware, tests, and docs."
+```
+
+**When to Use:**
+
+- ✅ Complex multi-step projects
+- ✅ Tasks that need multiple specialists
+- ✅ When you want automatic parallelization
+- ❌ Simple single-agent tasks (use direct agent calls)
+
+**Configuration:**
+
+```typescript
+import type { OrchestrationConfig } from './src/types/hierarchical-orchestration.js';
+
+const config: OrchestrationConfig = {
+  maxParallelTasks: 5,
+  taskTimeout: 300000,
+  maxRetries: 2,
+  failFast: false,
+  minConfidence: 0.7,
+};
+
+await orchestrator.orchestrate(request, config);
+```
+
+**Benefits:**
+
+- **Automatic Planning**: No manual task breakdown required
+- **Smart Agent Selection**: Right specialist per task
+- **Maximum Parallelism**: Faster than sequential execution
+- **Fault Tolerance**: Partial failures handled gracefully
+- **Visibility**: Detailed results and stats per task
+
 ### Single Agent Usage
 
 For simpler tasks that only need one specialist.

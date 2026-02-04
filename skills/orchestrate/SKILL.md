@@ -236,6 +236,13 @@ background_cancel(all=true)  // Cancel all background tasks
 | Code Review | `arch` (MCP) | review, inspect, improvements |
 | Documentation | `quill` (MCP) | README, docs, guide, API docs |
 | Image/PDF | `lens` (MCP) | screenshot, image, PDF, diagram |
+| Frontend coding | `frontend-developer` (native) | build, create component, React, page, layout |
+| Backend coding | `backend-architect` (native) | API, endpoint, service, server, middleware |
+| Database work | `database-architect` (native) | schema, migration, model, query, database |
+| Infrastructure | `cloud-architect` (native) | deploy, Docker, CI/CD, infra, cloud |
+| Technical docs (free) | `docs-architect` (native) | document, guide (cost saving over quill) |
+| Architecture review (free) | `architect-review` (native) | review, inspect (cost saving over arch) |
+| General coding | `general-purpose` (native) | implement, code, build (catch-all) |
 
 ### Frontend Delegation Gate (BLOCKING)
 

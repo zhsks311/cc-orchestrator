@@ -235,6 +235,13 @@ background_cancel(all=true)  // 모든 백그라운드 작업 취소
 | 코드 리뷰 | `arch` | 리뷰, 검토, 개선점 |
 | 문서화 | `quill` | README, 문서, 설명서, API docs |
 | 이미지/PDF | `lens` | 스크린샷, 이미지, PDF, 다이어그램 |
+| 프론트엔드 코딩 | `frontend-developer` (native) | 빌드, 컴포넌트, React, 페이지, 레이아웃 |
+| 백엔드 코딩 | `backend-architect` (native) | API, 엔드포인트, 서비스, 서버, 미들웨어 |
+| DB 작업 | `database-architect` (native) | 스키마, 마이그레이션, 모델, 쿼리 |
+| 인프라 | `cloud-architect` (native) | 배포, Docker, CI/CD, 인프라, 클라우드 |
+| 기술 문서 (무료) | `docs-architect` (native) | 문서, 가이드 (quill 대비 비용 절감) |
+| 아키텍처 리뷰 (무료) | `architect-review` (native) | 리뷰, 검토 (arch 대비 비용 절감) |
+| 범용 코딩 | `general-purpose` (native) | 구현, 코드, 빌드 (범용) |
 
 ### Frontend 위임 게이트 (BLOCKING)
 

@@ -95,6 +95,37 @@ User request received
 │   index  → Task(subagent_type="index", prompt="...")     │
 │              LOW-COST: External research (WebSearch + Fetch)│
 │                                                             │
+│ CODING AGENTS (Task tool) - FREE                            │
+│   Can Edit/Write/Bash - actual code modification capable    │
+│                                                             │
+│   frontend-developer                                        │
+│     → Task(subagent_type="frontend-developer", prompt="...") │
+│       React, Next.js, CSS, responsive layouts, components   │
+│                                                             │
+│   backend-architect                                         │
+│     → Task(subagent_type="backend-architect", prompt="...")  │
+│       API design, microservices, server logic               │
+│                                                             │
+│   database-architect                                        │
+│     → Task(subagent_type="database-architect", prompt="...") │
+│       Schema modeling, migrations, query optimization       │
+│                                                             │
+│   cloud-architect                                           │
+│     → Task(subagent_type="cloud-architect", prompt="...")    │
+│       AWS/Azure/GCP, IaC, deployment configs                │
+│                                                             │
+│   docs-architect                                            │
+│     → Task(subagent_type="docs-architect", prompt="...")     │
+│       Technical docs from codebase (free quill alternative) │
+│                                                             │
+│   architect-review                                          │
+│     → Task(subagent_type="architect-review", prompt="...")   │
+│       Architecture review, clean arch (free arch alternative)│
+│                                                             │
+│   general-purpose                                           │
+│     → Task(subagent_type="general-purpose", prompt="...")    │
+│       Any task, full tool access (Edit, Write, Bash)        │
+│                                                             │
 │ MCP AGENTS (background_task) - PAID                         │
 │                                                             │
 │   arch   → background_task(agent="arch")   // OpenAI GPT-5.2│

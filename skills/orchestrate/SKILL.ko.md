@@ -204,6 +204,18 @@ background_cancel(all=true)  // 모든 백그라운드 작업 취소
 | `scout` | `Task(subagent_type="scout")` | 코드베이스 탐색, 파일/함수 검색 | "어디에", "찾아줘", "어떻게 동작" |
 | `index` | `Task(subagent_type="index")` | 외부 문서, API, 모범 사례 (저렴) | 라이브러리명, "어떻게", 튜토리얼 |
 
+**Claude Code 코딩 에이전트 (Task tool) - FREE:**
+
+| 에이전트 | 호출 방법 | 용도 | 트리거 |
+|----------|-----------|------|--------|
+| `frontend-developer` | `Task(subagent_type="frontend-developer")` | React, Next.js, CSS, 반응형 레이아웃 | "UI 만들어", "컴포넌트 생성", "스타일", "페이지" |
+| `backend-architect` | `Task(subagent_type="backend-architect")` | API 설계, 마이크로서비스, 서버 로직 | "API 만들어", "엔드포인트", "서비스", "미들웨어" |
+| `database-architect` | `Task(subagent_type="database-architect")` | 스키마 모델링, 마이그레이션, 쿼리 | "스키마", "마이그레이션", "데이터베이스", "모델" |
+| `cloud-architect` | `Task(subagent_type="cloud-architect")` | AWS/Azure/GCP, IaC, 배포 | "배포", "인프라", "CI/CD", "Docker" |
+| `docs-architect` | `Task(subagent_type="docs-architect")` | 코드 기반 기술 문서 (quill 무료 대안) | "문서 작성", "가이드", "기술 문서" |
+| `architect-review` | `Task(subagent_type="architect-review")` | 아키텍처 리뷰 (arch 무료 대안) | "아키텍처 리뷰", "설계 검토" |
+| `general-purpose` | `Task(subagent_type="general-purpose")` | 범용 코딩, 전체 도구 접근 | 구현 작업 범용 |
+
 **MCP Agents (background_task) - PAID:**
 
 | 에이전트 | 모델 | 용도 | 비용 | 트리거 |

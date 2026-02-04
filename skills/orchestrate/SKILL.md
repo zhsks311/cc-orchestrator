@@ -534,6 +534,7 @@ User request: "$ARGUMENTS"
 ├─ UI/Visual?       → background_task(agent="canvas") - PAID
 ├─ Documentation?   → background_task(agent="quill") - PAID
 ├─ Image/PDF?       → background_task(agent="lens") - PAID
+├─ Implementation?  → Coding agents (frontend/backend/database/cloud) - FREE
 ├─ Complex?         → Multi-agent parallel
 └─ Ambiguous?       → 1 question
 

@@ -374,6 +374,40 @@ Include design output in each worker prompt using delegation structure:
 └─ architect-review   → Analysis only (no file modifications)
 ```
 
+### Pattern F-iso: Parallel Implementation with Git Worktree Isolation
+
+Use when multiple agents need to modify overlapping files, or when safe rollback is required:
+
+```
+1-3. Same as Pattern F
+4. Create git worktrees (main session runs via Bash):
+   git worktree add ../wt-frontend -b swarm/frontend
+   git worktree add ../wt-backend -b swarm/backend
+5. Delegate with absolute paths (Task tool has no cwd parameter):
+   Task(subagent_type="frontend-developer", prompt="
+     Working directory: {abs_path}/wt-frontend
+     Use absolute paths based on {abs_path}/wt-frontend for all file ops.
+     Prefix all Bash commands with: cd {abs_path}/wt-frontend &&
+     [design context]...")
+   Task(subagent_type="backend-architect", prompt="
+     Working directory: {abs_path}/wt-backend
+     Use absolute paths based on {abs_path}/wt-backend for all file ops.
+     Prefix all Bash commands with: cd {abs_path}/wt-backend &&
+     [design context]...")
+6. Merge results:
+   git merge swarm/frontend
+   git merge swarm/backend
+7. Cleanup:
+   git worktree remove ../wt-frontend
+   git worktree remove ../wt-backend
+   git branch -d swarm/frontend swarm/backend
+```
+
+**Limitations:**
+- Task tool has no `cwd` parameter (Feature Request #12748)
+- Workaround: absolute paths in prompt + `cd path &&` prefix for Bash
+- May need `additionalDirectories` in settings for worktree access
+
 ---
 
 ## Cost Optimization

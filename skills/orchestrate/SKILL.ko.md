@@ -95,6 +95,37 @@ tags: [orchestration, multi-model, parallel, workflow]
 │   index  → Task(subagent_type="index", prompt="...")     │
 │              LOW-COST: 외부 리서치 (WebSearch + Fetch)   │
 │                                                             │
+│ CODING AGENTS (Task tool) - FREE                            │
+│   Edit/Write/Bash 사용 가능 - 실제 코드 수정 가능           │
+│                                                             │
+│   frontend-developer                                        │
+│     → Task(subagent_type="frontend-developer", prompt="...") │
+│       React, Next.js, CSS, 반응형 레이아웃, 컴포넌트       │
+│                                                             │
+│   backend-architect                                         │
+│     → Task(subagent_type="backend-architect", prompt="...")  │
+│       API 설계, 마이크로서비스, 서버 로직                   │
+│                                                             │
+│   database-architect                                        │
+│     → Task(subagent_type="database-architect", prompt="...") │
+│       스키마 모델링, 마이그레이션, 쿼리 최적화              │
+│                                                             │
+│   cloud-architect                                           │
+│     → Task(subagent_type="cloud-architect", prompt="...")    │
+│       AWS/Azure/GCP, IaC, 배포 설정                         │
+│                                                             │
+│   docs-architect                                            │
+│     → Task(subagent_type="docs-architect", prompt="...")     │
+│       코드 기반 기술 문서 (quill 무료 대안)                 │
+│                                                             │
+│   architect-review                                          │
+│     → Task(subagent_type="architect-review", prompt="...")   │
+│       아키텍처 리뷰, 클린 아키텍처 (arch 무료 대안)        │
+│                                                             │
+│   general-purpose                                           │
+│     → Task(subagent_type="general-purpose", prompt="...")    │
+│       모든 작업, 전체 도구 접근 (Edit, Write, Bash)         │
+│                                                             │
 │ MCP AGENTS (background_task) - PAID                         │
 │                                                             │
 │   arch   → background_task(agent="arch")   // OpenAI GPT-5.2│

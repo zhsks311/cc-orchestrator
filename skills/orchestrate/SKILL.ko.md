@@ -525,18 +525,35 @@ get_context(key, scope?)
 ├─ Complex?      → 다중 에이전트 병렬
 └─ Ambiguous?    → 질문 1개
 
-[Step 2: 실행]
+[Step 2: 에이전트 라우팅]
+├─ Claude Code Task tool - MIXED COST
+│   ├─ scout              → Task(subagent_type="scout")
+│   ├─ index              → Task(subagent_type="index") (LOW-COST)
+│   ├─ frontend-developer → Task(subagent_type="frontend-developer")
+│   ├─ backend-architect  → Task(subagent_type="backend-architect")
+│   ├─ database-architect → Task(subagent_type="database-architect")
+│   ├─ cloud-architect    → Task(subagent_type="cloud-architect")
+│   ├─ docs-architect     → Task(subagent_type="docs-architect")
+│   ├─ architect-review   → Task(subagent_type="architect-review")
+│   └─ general-purpose    → Task(subagent_type="general-purpose")
+└─ MCP agents (background_task) - PAID
+    ├─ arch   → GPT-5.2
+    ├─ canvas → Gemini 3
+    ├─ quill  → Gemini 3
+    └─ lens   → Gemini 3
+
+[Step 3: 실행]
 ├─ 병렬 가능한 작업 식별
-├─ background_task로 동시 실행
+├─ Native 에이전트 + MCP 에이전트 병렬 실행
 ├─ 직접 처리 가능한 건 바로 처리
 └─ 결과 수집 및 통합
 
-[Step 3: 검증]
+[Step 4: 검증]
 ├─ 요청 완전히 충족?
 ├─ 에러 없음?
 └─ 정리 완료?
 
-[Step 4: 응답]
+[Step 5: 응답]
 ├─ 결과 전달
 └─ background_cancel(all=true)
 ```

@@ -24,6 +24,7 @@ User request received
 ├─ Explicit       → Execute as instructed
 ├─ Exploratory    → Run scout/index in parallel
 ├─ Open-ended     → Go to Phase 1 (codebase evaluation needed)
+├─ Implementation → Delegate to coding agents (Pattern F for multi-file)
 ├─ Research       → Run index first
 ├─ Design/Review  → Consult arch
 └─ Ambiguous      → Ask only 1 clarifying question

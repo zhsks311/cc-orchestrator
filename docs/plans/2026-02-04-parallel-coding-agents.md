@@ -84,27 +84,27 @@ Insert below L88 (end of index block), above L90 (MCP AGENTS start):
 │   Can Edit/Write/Bash - actual code modification capable    │
 │                                                             │
 │   frontend-developer                                        │
-│     → Task(subagent_type="frontend-developer", prompt="...") │
+│     → Task(subagent_type="cco-frontend-developer", prompt="...") │
 │       React, Next.js, CSS, responsive layouts, components   │
 │                                                             │
 │   backend-architect                                         │
-│     → Task(subagent_type="backend-architect", prompt="...")  │
+│     → Task(subagent_type="cco-backend-architect", prompt="...")  │
 │       API design, microservices, server logic               │
 │                                                             │
 │   database-architect                                        │
-│     → Task(subagent_type="database-architect", prompt="...") │
+│     → Task(subagent_type="cco-database-architect", prompt="...") │
 │       Schema modeling, migrations, query optimization       │
 │                                                             │
 │   cloud-architect                                           │
-│     → Task(subagent_type="cloud-architect", prompt="...")    │
+│     → Task(subagent_type="cco-cloud-architect", prompt="...")    │
 │       AWS/Azure/GCP, IaC, deployment configs                │
 │                                                             │
 │   docs-architect                                            │
-│     → Task(subagent_type="docs-architect", prompt="...")     │
+│     → Task(subagent_type="cco-docs-architect", prompt="...")     │
 │       Technical docs from codebase (native quill alternative) │
 │                                                             │
 │   architect-review                                          │
-│     → Task(subagent_type="architect-review", prompt="...")   │
+│     → Task(subagent_type="cco-architect-review", prompt="...")   │
 │       Architecture review, clean arch (native arch alternative)│
 │                                                             │
 │   general-purpose                                           │
@@ -121,12 +121,12 @@ Insert below L166 (end of scout/index table), above L168 (MCP Agents start):
 
 | Agent | Invocation | Purpose | Triggers |
 |-------|------------|---------|----------|
-| `cco-frontend-developer` | `Task(subagent_type="frontend-developer")` | React, Next.js, CSS, responsive layouts | "build UI", "create component", "style", "page layout" |
-| `cco-backend-architect` | `Task(subagent_type="backend-architect")` | API design, microservices, server logic | "create API", "endpoint", "service layer", "middleware" |
-| `cco-database-architect` | `Task(subagent_type="database-architect")` | Schema modeling, migrations, queries | "schema", "migration", "database", "model" |
-| `cco-cloud-architect` | `Task(subagent_type="cloud-architect")` | AWS/Azure/GCP, IaC, deployment | "deploy", "infrastructure", "CI/CD", "Docker" |
-| `cco-docs-architect` | `Task(subagent_type="docs-architect")` | Technical docs from code (native quill alternative) | "document", "guide", "technical docs" |
-| `cco-architect-review` | `Task(subagent_type="architect-review")` | Architecture review (native arch alternative) | "review architecture", "design review", "clean arch" |
+| `cco-frontend-developer` | `Task(subagent_type="cco-frontend-developer")` | React, Next.js, CSS, responsive layouts | "build UI", "create component", "style", "page layout" |
+| `cco-backend-architect` | `Task(subagent_type="cco-backend-architect")` | API design, microservices, server logic | "create API", "endpoint", "service layer", "middleware" |
+| `cco-database-architect` | `Task(subagent_type="cco-database-architect")` | Schema modeling, migrations, queries | "schema", "migration", "database", "model" |
+| `cco-cloud-architect` | `Task(subagent_type="cco-cloud-architect")` | AWS/Azure/GCP, IaC, deployment | "deploy", "infrastructure", "CI/CD", "Docker" |
+| `cco-docs-architect` | `Task(subagent_type="cco-docs-architect")` | Technical docs from code (native quill alternative) | "document", "guide", "technical docs" |
+| `cco-architect-review` | `Task(subagent_type="cco-architect-review")` | Architecture review (native arch alternative) | "review architecture", "design review", "clean arch" |
 | `general-purpose` | `Task(subagent_type="general-purpose")` | Any coding task, full tool access | Catch-all for implementation tasks |
 ```
 
@@ -152,11 +152,11 @@ Insert after Pattern E (L271-277) code block, before `---` (L279):
 \```
 1. Task(subagent_type="scout", prompt="Analyze codebase structure")     // FREE
 2. background_task(arch, "Design implementation plan...")                // GPT-5.2
-   OR Task(subagent_type="architect-review", prompt="Design plan...")   // FREE alternative
+   OR Task(subagent_type="cco-architect-review", prompt="Design plan...")   // FREE alternative
 3. Collect design via background_output(task_id, block=true)
 4. Parallel coding delegation (single message, multiple Task calls):
-   Task(subagent_type="frontend-developer", prompt="[design context] Implement UI...")
-   Task(subagent_type="backend-architect", prompt="[design context] Implement API...")
+   Task(subagent_type="cco-frontend-developer", prompt="[design context] Implement UI...")
+   Task(subagent_type="cco-backend-architect", prompt="[design context] Implement API...")
    // Each agent has Read/Grep/Glob + Edit/Write/Bash access
 5. Collect all results
 6. Verify integration, fix conflicts if any
@@ -179,12 +179,12 @@ Include design output in each worker prompt using delegation structure:
 
 **File Scope Assignment (prevent conflicts):**
 \```
-├─ frontend-developer → src/components/, src/pages/, src/styles/
-├─ backend-architect  → src/api/, src/services/, src/middleware/
-├─ database-architect → src/models/, src/migrations/, prisma/
-├─ cloud-architect    → infra/, docker/, .github/workflows/
-├─ docs-architect     → docs/
-└─ architect-review   → Analysis only (no file modifications)
+├─ cco-frontend-developer → src/components/, src/pages/, src/styles/
+├─ cco-backend-architect  → src/api/, src/services/, src/middleware/
+├─ cco-database-architect → src/models/, src/migrations/, prisma/
+├─ cco-cloud-architect    → infra/, docker/, .github/workflows/
+├─ cco-docs-architect     → docs/
+└─ cco-architect-review   → Analysis only (no file modifications)
 \```
 ```
 
@@ -202,12 +202,12 @@ Use when multiple agents need to modify overlapping files, or when safe rollback
    git worktree add ../wt-frontend -b swarm/frontend
    git worktree add ../wt-backend -b swarm/backend
 5. Delegate with absolute paths (Task tool has no cwd parameter):
-   Task(subagent_type="frontend-developer", prompt="
+   Task(subagent_type="cco-frontend-developer", prompt="
      Working directory: {abs_path}/wt-frontend
      Use absolute paths based on {abs_path}/wt-frontend for all file ops.
      Prefix all Bash commands with: cd {abs_path}/wt-frontend &&
      [design context]...")
-   Task(subagent_type="backend-architect", prompt="
+   Task(subagent_type="cco-backend-architect", prompt="
      Working directory: {abs_path}/wt-backend
      Use absolute paths based on {abs_path}/wt-backend for all file ops.
      Prefix all Bash commands with: cd {abs_path}/wt-backend &&
@@ -235,12 +235,12 @@ FREE (Claude Code Task tool):
 ├─ Simple search          → Grep, Glob, Read (direct tools)
 ├─ Codebase exploration   → Task(subagent_type="scout")
 ├─ External research      → Task(subagent_type="index")
-├─ Frontend coding        → Task(subagent_type="frontend-developer")
-├─ Backend coding         → Task(subagent_type="backend-architect")
-├─ Database work          → Task(subagent_type="database-architect")
-├─ Infrastructure         → Task(subagent_type="cloud-architect")
-├─ Technical docs (free)  → Task(subagent_type="docs-architect")
-├─ Architecture review    → Task(subagent_type="architect-review")
+├─ Frontend coding        → Task(subagent_type="cco-frontend-developer")
+├─ Backend coding         → Task(subagent_type="cco-backend-architect")
+├─ Database work          → Task(subagent_type="cco-database-architect")
+├─ Infrastructure         → Task(subagent_type="cco-cloud-architect")
+├─ Technical docs (free)  → Task(subagent_type="cco-docs-architect")
+├─ Architecture review    → Task(subagent_type="cco-architect-review")
 └─ General tasks          → Task(subagent_type="general-purpose")
 ```
 
@@ -266,12 +266,12 @@ Replace L399-401 Claude Code Task tool section with:
 ├─ Claude Code Task tool - FREE
 │   ├─ scout             → Task(subagent_type="scout")
 │   ├─ index             → Task(subagent_type="index")
-│   ├─ frontend-developer → Task(subagent_type="frontend-developer")
-│   ├─ backend-architect  → Task(subagent_type="backend-architect")
-│   ├─ database-architect → Task(subagent_type="database-architect")
-│   ├─ cloud-architect    → Task(subagent_type="cloud-architect")
-│   ├─ docs-architect     → Task(subagent_type="docs-architect")
-│   ├─ architect-review   → Task(subagent_type="architect-review")
+│   ├─ cco-frontend-developer → Task(subagent_type="cco-frontend-developer")
+│   ├─ cco-backend-architect  → Task(subagent_type="cco-backend-architect")
+│   ├─ cco-database-architect → Task(subagent_type="cco-database-architect")
+│   ├─ cco-cloud-architect    → Task(subagent_type="cco-cloud-architect")
+│   ├─ cco-docs-architect     → Task(subagent_type="cco-docs-architect")
+│   ├─ cco-architect-review   → Task(subagent_type="cco-architect-review")
 │   └─ general-purpose    → Task(subagent_type="general-purpose")
 ```
 
@@ -312,27 +312,27 @@ Insert below L88, above L90 (Korean version of 4-EN):
 │   Edit/Write/Bash 사용 가능 - 실제 코드 수정 가능           │
 │                                                             │
 │   frontend-developer                                        │
-│     → Task(subagent_type="frontend-developer", prompt="...") │
+│     → Task(subagent_type="cco-frontend-developer", prompt="...") │
 │       React, Next.js, CSS, 반응형 레이아웃, 컴포넌트       │
 │                                                             │
 │   backend-architect                                         │
-│     → Task(subagent_type="backend-architect", prompt="...")  │
+│     → Task(subagent_type="cco-backend-architect", prompt="...")  │
 │       API 설계, 마이크로서비스, 서버 로직                   │
 │                                                             │
 │   database-architect                                        │
-│     → Task(subagent_type="database-architect", prompt="...") │
+│     → Task(subagent_type="cco-database-architect", prompt="...") │
 │       스키마 모델링, 마이그레이션, 쿼리 최적화              │
 │                                                             │
 │   cloud-architect                                           │
-│     → Task(subagent_type="cloud-architect", prompt="...")    │
+│     → Task(subagent_type="cco-cloud-architect", prompt="...")    │
 │       AWS/Azure/GCP, IaC, 배포 설정                         │
 │                                                             │
 │   docs-architect                                            │
-│     → Task(subagent_type="docs-architect", prompt="...")     │
+│     → Task(subagent_type="cco-docs-architect", prompt="...")     │
 │       코드 기반 기술 문서 (quill 무료 대안)                 │
 │                                                             │
 │   architect-review                                          │
-│     → Task(subagent_type="architect-review", prompt="...")   │
+│     → Task(subagent_type="cco-architect-review", prompt="...")   │
 │       아키텍처 리뷰, 클린 아키텍처 (arch 무료 대안)        │
 │                                                             │
 │   general-purpose                                           │
@@ -349,12 +349,12 @@ Insert below L166, above L168:
 
 | 에이전트 | 호출 방법 | 용도 | 트리거 |
 |----------|-----------|------|--------|
-| `cco-frontend-developer` | `Task(subagent_type="frontend-developer")` | React, Next.js, CSS, 반응형 레이아웃 | "UI 만들어", "컴포넌트 생성", "스타일", "페이지" |
-| `cco-backend-architect` | `Task(subagent_type="backend-architect")` | API 설계, 마이크로서비스, 서버 로직 | "API 만들어", "엔드포인트", "서비스", "미들웨어" |
-| `cco-database-architect` | `Task(subagent_type="database-architect")` | 스키마 모델링, 마이그레이션, 쿼리 | "스키마", "마이그레이션", "데이터베이스", "모델" |
-| `cco-cloud-architect` | `Task(subagent_type="cloud-architect")` | AWS/Azure/GCP, IaC, 배포 | "배포", "인프라", "CI/CD", "Docker" |
-| `cco-docs-architect` | `Task(subagent_type="docs-architect")` | 코드 기반 기술 문서 (quill 무료 대안) | "문서 작성", "가이드", "기술 문서" |
-| `cco-architect-review` | `Task(subagent_type="architect-review")` | 아키텍처 리뷰 (arch 무료 대안) | "아키텍처 리뷰", "설계 검토" |
+| `cco-frontend-developer` | `Task(subagent_type="cco-frontend-developer")` | React, Next.js, CSS, 반응형 레이아웃 | "UI 만들어", "컴포넌트 생성", "스타일", "페이지" |
+| `cco-backend-architect` | `Task(subagent_type="cco-backend-architect")` | API 설계, 마이크로서비스, 서버 로직 | "API 만들어", "엔드포인트", "서비스", "미들웨어" |
+| `cco-database-architect` | `Task(subagent_type="cco-database-architect")` | 스키마 모델링, 마이그레이션, 쿼리 | "스키마", "마이그레이션", "데이터베이스", "모델" |
+| `cco-cloud-architect` | `Task(subagent_type="cco-cloud-architect")` | AWS/Azure/GCP, IaC, 배포 | "배포", "인프라", "CI/CD", "Docker" |
+| `cco-docs-architect` | `Task(subagent_type="cco-docs-architect")` | 코드 기반 기술 문서 (quill 무료 대안) | "문서 작성", "가이드", "기술 문서" |
+| `cco-architect-review` | `Task(subagent_type="cco-architect-review")` | 아키텍처 리뷰 (arch 무료 대안) | "아키텍처 리뷰", "설계 검토" |
 | `general-purpose` | `Task(subagent_type="general-purpose")` | 범용 코딩, 전체 도구 접근 | 구현 작업 범용 |
 ```
 
@@ -380,11 +380,11 @@ Insert after Pattern D (L261-268), before `---` (L270):
 \```
 1. Task(subagent_type="scout", prompt="코드베이스 구조 분석")        // FREE
 2. background_task(arch, "구현 계획 설계...")                        // GPT-5.2
-   또는 Task(subagent_type="architect-review", prompt="계획 설계...") // FREE 대안
+   또는 Task(subagent_type="cco-architect-review", prompt="계획 설계...") // FREE 대안
 3. background_output(task_id, block=true)로 설계 결과 수집
 4. 병렬 코딩 위임 (한 메시지에서 여러 Task 호출):
-   Task(subagent_type="frontend-developer", prompt="[설계 컨텍스트] UI 구현...")
-   Task(subagent_type="backend-architect", prompt="[설계 컨텍스트] API 구현...")
+   Task(subagent_type="cco-frontend-developer", prompt="[설계 컨텍스트] UI 구현...")
+   Task(subagent_type="cco-backend-architect", prompt="[설계 컨텍스트] API 구현...")
    // 각 에이전트는 Read/Grep/Glob + Edit/Write/Bash 접근 가능
 5. 모든 결과 수집
 6. 통합 검증, 충돌 시 수정
@@ -407,12 +407,12 @@ Insert after Pattern D (L261-268), before `---` (L270):
 
 **파일 범위 지정 (충돌 방지):**
 \```
-├─ frontend-developer → src/components/, src/pages/, src/styles/
-├─ backend-architect  → src/api/, src/services/, src/middleware/
-├─ database-architect → src/models/, src/migrations/, prisma/
-├─ cloud-architect    → infra/, docker/, .github/workflows/
-├─ docs-architect     → docs/
-└─ architect-review   → 분석만 수행 (파일 수정 없음)
+├─ cco-frontend-developer → src/components/, src/pages/, src/styles/
+├─ cco-backend-architect  → src/api/, src/services/, src/middleware/
+├─ cco-database-architect → src/models/, src/migrations/, prisma/
+├─ cco-cloud-architect    → infra/, docker/, .github/workflows/
+├─ cco-docs-architect     → docs/
+└─ cco-architect-review   → 분석만 수행 (파일 수정 없음)
 \```
 ```
 
@@ -430,12 +430,12 @@ Insert right after Pattern E:
    git worktree add ../wt-frontend -b swarm/frontend
    git worktree add ../wt-backend -b swarm/backend
 5. 절대 경로 기반 위임 (Task tool에 cwd 파라미터 없음):
-   Task(subagent_type="frontend-developer", prompt="
+   Task(subagent_type="cco-frontend-developer", prompt="
      작업 디렉토리: {abs_path}/wt-frontend
      모든 파일은 {abs_path}/wt-frontend 기준 절대 경로 사용.
      Bash 명령은 반드시 cd {abs_path}/wt-frontend && 로 시작.
      [설계 컨텍스트]...")
-   Task(subagent_type="backend-architect", prompt="
+   Task(subagent_type="cco-backend-architect", prompt="
      작업 디렉토리: {abs_path}/wt-backend
      모든 파일은 {abs_path}/wt-backend 기준 절대 경로 사용.
      Bash 명령은 반드시 cd {abs_path}/wt-backend && 로 시작.
@@ -463,12 +463,12 @@ FREE (Claude Code Task tool):
 ├─ 단순 검색             → Grep, Glob (항상 무료 우선)
 ├─ 코드베이스 탐색       → Task(subagent_type="scout")
 ├─ 외부 리서치           → Task(subagent_type="index")
-├─ 프론트엔드 코딩       → Task(subagent_type="frontend-developer")
-├─ 백엔드 코딩           → Task(subagent_type="backend-architect")
-├─ DB 작업               → Task(subagent_type="database-architect")
-├─ 인프라                → Task(subagent_type="cloud-architect")
-├─ 기술 문서 (무료)      → Task(subagent_type="docs-architect")
-├─ 아키텍처 리뷰 (무료)  → Task(subagent_type="architect-review")
+├─ 프론트엔드 코딩       → Task(subagent_type="cco-frontend-developer")
+├─ 백엔드 코딩           → Task(subagent_type="cco-backend-architect")
+├─ DB 작업               → Task(subagent_type="cco-database-architect")
+├─ 인프라                → Task(subagent_type="cco-cloud-architect")
+├─ 기술 문서 (무료)      → Task(subagent_type="cco-docs-architect")
+├─ 아키텍처 리뷰 (무료)  → Task(subagent_type="cco-architect-review")
 └─ 범용 작업             → Task(subagent_type="general-purpose")
 
 PAID (MCP external APIs):
@@ -501,12 +501,12 @@ Replace L379-383 Step 2 with:
 ├─ Claude Code Task tool - FREE
 │   ├─ scout             → Task(subagent_type="scout")
 │   ├─ index             → Task(subagent_type="index")
-│   ├─ frontend-developer → Task(subagent_type="frontend-developer")
-│   ├─ backend-architect  → Task(subagent_type="backend-architect")
-│   ├─ database-architect → Task(subagent_type="database-architect")
-│   ├─ cloud-architect    → Task(subagent_type="cloud-architect")
-│   ├─ docs-architect     → Task(subagent_type="docs-architect")
-│   ├─ architect-review   → Task(subagent_type="architect-review")
+│   ├─ cco-frontend-developer → Task(subagent_type="cco-frontend-developer")
+│   ├─ cco-backend-architect  → Task(subagent_type="cco-backend-architect")
+│   ├─ cco-database-architect → Task(subagent_type="cco-database-architect")
+│   ├─ cco-cloud-architect    → Task(subagent_type="cco-cloud-architect")
+│   ├─ cco-docs-architect     → Task(subagent_type="cco-docs-architect")
+│   ├─ cco-architect-review   → Task(subagent_type="cco-architect-review")
 │   └─ general-purpose    → Task(subagent_type="general-purpose")
 └─ MCP agents (background_task) - PAID
     ├─ arch   → GPT-5.2

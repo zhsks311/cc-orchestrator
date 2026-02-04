@@ -416,6 +416,12 @@ Use when multiple agents need to modify overlapping files, or when safe rollback
 FREE (Claude Code Task tool):
 ├─ Simple search          → Grep, Glob, Read (direct tools)
 ├─ Codebase exploration   → Task(subagent_type="scout")
+├─ Frontend coding        → Task(subagent_type="frontend-developer")
+├─ Backend coding         → Task(subagent_type="backend-architect")
+├─ Database work          → Task(subagent_type="database-architect")
+├─ Infrastructure         → Task(subagent_type="cloud-architect")
+├─ Technical docs (free)  → Task(subagent_type="docs-architect")
+├─ Architecture review    → Task(subagent_type="architect-review")
 └─ General tasks          → Task(subagent_type="general-purpose")
 
 LOW-COST (Claude Code Task tool):

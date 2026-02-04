@@ -439,6 +439,8 @@ PAID (MCP external APIs):
 2. Use `scout` first (FREE), then `index` for external research (LOW-COST)
 3. Only use MCP agents for external model capabilities (GPT, Gemini)
 4. Parallel execution for time optimization
+5. Delegate parallel coding to native coding agents - they are FREE and can write code
+6. `docs-architect` and `architect-review` are free alternatives to `quill` and `arch`
 
 ---
 

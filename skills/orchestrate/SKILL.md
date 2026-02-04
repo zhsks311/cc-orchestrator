@@ -1,7 +1,7 @@
 ---
 name: orchestrate
 description: Multi-Model Orchestration - Guide for orchestrating multi-model agents
-version: 2.0.0
+version: 2.1.0
 author: CC Orchestrator
 tags: [orchestration, multi-model, parallel, workflow]
 ---

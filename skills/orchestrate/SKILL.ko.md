@@ -340,7 +340,7 @@ animation, transition, hover, responsive, CSS
 
 ### 패턴 A: 탐색 + 구현
 
-```
+```text
 1. Task(subagent_type="index", prompt="레퍼런스 검색...")  // 병렬 (저렴)
 2. 동시에 기본 구현 시작
 3. index 결과로 구현 보강
@@ -348,7 +348,7 @@ animation, transition, hover, responsive, CSS
 
 ### 패턴 B: 리서치 + 구현
 
-```
+```text
 1. Task(subagent_type="index", prompt="모범 사례 검색...")  // LOW-COST
 2. 동시에 기본 구현 시작
 3. 조사한 패턴 적용
@@ -356,7 +356,7 @@ animation, transition, hover, responsive, CSS
 
 ### 패턴 C: 설계 검토
 
-```
+```text
 1. 초안 작성
 2. background_task(arch, "아키텍처 검토...")
 3. 피드백 반영
@@ -364,7 +364,7 @@ animation, transition, hover, responsive, CSS
 
 ### 패턴 D: 다중 관점 수집
 
-```
+```text
 1. background_task(arch, "아키텍처 관점...")    // 병렬
 2. Task(subagent_type="index", prompt="업계 사례...")      // 병렬 (저렴)
 3. background_task(canvas, "UX 관점...")       // 병렬

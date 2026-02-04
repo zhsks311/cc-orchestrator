@@ -341,7 +341,7 @@ animation, transition, hover, responsive, CSS
 
 ### Pattern A: Exploration + Implementation
 
-```
+```text
 1. Task(subagent_type="scout", prompt="Find similar patterns")  // FREE
 2. Start basic implementation simultaneously
 3. Enhance implementation with exploration results
@@ -349,7 +349,7 @@ animation, transition, hover, responsive, CSS
 
 ### Pattern B: Research + Implementation
 
-```
+```text
 1. Task(subagent_type="index", prompt="Find best practices")  // LOW-COST
 2. Start basic implementation simultaneously
 3. Apply researched patterns
@@ -357,7 +357,7 @@ animation, transition, hover, responsive, CSS
 
 ### Pattern C: Design Review
 
-```
+```text
 1. Write draft
 2. background_task(arch, "Review architecture...") // GPT-5.2
 3. Incorporate feedback
@@ -365,7 +365,7 @@ animation, transition, hover, responsive, CSS
 
 ### Pattern D: Multi-perspective Collection
 
-```
+```text
 1. Task(subagent_type="scout", prompt="Analyze codebase")    // FREE - Parallel
 2. background_task(arch, "Architecture perspective...")      // GPT-5.2 - Parallel
 3. background_task(canvas, "UX perspective...")              // Gemini - Parallel

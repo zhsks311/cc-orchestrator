@@ -403,12 +403,26 @@ animation, transition, hover, responsive, CSS
 
 ## 비용 최적화
 
-```
-├─ 간단한 조사         → index (저렴)
-├─ 코드베이스 탐색     → Task(subagent_type="scout") 또는 직접 도구 (무료)
-├─ 아키텍처 결정       → arch (필요할 때만)
-├─ UI 작업            → canvas (필요할 때만)
-└─ 단순 검색          → Grep, Glob (항상 무료 우선)
+```plaintext
+FREE (Claude Code Task tool):
+├─ 단순 검색             → Grep, Glob (항상 무료 우선)
+├─ 코드베이스 탐색       → Task(subagent_type="scout")
+├─ 프론트엔드 코딩       → Task(subagent_type="frontend-developer")
+├─ 백엔드 코딩           → Task(subagent_type="backend-architect")
+├─ DB 작업               → Task(subagent_type="database-architect")
+├─ 인프라                → Task(subagent_type="cloud-architect")
+├─ 기술 문서 (무료)      → Task(subagent_type="docs-architect")
+├─ 아키텍처 리뷰 (무료)  → Task(subagent_type="architect-review")
+└─ 범용 작업             → Task(subagent_type="general-purpose")
+
+LOW-COST (Claude Code Task tool):
+└─ 외부 리서치           → Task(subagent_type="index")
+
+PAID (MCP external APIs):
+├─ 아키텍처 결정         → arch (GPT-5.2, expensive)
+├─ UI/UX 작업           → canvas (Gemini, moderate)
+├─ 문서화               → quill (Gemini, moderate)
+└─ 이미지/PDF 분석      → lens (Gemini, moderate)
 ```
 
 **원칙:**

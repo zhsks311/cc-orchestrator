@@ -11,7 +11,7 @@ Current limitations of the orchestrate skill:
 - Even after arch completes a design, **actual coding is done sequentially** by the main Claude Code session
 - No pattern is defined for working on multiple areas (frontend/backend/DB) simultaneously
 
-Claude Code's Task tool already has built-in **coding-capable subagent_types** like `frontend-developer`, `backend-architect`, etc., but they are not mentioned in the orchestrate skill and thus go unused.
+Claude Code's Task tool already has built-in **coding-capable subagent_types** like `cco-frontend-developer`, `cco-backend-architect`, etc., but they are not mentioned in the orchestrate skill and thus go unused.
 
 This change enables:
 1. **Parallel coding**: After arch designs, frontend/backend/DB agents write code simultaneously
@@ -25,18 +25,24 @@ This change enables:
 - `skills/orchestrate/SKILL.ko.md`
 - `scripts/setup.mjs`
 
-## Coding Agents to Add (7)
+## Coding Agents to Add (11)
+
+> **Note:** These agents are project-defined (not Claude Code built-in). They are installed to `~/.claude/agents/` via `npm run setup`.
 
 All invoked via `Task(subagent_type="name")`. FREE. Can use Edit/Write/Bash.
 
 | Agent | Purpose | Trigger Keywords |
 |-------|---------|-----------------|
-| `frontend-developer` | React, Next.js, CSS, layouts | component, page, style, UI |
-| `backend-architect` | APIs, microservices, server logic | API, endpoint, service, middleware |
-| `database-architect` | Schema, migrations, queries | schema, migration, model, database |
-| `cloud-architect` | AWS/Azure/GCP, IaC, deployment | deploy, Docker, CI/CD, infra |
-| `docs-architect` | Technical docs from code (free quill alternative) | docs, guide, documentation |
-| `architect-review` | Architecture review (free arch alternative) | review, inspect, architecture |
+| `cco-frontend-developer` | React, Next.js, CSS, layouts | component, page, style, UI |
+| `cco-backend-architect` | APIs, microservices, server logic | API, endpoint, service, middleware |
+| `cco-database-architect` | Schema, migrations, queries | schema, migration, model, database |
+| `cco-cloud-architect` | AWS/Azure/GCP, IaC, deployment | deploy, Docker, CI/CD, infra |
+| `cco-docs-architect` | Technical docs from code (native quill alternative) | docs, guide, documentation |
+| `cco-architect-review` | Architecture review (native arch alternative) | review, inspect, architecture |
+| `cco-blockchain-developer` | Web3, smart contracts, DeFi | blockchain, smart contract, Web3 |
+| `cco-graphql-architect` | GraphQL federation, schema design | GraphQL, schema, federation |
+| `cco-hybrid-cloud-architect` | Multi-cloud, hybrid infrastructure | hybrid cloud, multi-cloud, edge |
+| `cco-kubernetes-architect` | K8s, GitOps, cloud-native platform | kubernetes, k8s, GitOps, helm |
 | `general-purpose` | General coding, full tool access | implement, build (catch-all) |
 
 ---
@@ -60,12 +66,12 @@ Insert before L27 (`├─ Research`):
 
 Insert below L72 (`| index agent |`), above L73 (`| canvas |`):
 ```markdown
-| `frontend-developer` | FREE | Frontend implementation (React, CSS, layouts) (Task tool) |
-| `backend-architect` | FREE | Backend implementation (APIs, services) (Task tool) |
-| `database-architect` | FREE | DB schema, migrations (Task tool) |
-| `cloud-architect` | FREE | Infrastructure, deployment configs (Task tool) |
-| `docs-architect` | FREE | Technical docs from code (quill free alternative) (Task tool) |
-| `architect-review` | FREE | Architecture review (arch free alternative) (Task tool) |
+| `cco-frontend-developer` | FREE | Frontend implementation (React, CSS, layouts) (Task tool) |
+| `cco-backend-architect` | FREE | Backend implementation (APIs, services) (Task tool) |
+| `cco-database-architect` | FREE | DB schema, migrations (Task tool) |
+| `cco-cloud-architect` | FREE | Infrastructure, deployment configs (Task tool) |
+| `cco-docs-architect` | FREE | Technical docs from code (quill free alternative) (Task tool) |
+| `cco-architect-review` | FREE | Architecture review (arch free alternative) (Task tool) |
 | `general-purpose` | FREE | Any coding task, full tool access (Task tool) |
 ```
 
@@ -95,11 +101,11 @@ Insert below L88 (end of index block), above L90 (MCP AGENTS start):
 │                                                             │
 │   docs-architect                                            │
 │     → Task(subagent_type="docs-architect", prompt="...")     │
-│       Technical docs from codebase (free quill alternative) │
+│       Technical docs from codebase (native quill alternative) │
 │                                                             │
 │   architect-review                                          │
 │     → Task(subagent_type="architect-review", prompt="...")   │
-│       Architecture review, clean arch (free arch alternative)│
+│       Architecture review, clean arch (native arch alternative)│
 │                                                             │
 │   general-purpose                                           │
 │     → Task(subagent_type="general-purpose", prompt="...")    │
@@ -115,12 +121,12 @@ Insert below L166 (end of scout/index table), above L168 (MCP Agents start):
 
 | Agent | Invocation | Purpose | Triggers |
 |-------|------------|---------|----------|
-| `frontend-developer` | `Task(subagent_type="frontend-developer")` | React, Next.js, CSS, responsive layouts | "build UI", "create component", "style", "page layout" |
-| `backend-architect` | `Task(subagent_type="backend-architect")` | API design, microservices, server logic | "create API", "endpoint", "service layer", "middleware" |
-| `database-architect` | `Task(subagent_type="database-architect")` | Schema modeling, migrations, queries | "schema", "migration", "database", "model" |
-| `cloud-architect` | `Task(subagent_type="cloud-architect")` | AWS/Azure/GCP, IaC, deployment | "deploy", "infrastructure", "CI/CD", "Docker" |
-| `docs-architect` | `Task(subagent_type="docs-architect")` | Technical docs from code (free quill alternative) | "document", "guide", "technical docs" |
-| `architect-review` | `Task(subagent_type="architect-review")` | Architecture review (free arch alternative) | "review architecture", "design review", "clean arch" |
+| `cco-frontend-developer` | `Task(subagent_type="frontend-developer")` | React, Next.js, CSS, responsive layouts | "build UI", "create component", "style", "page layout" |
+| `cco-backend-architect` | `Task(subagent_type="backend-architect")` | API design, microservices, server logic | "create API", "endpoint", "service layer", "middleware" |
+| `cco-database-architect` | `Task(subagent_type="database-architect")` | Schema modeling, migrations, queries | "schema", "migration", "database", "model" |
+| `cco-cloud-architect` | `Task(subagent_type="cloud-architect")` | AWS/Azure/GCP, IaC, deployment | "deploy", "infrastructure", "CI/CD", "Docker" |
+| `cco-docs-architect` | `Task(subagent_type="docs-architect")` | Technical docs from code (native quill alternative) | "document", "guide", "technical docs" |
+| `cco-architect-review` | `Task(subagent_type="architect-review")` | Architecture review (native arch alternative) | "review architecture", "design review", "clean arch" |
 | `general-purpose` | `Task(subagent_type="general-purpose")` | Any coding task, full tool access | Catch-all for implementation tasks |
 ```
 
@@ -128,12 +134,12 @@ Insert below L166 (end of scout/index table), above L168 (MCP Agents start):
 
 Insert below L187 (Image/PDF row):
 ```markdown
-| Frontend coding | `frontend-developer` (native) | build, create component, React, page, layout |
-| Backend coding | `backend-architect` (native) | API, endpoint, service, server, middleware |
-| Database work | `database-architect` (native) | schema, migration, model, query, database |
-| Infrastructure | `cloud-architect` (native) | deploy, Docker, CI/CD, infra, cloud |
-| Technical docs (free) | `docs-architect` (native) | document, guide (cost saving over quill) |
-| Architecture review (free) | `architect-review` (native) | review, inspect (cost saving over arch) |
+| Frontend coding | `cco-frontend-developer` (native) | build, create component, React, page, layout |
+| Backend coding | `cco-backend-architect` (native) | API, endpoint, service, server, middleware |
+| Database work | `cco-database-architect` (native) | schema, migration, model, query, database |
+| Infrastructure | `cco-cloud-architect` (native) | deploy, Docker, CI/CD, infra, cloud |
+| Technical docs (free) | `cco-docs-architect` (native) | document, guide (cost saving over quill) |
+| Architecture review (free) | `cco-architect-review` (native) | review, inspect (cost saving over arch) |
 | General coding | `general-purpose` (native) | implement, code, build (catch-all) |
 ```
 
@@ -288,12 +294,12 @@ Insert before L27 (`├─ Research`):
 
 Insert below L72, above L73:
 ```markdown
-| `frontend-developer` | FREE | 프론트엔드 구현 (React, CSS, 레이아웃) (Task tool) |
-| `backend-architect` | FREE | 백엔드 구현 (API, 서비스) (Task tool) |
-| `database-architect` | FREE | DB 스키마, 마이그레이션 (Task tool) |
-| `cloud-architect` | FREE | 인프라, 배포 설정 (Task tool) |
-| `docs-architect` | FREE | 코드 기반 기술 문서 (quill 무료 대안) (Task tool) |
-| `architect-review` | FREE | 아키텍처 리뷰 (arch 무료 대안) (Task tool) |
+| `cco-frontend-developer` | FREE | 프론트엔드 구현 (React, CSS, 레이아웃) (Task tool) |
+| `cco-backend-architect` | FREE | 백엔드 구현 (API, 서비스) (Task tool) |
+| `cco-database-architect` | FREE | DB 스키마, 마이그레이션 (Task tool) |
+| `cco-cloud-architect` | FREE | 인프라, 배포 설정 (Task tool) |
+| `cco-docs-architect` | FREE | 코드 기반 기술 문서 (quill 무료 대안) (Task tool) |
+| `cco-architect-review` | FREE | 아키텍처 리뷰 (arch 무료 대안) (Task tool) |
 | `general-purpose` | FREE | 범용 코딩, 전체 도구 접근 (Task tool) |
 ```
 
@@ -343,12 +349,12 @@ Insert below L166, above L168:
 
 | 에이전트 | 호출 방법 | 용도 | 트리거 |
 |----------|-----------|------|--------|
-| `frontend-developer` | `Task(subagent_type="frontend-developer")` | React, Next.js, CSS, 반응형 레이아웃 | "UI 만들어", "컴포넌트 생성", "스타일", "페이지" |
-| `backend-architect` | `Task(subagent_type="backend-architect")` | API 설계, 마이크로서비스, 서버 로직 | "API 만들어", "엔드포인트", "서비스", "미들웨어" |
-| `database-architect` | `Task(subagent_type="database-architect")` | 스키마 모델링, 마이그레이션, 쿼리 | "스키마", "마이그레이션", "데이터베이스", "모델" |
-| `cloud-architect` | `Task(subagent_type="cloud-architect")` | AWS/Azure/GCP, IaC, 배포 | "배포", "인프라", "CI/CD", "Docker" |
-| `docs-architect` | `Task(subagent_type="docs-architect")` | 코드 기반 기술 문서 (quill 무료 대안) | "문서 작성", "가이드", "기술 문서" |
-| `architect-review` | `Task(subagent_type="architect-review")` | 아키텍처 리뷰 (arch 무료 대안) | "아키텍처 리뷰", "설계 검토" |
+| `cco-frontend-developer` | `Task(subagent_type="frontend-developer")` | React, Next.js, CSS, 반응형 레이아웃 | "UI 만들어", "컴포넌트 생성", "스타일", "페이지" |
+| `cco-backend-architect` | `Task(subagent_type="backend-architect")` | API 설계, 마이크로서비스, 서버 로직 | "API 만들어", "엔드포인트", "서비스", "미들웨어" |
+| `cco-database-architect` | `Task(subagent_type="database-architect")` | 스키마 모델링, 마이그레이션, 쿼리 | "스키마", "마이그레이션", "데이터베이스", "모델" |
+| `cco-cloud-architect` | `Task(subagent_type="cloud-architect")` | AWS/Azure/GCP, IaC, 배포 | "배포", "인프라", "CI/CD", "Docker" |
+| `cco-docs-architect` | `Task(subagent_type="docs-architect")` | 코드 기반 기술 문서 (quill 무료 대안) | "문서 작성", "가이드", "기술 문서" |
+| `cco-architect-review` | `Task(subagent_type="architect-review")` | 아키텍처 리뷰 (arch 무료 대안) | "아키텍처 리뷰", "설계 검토" |
 | `general-purpose` | `Task(subagent_type="general-purpose")` | 범용 코딩, 전체 도구 접근 | 구현 작업 범용 |
 ```
 
@@ -356,12 +362,12 @@ Insert below L166, above L168:
 
 Insert below L186 (Image/PDF row):
 ```markdown
-| 프론트엔드 코딩 | `frontend-developer` (native) | 빌드, 컴포넌트, React, 페이지, 레이아웃 |
-| 백엔드 코딩 | `backend-architect` (native) | API, 엔드포인트, 서비스, 서버, 미들웨어 |
-| DB 작업 | `database-architect` (native) | 스키마, 마이그레이션, 모델, 쿼리 |
-| 인프라 | `cloud-architect` (native) | 배포, Docker, CI/CD, 인프라, 클라우드 |
-| 기술 문서 (무료) | `docs-architect` (native) | 문서, 가이드 (quill 대비 비용 절감) |
-| 아키텍처 리뷰 (무료) | `architect-review` (native) | 리뷰, 검토 (arch 대비 비용 절감) |
+| 프론트엔드 코딩 | `cco-frontend-developer` (native) | 빌드, 컴포넌트, React, 페이지, 레이아웃 |
+| 백엔드 코딩 | `cco-backend-architect` (native) | API, 엔드포인트, 서비스, 서버, 미들웨어 |
+| DB 작업 | `cco-database-architect` (native) | 스키마, 마이그레이션, 모델, 쿼리 |
+| 인프라 | `cco-cloud-architect` (native) | 배포, Docker, CI/CD, 인프라, 클라우드 |
+| 기술 문서 (무료) | `cco-docs-architect` (native) | 문서, 가이드 (quill 대비 비용 절감) |
+| 아키텍처 리뷰 (무료) | `cco-architect-review` (native) | 리뷰, 검토 (arch 대비 비용 절감) |
 | 범용 코딩 | `general-purpose` (native) | 구현, 코드, 빌드 (범용) |
 ```
 

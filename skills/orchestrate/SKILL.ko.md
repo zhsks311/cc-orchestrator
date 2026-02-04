@@ -24,7 +24,7 @@ tags: [orchestration, multi-model, parallel, workflow]
 ├─ Explicit       → 지시대로 직접 실행
 ├─ Exploratory    → scout/index 병렬 실행
 ├─ Open-ended     → Phase 1로 (코드베이스 평가 필요)
-├─ Implementation → 코딩 에이전트에 위임 (다중 파일 시 패턴 E)
+├─ Implementation → 코딩 에이전트에 위임 (다중 파일 시 패턴 F)
 ├─ Research       → index 우선 실행
 ├─ Design/Review  → arch 상담
 └─ Ambiguous      → 명확화 질문 1개만
@@ -71,12 +71,12 @@ tags: [orchestration, multi-model, parallel, workflow]
 | Grep, Glob, Read | FREE | 범위 명확, 단순 검색 |
 | `scout` agent | FREE | 코드베이스 탐색 (Task tool) |
 | `index` agent | LOW | 외부 문서, API 리서치 (Task tool) |
-| `frontend-developer` | FREE | 프론트엔드 구현 (React, CSS, 레이아웃) (Task tool) |
-| `backend-architect` | FREE | 백엔드 구현 (API, 서비스) (Task tool) |
-| `database-architect` | FREE | DB 스키마, 마이그레이션 (Task tool) |
-| `cloud-architect` | FREE | 인프라, 배포 설정 (Task tool) |
-| `docs-architect` | FREE | 코드 기반 기술 문서 (quill 무료 대안) (Task tool) |
-| `architect-review` | FREE | 아키텍처 리뷰 (arch 무료 대안) (Task tool) |
+| `cco-frontend-developer` | FREE | 프론트엔드 구현 (React, CSS, 레이아웃) (Task tool) |
+| `cco-backend-architect` | FREE | 백엔드 구현 (API, 서비스) (Task tool) |
+| `cco-database-architect` | FREE | DB 스키마, 마이그레이션 (Task tool) |
+| `cco-cloud-architect` | FREE | 인프라, 배포 설정 (Task tool) |
+| `cco-docs-architect` | FREE | 코드 기반 기술 문서 (quill 네이티브 대안) (Task tool) |
+| `cco-architect-review` | FREE | 아키텍처 리뷰 (arch 네이티브 대안) (Task tool) |
 | `general-purpose` | FREE | 범용 코딩, 전체 도구 접근 (Task tool) |
 | `canvas` | MODERATE | UI/UX, 스타일링 (MCP) |
 | `quill` | MODERATE | 기술 문서 (MCP) |
@@ -98,29 +98,29 @@ tags: [orchestration, multi-model, parallel, workflow]
 │ CODING AGENTS (Task tool) - FREE                            │
 │   Edit/Write/Bash 사용 가능 - 실제 코드 수정 가능           │
 │                                                             │
-│   frontend-developer                                        │
-│     → Task(subagent_type="frontend-developer", prompt="...") │
+│   cco-frontend-developer                                        │
+│     → Task(subagent_type="cco-frontend-developer", prompt="...") │
 │       React, Next.js, CSS, 반응형 레이아웃, 컴포넌트       │
 │                                                             │
-│   backend-architect                                         │
-│     → Task(subagent_type="backend-architect", prompt="...")  │
+│   cco-backend-architect                                         │
+│     → Task(subagent_type="cco-backend-architect", prompt="...")  │
 │       API 설계, 마이크로서비스, 서버 로직                   │
 │                                                             │
-│   database-architect                                        │
-│     → Task(subagent_type="database-architect", prompt="...") │
+│   cco-database-architect                                        │
+│     → Task(subagent_type="cco-database-architect", prompt="...") │
 │       스키마 모델링, 마이그레이션, 쿼리 최적화              │
 │                                                             │
-│   cloud-architect                                           │
-│     → Task(subagent_type="cloud-architect", prompt="...")    │
+│   cco-cloud-architect                                           │
+│     → Task(subagent_type="cco-cloud-architect", prompt="...")    │
 │       AWS/Azure/GCP, IaC, 배포 설정                         │
 │                                                             │
-│   docs-architect                                            │
-│     → Task(subagent_type="docs-architect", prompt="...")     │
-│       코드 기반 기술 문서 (quill 무료 대안)                 │
+│   cco-docs-architect                                            │
+│     → Task(subagent_type="cco-docs-architect", prompt="...")     │
+│       코드 기반 기술 문서 (quill 네이티브 대안)                 │
 │                                                             │
-│   architect-review                                          │
-│     → Task(subagent_type="architect-review", prompt="...")   │
-│       아키텍처 리뷰, 클린 아키텍처 (arch 무료 대안)        │
+│   cco-architect-review                                          │
+│     → Task(subagent_type="cco-architect-review", prompt="...")   │
+│       아키텍처 리뷰, 클린 아키텍처 (arch 네이티브 대안)        │
 │                                                             │
 │   general-purpose                                           │
 │     → Task(subagent_type="general-purpose", prompt="...")    │
@@ -208,12 +208,12 @@ background_cancel(all=true)  // 모든 백그라운드 작업 취소
 
 | 에이전트 | 호출 방법 | 용도 | 트리거 |
 |----------|-----------|------|--------|
-| `frontend-developer` | `Task(subagent_type="frontend-developer")` | React, Next.js, CSS, 반응형 레이아웃 | "UI 만들어", "컴포넌트 생성", "스타일", "페이지" |
-| `backend-architect` | `Task(subagent_type="backend-architect")` | API 설계, 마이크로서비스, 서버 로직 | "API 만들어", "엔드포인트", "서비스", "미들웨어" |
-| `database-architect` | `Task(subagent_type="database-architect")` | 스키마 모델링, 마이그레이션, 쿼리 | "스키마", "마이그레이션", "데이터베이스", "모델" |
-| `cloud-architect` | `Task(subagent_type="cloud-architect")` | AWS/Azure/GCP, IaC, 배포 | "배포", "인프라", "CI/CD", "Docker" |
-| `docs-architect` | `Task(subagent_type="docs-architect")` | 코드 기반 기술 문서 (quill 무료 대안) | "문서 작성", "가이드", "기술 문서" |
-| `architect-review` | `Task(subagent_type="architect-review")` | 아키텍처 리뷰 (arch 무료 대안) | "아키텍처 리뷰", "설계 검토" |
+| `cco-frontend-developer` | `Task(subagent_type="cco-frontend-developer")` | React, Next.js, CSS, 반응형 레이아웃 | "UI 만들어", "컴포넌트 생성", "스타일", "페이지" |
+| `cco-backend-architect` | `Task(subagent_type="cco-backend-architect")` | API 설계, 마이크로서비스, 서버 로직 | "API 만들어", "엔드포인트", "서비스", "미들웨어" |
+| `cco-database-architect` | `Task(subagent_type="cco-database-architect")` | 스키마 모델링, 마이그레이션, 쿼리 | "스키마", "마이그레이션", "데이터베이스", "모델" |
+| `cco-cloud-architect` | `Task(subagent_type="cco-cloud-architect")` | AWS/Azure/GCP, IaC, 배포 | "배포", "인프라", "CI/CD", "Docker" |
+| `cco-docs-architect` | `Task(subagent_type="cco-docs-architect")` | 코드 기반 기술 문서 (quill 네이티브 대안) | "문서 작성", "가이드", "기술 문서" |
+| `cco-architect-review` | `Task(subagent_type="cco-architect-review")` | 아키텍처 리뷰 (arch 네이티브 대안) | "아키텍처 리뷰", "설계 검토" |
 | `general-purpose` | `Task(subagent_type="general-purpose")` | 범용 코딩, 전체 도구 접근 | 구현 작업 범용 |
 
 **MCP Agents (background_task) - PAID:**
@@ -233,14 +233,14 @@ background_cancel(all=true)  // 모든 백그라운드 작업 취소
 | 외부 리서치 | `index` (저렴) | 라이브러리명, API, "어떻게 하는지", 모범 사례 |
 | 아키텍처 | `arch` | 설계, 구조, 패턴 선택, 트레이드오프 |
 | 코드 리뷰 | `arch` | 리뷰, 검토, 개선점 |
-| 문서화 | `docs-architect` 우선, 필요 시 `quill` fallback | README, 문서, 설명서, API docs |
+| 문서화 | `cco-docs-architect` 우선, 필요 시 `quill` fallback | README, 문서, 설명서, API docs |
 | 이미지/PDF | `lens` | 스크린샷, 이미지, PDF, 다이어그램 |
-| 프론트엔드 코딩 | `frontend-developer` (native) | 빌드, 컴포넌트, React, 페이지, 레이아웃 |
-| 백엔드 코딩 | `backend-architect` (native) | API, 엔드포인트, 서비스, 서버, 미들웨어 |
-| DB 작업 | `database-architect` (native) | 스키마, 마이그레이션, 모델, 쿼리 |
-| 인프라 | `cloud-architect` (native) | 배포, Docker, CI/CD, 인프라, 클라우드 |
-| 기술 문서 (무료) | `docs-architect` (native) | 문서, 가이드 (quill 대비 비용 절감) |
-| 아키텍처 리뷰 (무료) | `architect-review` (native) | 리뷰, 검토 (arch 대비 비용 절감) |
+| 프론트엔드 코딩 | `cco-frontend-developer` (native) | 빌드, 컴포넌트, React, 페이지, 레이아웃 |
+| 백엔드 코딩 | `cco-backend-architect` (native) | API, 엔드포인트, 서비스, 서버, 미들웨어 |
+| DB 작업 | `cco-database-architect` (native) | 스키마, 마이그레이션, 모델, 쿼리 |
+| 인프라 | `cco-cloud-architect` (native) | 배포, Docker, CI/CD, 인프라, 클라우드 |
+| 기술 문서 (무료) | `cco-docs-architect` (native) | 문서, 가이드 (quill 대비 비용 절감) |
+| 아키텍처 리뷰 (무료) | `cco-architect-review` (native) | 리뷰, 검토 (arch 대비 비용 절감) |
 | 범용 코딩 | `general-purpose` (native) | 구현, 코드, 빌드 (범용) |
 
 ### Frontend 위임 게이트 (BLOCKING)
@@ -268,11 +268,11 @@ animation, transition, hover, responsive, CSS
 - MCP 에이전트는 설계/리뷰/시각 품질 보강 용도로만 선택적으로 사용한다.
 
 **라우팅 기본값:**
-- 구현 중심(다중 파일 생성/수정): `frontend-developer`, `backend-architect`, `database-architect`, `cloud-architect`, `general-purpose`
+- 구현 중심(다중 파일 생성/수정): `cco-frontend-developer`, `cco-backend-architect`, `cco-database-architect`, `cco-cloud-architect`, `general-purpose`
 - 설계 의사결정/트레이드오프: `arch` 허용
 - UI/시각 완성도 검증: `canvas` 허용
-- 문서 품질 보강: `docs-architect` 우선, 필요 시 `quill` fallback
-- 최종 품질 리뷰: `architect-review` 또는 `arch` 정확히 1회
+- 문서 품질 보강: `cco-docs-architect` 우선, 필요 시 `quill` fallback
+- 최종 품질 리뷰: `cco-architect-review` 또는 `arch` 정확히 1회
 
 **MCP 소프트 가드:**
 - 요청당 MCP 권장 상한: 2회(`설계` 1 + `리뷰` 1)
@@ -293,7 +293,7 @@ animation, transition, hover, responsive, CSS
 ## ROUTING_RULES
 - 구현 중심 작업 → 네이티브 코딩 에이전트
 - 설계/리뷰/시각 품질 작업 → MCP 허용
-- 최종 품질 리뷰 → `architect-review` 또는 `arch` 정확히 1회
+- 최종 품질 리뷰 → `cco-architect-review` 또는 `arch` 정확히 1회
 
 ## TASK
 [원자적 목표 - 액션 1개만]
@@ -346,7 +346,15 @@ animation, transition, hover, responsive, CSS
 3. index 결과로 구현 보강
 ```
 
-### 패턴 B: 설계 검토
+### 패턴 B: 리서치 + 구현
+
+```
+1. Task(subagent_type="index", prompt="모범 사례 검색...")  // LOW-COST
+2. 동시에 기본 구현 시작
+3. 조사한 패턴 적용
+```
+
+### 패턴 C: 설계 검토
 
 ```
 1. 초안 작성
@@ -354,7 +362,7 @@ animation, transition, hover, responsive, CSS
 3. 피드백 반영
 ```
 
-### 패턴 C: 다중 관점 수집
+### 패턴 D: 다중 관점 수집
 
 ```
 1. background_task(arch, "아키텍처 관점...")    // 병렬
@@ -363,7 +371,7 @@ animation, transition, hover, responsive, CSS
 4. 세 결과 통합
 ```
 
-### 패턴 D: 복잡한 구현
+### 패턴 E: 복잡한 구현
 
 ```
 1. arch로 설계 방향 확정
@@ -372,16 +380,16 @@ animation, transition, hover, responsive, CSS
 4. arch로 코드 리뷰
 ```
 
-### 패턴 E: 병렬 구현
+### 패턴 F: 병렬 구현
 
 ```
 1. Task(subagent_type="scout", prompt="코드베이스 구조 분석")        // FREE
 2. background_task(arch, "구현 계획 설계...")                        // GPT-5.2
-   또는 Task(subagent_type="architect-review", prompt="계획 설계...") // FREE 대안
+   또는 Task(subagent_type="cco-architect-review", prompt="계획 설계...") // FREE 대안
 3. background_output(task_id, block=true)로 설계 결과 수집
 4. 병렬 코딩 위임 (한 메시지에서 여러 Task 호출):
-   Task(subagent_type="frontend-developer", prompt="[설계 컨텍스트] UI 구현...")
-   Task(subagent_type="backend-architect", prompt="[설계 컨텍스트] API 구현...")
+   Task(subagent_type="cco-frontend-developer", prompt="[설계 컨텍스트] UI 구현...")
+   Task(subagent_type="cco-backend-architect", prompt="[설계 컨텍스트] API 구현...")
    // 각 에이전트는 Read/Grep/Glob + Edit/Write/Bash 접근 가능
 5. 모든 결과 수집
 6. 통합 검증, 충돌 시 수정
@@ -404,12 +412,12 @@ animation, transition, hover, responsive, CSS
 
 **파일 범위 지정 (충돌 방지):**
 ```
-├─ frontend-developer → src/components/, src/pages/, src/styles/
-├─ backend-architect  → src/api/, src/services/, src/middleware/
-├─ database-architect → src/models/, src/migrations/, prisma/
-├─ cloud-architect    → infra/, docker/, .github/workflows/
-├─ docs-architect     → docs/
-└─ architect-review   → 분석만 수행 (파일 수정 없음)
+├─ cco-frontend-developer → src/components/, src/pages/, src/styles/
+├─ cco-backend-architect  → src/api/, src/services/, src/middleware/
+├─ cco-database-architect → src/models/, src/migrations/, prisma/
+├─ cco-cloud-architect    → infra/, docker/, .github/workflows/
+├─ cco-docs-architect     → docs/
+└─ cco-architect-review   → 분석만 수행 (파일 수정 없음)
 ```
 
 **실행 제약 (BLOCKING):**
@@ -418,22 +426,22 @@ animation, transition, hover, responsive, CSS
 - `MUST_NOT_DO`에 스코프 외 수정 금지/작업 중복 금지 명시
 - MCP 호출마다 1줄 사유 + 기대 품질 이득 기록
 
-### 패턴 E-iso: Git Worktree 격리 병렬 구현
+### 패턴 F-iso: Git Worktree 격리 병렬 구현 (Experimental)
 
 여러 에이전트가 같은 파일을 수정해야 하거나 안전한 롤백이 필요할 때:
 
 ```
-1-3. 패턴 E와 동일
+1-3. 패턴 F와 동일
 4. Git worktree 생성 (메인 세션이 Bash로 실행):
    git worktree add ../wt-frontend -b swarm/frontend
    git worktree add ../wt-backend -b swarm/backend
 5. 절대 경로 기반 위임 (Task tool에 cwd 파라미터 없음):
-   Task(subagent_type="frontend-developer", prompt="
+   Task(subagent_type="cco-frontend-developer", prompt="
      작업 디렉토리: {abs_path}/wt-frontend
      모든 파일은 {abs_path}/wt-frontend 기준 절대 경로 사용.
      Bash 명령은 반드시 cd {abs_path}/wt-frontend && 로 시작.
      [설계 컨텍스트]...")
-   Task(subagent_type="backend-architect", prompt="
+   Task(subagent_type="cco-backend-architect", prompt="
      작업 디렉토리: {abs_path}/wt-backend
      모든 파일은 {abs_path}/wt-backend 기준 절대 경로 사용.
      Bash 명령은 반드시 cd {abs_path}/wt-backend && 로 시작.
@@ -460,12 +468,12 @@ animation, transition, hover, responsive, CSS
 FREE (Claude Code Task tool):
 ├─ 단순 검색             → Grep, Glob (항상 무료 우선)
 ├─ 코드베이스 탐색       → Task(subagent_type="scout")
-├─ 프론트엔드 코딩       → Task(subagent_type="frontend-developer")
-├─ 백엔드 코딩           → Task(subagent_type="backend-architect")
-├─ DB 작업               → Task(subagent_type="database-architect")
-├─ 인프라                → Task(subagent_type="cloud-architect")
-├─ 기술 문서 (무료)      → Task(subagent_type="docs-architect")
-├─ 아키텍처 리뷰 (무료)  → Task(subagent_type="architect-review")
+├─ 프론트엔드 코딩       → Task(subagent_type="cco-frontend-developer")
+├─ 백엔드 코딩           → Task(subagent_type="cco-backend-architect")
+├─ DB 작업               → Task(subagent_type="cco-database-architect")
+├─ 인프라                → Task(subagent_type="cco-cloud-architect")
+├─ 기술 문서 (무료)      → Task(subagent_type="cco-docs-architect")
+├─ 아키텍처 리뷰 (무료)  → Task(subagent_type="cco-architect-review")
 └─ 범용 작업             → Task(subagent_type="general-purpose")
 
 LOW-COST (Claude Code Task tool):
@@ -483,7 +491,7 @@ PAID (MCP external APIs):
 2. `scout`(FREE)로 충분한지 먼저 확인하고, 외부 리서치는 `index`(LOW-COST) 사용
 3. 외부 모델 기능이 필요할 때만 MCP 에이전트 사용
 4. 병렬 코딩은 네이티브 코딩 에이전트에 위임 - 무료이며 코드 작성 가능
-5. `docs-architect`는 `quill`의, `architect-review`는 `arch`의 무료 대안
+5. `cco-docs-architect`는 `quill`의, `cco-architect-review`는 `arch`의 네이티브 대안
 6. 품질 우선 원칙: 품질 향상 근거가 있을 때만 MCP 추가 사용
 7. 소프트 가드 목표: 요청당 MCP <= 2회 (설계 1 + 리뷰 1)
 8. MCP가 2회를 넘으면 초과 사유와 기대 품질 이득을 최종 보고에 명시
@@ -609,7 +617,7 @@ get_context(key, scope?)
 ├─ Research?     → index 실행 (저렴)
 ├─ Design?       → arch 상담
 ├─ UI/Visual?    → canvas 위임
-├─ Documentation? → docs-architect 우선, 필요 시 quill fallback
+├─ Documentation? → cco-docs-architect 우선, 필요 시 quill fallback
 ├─ Implementation? → 코딩 에이전트 (frontend/backend/database/cloud) - FREE
 ├─ Complex?      → 다중 에이전트 병렬
 └─ Ambiguous?    → 질문 1개
@@ -618,12 +626,12 @@ get_context(key, scope?)
 ├─ Claude Code Task tool - MIXED COST
 │   ├─ scout              → Task(subagent_type="scout")
 │   ├─ index              → Task(subagent_type="index") (LOW-COST)
-│   ├─ frontend-developer → Task(subagent_type="frontend-developer")
-│   ├─ backend-architect  → Task(subagent_type="backend-architect")
-│   ├─ database-architect → Task(subagent_type="database-architect")
-│   ├─ cloud-architect    → Task(subagent_type="cloud-architect")
-│   ├─ docs-architect     → Task(subagent_type="docs-architect")
-│   ├─ architect-review   → Task(subagent_type="architect-review")
+│   ├─ cco-frontend-developer → Task(subagent_type="cco-frontend-developer")
+│   ├─ cco-backend-architect  → Task(subagent_type="cco-backend-architect")
+│   ├─ cco-database-architect → Task(subagent_type="cco-database-architect")
+│   ├─ cco-cloud-architect    → Task(subagent_type="cco-cloud-architect")
+│   ├─ cco-docs-architect     → Task(subagent_type="cco-docs-architect")
+│   ├─ cco-architect-review   → Task(subagent_type="cco-architect-review")
 │   └─ general-purpose    → Task(subagent_type="general-purpose")
 └─ MCP agents (background_task) - PAID
     ├─ arch   → GPT-5.2

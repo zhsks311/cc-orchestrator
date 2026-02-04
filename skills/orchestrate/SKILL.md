@@ -71,12 +71,12 @@ User request received
 | Grep, Glob, Read | FREE | Clear scope, simple search |
 | `scout` agent | FREE | Codebase exploration (Task tool) |
 | `index` agent | LOW | External docs, API research (Task tool) |
-| `frontend-developer` | FREE | Frontend implementation (React, CSS, layouts) (Task tool) |
-| `backend-architect` | FREE | Backend implementation (APIs, services) (Task tool) |
-| `database-architect` | FREE | DB schema, migrations (Task tool) |
-| `cloud-architect` | FREE | Infrastructure, deployment configs (Task tool) |
-| `docs-architect` | FREE | Technical docs from code (quill free alternative) (Task tool) |
-| `architect-review` | FREE | Architecture review (arch free alternative) (Task tool) |
+| `cco-frontend-developer` | FREE | Frontend implementation (React, CSS, layouts) (Task tool) |
+| `cco-backend-architect` | FREE | Backend implementation (APIs, services) (Task tool) |
+| `cco-database-architect` | FREE | DB schema, migrations (Task tool) |
+| `cco-cloud-architect` | FREE | Infrastructure, deployment configs (Task tool) |
+| `cco-docs-architect` | FREE | Technical docs from code (quill native alternative) (Task tool) |
+| `cco-architect-review` | FREE | Architecture review (arch native alternative) (Task tool) |
 | `general-purpose` | FREE | Any coding task, full tool access (Task tool) |
 | `canvas` | MODERATE | UI/UX, styling (Gemini 3) |
 | `quill` | MODERATE | Technical documentation (Gemini 3) |
@@ -98,28 +98,28 @@ User request received
 │ CODING AGENTS (Task tool) - FREE                            │
 │   Can Edit/Write/Bash - actual code modification capable    │
 │                                                             │
-│   frontend-developer                                        │
-│     → Task(subagent_type="frontend-developer", prompt="...") │
+│   cco-frontend-developer                                        │
+│     → Task(subagent_type="cco-frontend-developer", prompt="...") │
 │       React, Next.js, CSS, responsive layouts, components   │
 │                                                             │
-│   backend-architect                                         │
-│     → Task(subagent_type="backend-architect", prompt="...")  │
+│   cco-backend-architect                                         │
+│     → Task(subagent_type="cco-backend-architect", prompt="...")  │
 │       API design, microservices, server logic               │
 │                                                             │
-│   database-architect                                        │
-│     → Task(subagent_type="database-architect", prompt="...") │
+│   cco-database-architect                                        │
+│     → Task(subagent_type="cco-database-architect", prompt="...") │
 │       Schema modeling, migrations, query optimization       │
 │                                                             │
-│   cloud-architect                                           │
-│     → Task(subagent_type="cloud-architect", prompt="...")    │
+│   cco-cloud-architect                                           │
+│     → Task(subagent_type="cco-cloud-architect", prompt="...")    │
 │       AWS/Azure/GCP, IaC, deployment configs                │
 │                                                             │
-│   docs-architect                                            │
-│     → Task(subagent_type="docs-architect", prompt="...")     │
+│   cco-docs-architect                                            │
+│     → Task(subagent_type="cco-docs-architect", prompt="...")     │
 │       Technical docs from codebase (free quill alternative) │
 │                                                             │
-│   architect-review                                          │
-│     → Task(subagent_type="architect-review", prompt="...")   │
+│   cco-architect-review                                          │
+│     → Task(subagent_type="cco-architect-review", prompt="...")   │
 │       Architecture review, clean arch (free arch alternative)│
 │                                                             │
 │   general-purpose                                           │
@@ -208,12 +208,12 @@ background_cancel(all=true)  // Cancel all background tasks
 
 | Agent | Invocation | Purpose | Triggers |
 |-------|------------|---------|----------|
-| `frontend-developer` | `Task(subagent_type="frontend-developer")` | React, Next.js, CSS, responsive layouts | "build UI", "create component", "style", "page layout" |
-| `backend-architect` | `Task(subagent_type="backend-architect")` | API design, microservices, server logic | "create API", "endpoint", "service layer", "middleware" |
-| `database-architect` | `Task(subagent_type="database-architect")` | Schema modeling, migrations, queries | "schema", "migration", "database", "model" |
-| `cloud-architect` | `Task(subagent_type="cloud-architect")` | AWS/Azure/GCP, IaC, deployment | "deploy", "infrastructure", "CI/CD", "Docker" |
-| `docs-architect` | `Task(subagent_type="docs-architect")` | Technical docs from code (free quill alternative) | "document", "guide", "technical docs" |
-| `architect-review` | `Task(subagent_type="architect-review")` | Architecture review (free arch alternative) | "review architecture", "design review", "clean arch" |
+| `cco-frontend-developer` | `Task(subagent_type="cco-frontend-developer")` | React, Next.js, CSS, responsive layouts | "build UI", "create component", "style", "page layout" |
+| `cco-backend-architect` | `Task(subagent_type="cco-backend-architect")` | API design, microservices, server logic | "create API", "endpoint", "service layer", "middleware" |
+| `cco-database-architect` | `Task(subagent_type="cco-database-architect")` | Schema modeling, migrations, queries | "schema", "migration", "database", "model" |
+| `cco-cloud-architect` | `Task(subagent_type="cco-cloud-architect")` | AWS/Azure/GCP, IaC, deployment | "deploy", "infrastructure", "CI/CD", "Docker" |
+| `cco-docs-architect` | `Task(subagent_type="cco-docs-architect")` | Technical docs from code (free quill alternative) | "document", "guide", "technical docs" |
+| `cco-architect-review` | `Task(subagent_type="cco-architect-review")` | Architecture review (free arch alternative) | "review architecture", "design review", "clean arch" |
 | `general-purpose` | `Task(subagent_type="general-purpose")` | Any coding task, full tool access | Catch-all for implementation tasks |
 
 **MCP Agents (background_task) - PAID:**
@@ -234,14 +234,14 @@ background_cancel(all=true)  // Cancel all background tasks
 | Frontend UI/UX | `canvas` (MCP) | style, color, animation, layout, responsive |
 | Architecture | `arch` (MCP) | design, structure, pattern selection, tradeoffs |
 | Code Review | `arch` (MCP) | review, inspect, improvements |
-| Documentation | `docs-architect` (native) first, `quill` (MCP) fallback | README, docs, guide, API docs |
+| Documentation | `cco-docs-architect` (native) first, `quill` (MCP) fallback | README, docs, guide, API docs |
 | Image/PDF | `lens` (MCP) | screenshot, image, PDF, diagram |
-| Frontend coding | `frontend-developer` (native) | build, create component, React, page, layout |
-| Backend coding | `backend-architect` (native) | API, endpoint, service, server, middleware |
-| Database work | `database-architect` (native) | schema, migration, model, query, database |
-| Infrastructure | `cloud-architect` (native) | deploy, Docker, CI/CD, infra, cloud |
-| Technical docs (free) | `docs-architect` (native) | document, guide (cost saving over quill) |
-| Architecture review (free) | `architect-review` (native) | review, inspect (cost saving over arch) |
+| Frontend coding | `cco-frontend-developer` (native) | build, create component, React, page, layout |
+| Backend coding | `cco-backend-architect` (native) | API, endpoint, service, server, middleware |
+| Database work | `cco-database-architect` (native) | schema, migration, model, query, database |
+| Infrastructure | `cco-cloud-architect` (native) | deploy, Docker, CI/CD, infra, cloud |
+| Technical docs (free) | `cco-docs-architect` (native) | document, guide (cost saving over quill) |
+| Architecture review (free) | `cco-architect-review` (native) | review, inspect (cost saving over arch) |
 | General coding | `general-purpose` (native) | implement, code, build (catch-all) |
 
 ### Frontend Delegation Gate (BLOCKING)
@@ -269,11 +269,11 @@ animation, transition, hover, responsive, CSS
 - MCP agents are quality boosters (design/review/visual/document polish), not the default path.
 
 **Routing defaults:**
-- Implementation-heavy (multi-file edits): `frontend-developer`, `backend-architect`, `database-architect`, `cloud-architect`, `general-purpose`
+- Implementation-heavy (multi-file edits): `cco-frontend-developer`, `cco-backend-architect`, `cco-database-architect`, `cco-cloud-architect`, `general-purpose`
 - Architecture decisions/tradeoffs: `arch` allowed
 - Visual/UI quality validation: `canvas` allowed
-- Documentation quality: `docs-architect` first, `quill` fallback only when quality requires it
-- Final quality review: exactly one of `architect-review` or `arch`
+- Documentation quality: `cco-docs-architect` first, `quill` fallback only when quality requires it
+- Final quality review: exactly one of `cco-architect-review` or `arch`
 
 **MCP soft guard:**
 - Recommended MCP usage: up to 2 calls per request (`design` 1 + `review` 1)
@@ -294,7 +294,7 @@ animation, transition, hover, responsive, CSS
 ## ROUTING_RULES
 - Implementation-heavy tasks → native coding agents
 - Design/review/visual quality tasks → MCP allowed
-- Final quality review → `architect-review` or `arch` (exactly one)
+- Final quality review → `cco-architect-review` or `arch` (exactly one)
 
 ## TASK
 [Atomic goal - single action only]
@@ -386,11 +386,11 @@ animation, transition, hover, responsive, CSS
 ```
 1. Task(subagent_type="scout", prompt="Analyze codebase structure")     // FREE
 2. background_task(arch, "Design implementation plan...")                // GPT-5.2
-   OR Task(subagent_type="architect-review", prompt="Design plan...")    // FREE alternative
+   OR Task(subagent_type="cco-architect-review", prompt="Design plan...")    // FREE alternative
 3. Collect design via background_output(task_id, block=true)
 4. Parallel coding delegation (single message, multiple Task calls):
-   Task(subagent_type="frontend-developer", prompt="[design context] Implement UI...")
-   Task(subagent_type="backend-architect", prompt="[design context] Implement API...")
+   Task(subagent_type="cco-frontend-developer", prompt="[design context] Implement UI...")
+   Task(subagent_type="cco-backend-architect", prompt="[design context] Implement API...")
    // Each agent has Read/Grep/Glob + Edit/Write/Bash access
 5. Collect all results
 6. Verify integration, fix conflicts if any
@@ -413,12 +413,12 @@ Include design output in each worker prompt using delegation structure:
 
 **File Scope Assignment (prevent conflicts):**
 ```
-├─ frontend-developer → src/components/, src/pages/, src/styles/
-├─ backend-architect  → src/api/, src/services/, src/middleware/
-├─ database-architect → src/models/, src/migrations/, prisma/
-├─ cloud-architect    → infra/, docker/, .github/workflows/
-├─ docs-architect     → docs/
-└─ architect-review   → Analysis only (no file modifications)
+├─ cco-frontend-developer → src/components/, src/pages/, src/styles/
+├─ cco-backend-architect  → src/api/, src/services/, src/middleware/
+├─ cco-database-architect → src/models/, src/migrations/, prisma/
+├─ cco-cloud-architect    → infra/, docker/, .github/workflows/
+├─ cco-docs-architect     → docs/
+└─ cco-architect-review   → Analysis only (no file modifications)
 ```
 
 **Execution Constraints (BLOCKING):**
@@ -427,7 +427,7 @@ Include design output in each worker prompt using delegation structure:
 - Include scope guardrails in `MUST_NOT_DO` (no out-of-scope edits, no duplicate ownership).
 - For each MCP call, log one-line reason + expected quality gain.
 
-### Pattern F-iso: Parallel Implementation with Git Worktree Isolation
+### Pattern F-iso: Parallel Implementation with Git Worktree Isolation (Experimental)
 
 Use when multiple agents need to modify overlapping files, or when safe rollback is required:
 
@@ -437,12 +437,12 @@ Use when multiple agents need to modify overlapping files, or when safe rollback
    git worktree add ../wt-frontend -b swarm/frontend
    git worktree add ../wt-backend -b swarm/backend
 5. Delegate with absolute paths (Task tool has no cwd parameter):
-   Task(subagent_type="frontend-developer", prompt="
+   Task(subagent_type="cco-frontend-developer", prompt="
      Working directory: {abs_path}/wt-frontend
      Use absolute paths based on {abs_path}/wt-frontend for all file ops.
      Prefix all Bash commands with: cd {abs_path}/wt-frontend &&
      [design context]...")
-   Task(subagent_type="backend-architect", prompt="
+   Task(subagent_type="cco-backend-architect", prompt="
      Working directory: {abs_path}/wt-backend
      Use absolute paths based on {abs_path}/wt-backend for all file ops.
      Prefix all Bash commands with: cd {abs_path}/wt-backend &&
@@ -469,12 +469,12 @@ Use when multiple agents need to modify overlapping files, or when safe rollback
 FREE (Claude Code Task tool):
 ├─ Simple search          → Grep, Glob, Read (direct tools)
 ├─ Codebase exploration   → Task(subagent_type="scout")
-├─ Frontend coding        → Task(subagent_type="frontend-developer")
-├─ Backend coding         → Task(subagent_type="backend-architect")
-├─ Database work          → Task(subagent_type="database-architect")
-├─ Infrastructure         → Task(subagent_type="cloud-architect")
-├─ Technical docs (free)  → Task(subagent_type="docs-architect")
-├─ Architecture review    → Task(subagent_type="architect-review")
+├─ Frontend coding        → Task(subagent_type="cco-frontend-developer")
+├─ Backend coding         → Task(subagent_type="cco-backend-architect")
+├─ Database work          → Task(subagent_type="cco-database-architect")
+├─ Infrastructure         → Task(subagent_type="cco-cloud-architect")
+├─ Technical docs (free)  → Task(subagent_type="cco-docs-architect")
+├─ Architecture review    → Task(subagent_type="cco-architect-review")
 └─ General tasks          → Task(subagent_type="general-purpose")
 
 LOW-COST (Claude Code Task tool):
@@ -493,7 +493,7 @@ PAID (MCP external APIs):
 3. Only use MCP agents for external model capabilities (GPT, Gemini)
 4. Parallel execution for time optimization
 5. Delegate parallel coding to native coding agents - they are FREE and can write code
-6. `docs-architect` and `architect-review` are free alternatives to `quill` and `arch`
+6. `cco-docs-architect` and `cco-architect-review` are native alternatives to `quill` and `arch`
 7. Quality first: use MCP only when it materially increases output quality
 8. Soft guard target: MCP calls <= 2 per request (design 1 + review 1)
 9. If MCP > 2, include explicit reason and expected quality gain in the final report
@@ -620,7 +620,7 @@ User request: "$ARGUMENTS"
 ├─ External docs?   → Task(subagent_type="index") - LOW-COST
 ├─ Design?          → background_task(agent="arch") - PAID
 ├─ UI/Visual?       → background_task(agent="canvas") - PAID
-├─ Documentation?   → Task(subagent_type="docs-architect") first, quill fallback
+├─ Documentation?   → Task(subagent_type="cco-docs-architect") first, quill fallback
 ├─ Image/PDF?       → background_task(agent="lens") - PAID
 ├─ Implementation?  → Coding agents (frontend/backend/database/cloud) - FREE
 ├─ Complex?         → Multi-agent parallel
@@ -630,12 +630,12 @@ User request: "$ARGUMENTS"
 ├─ Claude Code Task tool - MIXED COST
 │   ├─ scout              → Task(subagent_type="scout")
 │   ├─ index              → Task(subagent_type="index") (LOW-COST)
-│   ├─ frontend-developer → Task(subagent_type="frontend-developer")
-│   ├─ backend-architect  → Task(subagent_type="backend-architect")
-│   ├─ database-architect → Task(subagent_type="database-architect")
-│   ├─ cloud-architect    → Task(subagent_type="cloud-architect")
-│   ├─ docs-architect     → Task(subagent_type="docs-architect")
-│   ├─ architect-review   → Task(subagent_type="architect-review")
+│   ├─ cco-frontend-developer → Task(subagent_type="cco-frontend-developer")
+│   ├─ cco-backend-architect  → Task(subagent_type="cco-backend-architect")
+│   ├─ cco-database-architect → Task(subagent_type="cco-database-architect")
+│   ├─ cco-cloud-architect    → Task(subagent_type="cco-cloud-architect")
+│   ├─ cco-docs-architect     → Task(subagent_type="cco-docs-architect")
+│   ├─ cco-architect-review   → Task(subagent_type="cco-architect-review")
 │   └─ general-purpose    → Task(subagent_type="general-purpose")
 └─ MCP agents (background_task) - PAID
     ├─ arch   → GPT-5.2

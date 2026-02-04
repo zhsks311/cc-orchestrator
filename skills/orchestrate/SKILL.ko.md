@@ -373,7 +373,7 @@ animation, transition, hover, responsive, CSS
 
 ### 패턴 E: 복잡한 구현
 
-```
+```text
 1. arch로 설계 방향 확정
 2. index으로 사례 조사 (병렬)
 3. 구현 진행
@@ -382,7 +382,7 @@ animation, transition, hover, responsive, CSS
 
 ### 패턴 F: 병렬 구현
 
-```
+```text
 1. Task(subagent_type="scout", prompt="코드베이스 구조 분석")        // FREE
 2. background_task(arch, "구현 계획 설계...")                        // GPT-5.2
    또는 Task(subagent_type="cco-architect-review", prompt="계획 설계...") // FREE 대안
@@ -396,7 +396,7 @@ animation, transition, hover, responsive, CSS
 ```
 
 **컨텍스트 전달 (CRITICAL):**
-```
+```markdown
 위임 프롬프트 구조를 사용하여 설계 출력을 각 워커에 포함:
 
 ## CONTEXT
@@ -411,7 +411,7 @@ animation, transition, hover, responsive, CSS
 ```
 
 **파일 범위 지정 (충돌 방지):**
-```
+```text
 ├─ cco-frontend-developer → src/components/, src/pages/, src/styles/
 ├─ cco-backend-architect  → src/api/, src/services/, src/middleware/
 ├─ cco-database-architect → src/models/, src/migrations/, prisma/
@@ -430,7 +430,7 @@ animation, transition, hover, responsive, CSS
 
 여러 에이전트가 같은 파일을 수정해야 하거나 안전한 롤백이 필요할 때:
 
-```
+```text
 1-3. 패턴 F와 동일
 4. Git worktree 생성 (메인 세션이 Bash로 실행):
    git worktree add ../wt-frontend -b swarm/frontend

@@ -11,7 +11,7 @@ Current limitations of the orchestrate skill:
 - Even after arch completes a design, **actual coding is done sequentially** by the main Claude Code session
 - No pattern is defined for working on multiple areas (frontend/backend/DB) simultaneously
 
-Claude Code's Task tool already has built-in **coding-capable subagent_types** like `cco-frontend-developer`, `cco-backend-architect`, etc., but they are not mentioned in the orchestrate skill and thus go unused.
+This project defines **coding-capable subagent_types** like `cco-frontend-developer`, `cco-backend-architect`, etc. They are installed to `~/.claude/agents/` via `npm run setup`, but are not mentioned in the orchestrate skill and thus go unused.
 
 This change enables:
 1. **Parallel coding**: After arch designs, frontend/backend/DB agents write code simultaneously

@@ -240,8 +240,8 @@ background_cancel(all=true)  // Cancel all background tasks
 | Backend coding | `cco-backend-architect` (native) | API, endpoint, service, server, middleware |
 | Database work | `cco-database-architect` (native) | schema, migration, model, query, database |
 | Infrastructure | `cco-cloud-architect` (native) | deploy, Docker, CI/CD, infra, cloud |
-| Technical docs (free) | `cco-docs-architect` (native) | document, guide (cost saving over quill) |
-| Architecture review (free) | `cco-architect-review` (native) | review, inspect (cost saving over arch) |
+| Technical docs (free) | `cco-docs-architect` (native) | document, guide (cost-saving over quill) |
+| Architecture review (free) | `cco-architect-review` (native) | review, inspect (cost-saving over arch) |
 | General coding | `general-purpose` (native) | implement, code, build (catch-all) |
 
 ### Frontend Delegation Gate (BLOCKING)
@@ -374,7 +374,7 @@ animation, transition, hover, responsive, CSS
 
 ### Pattern E: Complex Implementation
 
-```
+```text
 1. Task(subagent_type="scout", prompt="Understand patterns") // FREE
 2. Confirm design direction with arch (MCP)
 3. Proceed with implementation
@@ -383,7 +383,7 @@ animation, transition, hover, responsive, CSS
 
 ### Pattern F: Parallel Implementation
 
-```
+```text
 1. Task(subagent_type="scout", prompt="Analyze codebase structure")     // FREE
 2. background_task(arch, "Design implementation plan...")                // GPT-5.2
    OR Task(subagent_type="cco-architect-review", prompt="Design plan...")    // FREE alternative
@@ -397,7 +397,7 @@ animation, transition, hover, responsive, CSS
 ```
 
 **Context Passing (CRITICAL):**
-```
+```markdown
 Include design output in each worker prompt using delegation structure:
 
 ## CONTEXT
@@ -412,7 +412,7 @@ Include design output in each worker prompt using delegation structure:
 ```
 
 **File Scope Assignment (prevent conflicts):**
-```
+```text
 ├─ cco-frontend-developer → src/components/, src/pages/, src/styles/
 ├─ cco-backend-architect  → src/api/, src/services/, src/middleware/
 ├─ cco-database-architect → src/models/, src/migrations/, prisma/
@@ -431,7 +431,7 @@ Include design output in each worker prompt using delegation structure:
 
 Use when multiple agents need to modify overlapping files, or when safe rollback is required:
 
-```
+```text
 1-3. Same as Pattern F
 4. Create git worktrees (main session runs via Bash):
    git worktree add ../wt-frontend -b swarm/frontend

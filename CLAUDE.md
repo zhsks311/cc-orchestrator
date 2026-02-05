@@ -10,6 +10,22 @@ MCP server for multi-LLM orchestration in Claude Code.
 
 Exception: Language-specific README files (README.ko.md, etc.)
 
+### Code Block Rule
+
+**Always add language specifier to code blocks.**
+
+```markdown
+<!-- ✗ Bad -->
+```
+const x = 1;
+```
+
+<!-- ✓ Good -->
+```typescript
+const x = 1;
+```
+```
+
 ### MCP Protocol
 
 ```

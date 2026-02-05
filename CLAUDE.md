@@ -191,6 +191,53 @@ Setup script copies/links project files to developer environment (`~/.claude/`).
 | `skills/` | `~/.claude/skills/` | Skill definitions |
 | `hooks/config.json` | `~/.claude/settings.json` (merge) | Hook settings |
 
+## Package Structure
+
+This project has two package.json files with different purposes:
+
+```
+cc-orchestrator/
+├── package.json              ← "cc-orchestrator-server" (private, not published)
+├── src/                      ← MCP server code
+├── hooks/                    ← Claude Code hooks
+├── skills/                   ← Claude Code skills
+├── agents/                   ← Claude Code agents
+├── scripts/setup.mjs         ← Installs components to ~/.claude/
+└── installer/
+    ├── package.json          ← "cc-orchestrator" (published to npm)
+    └── index.js              ← CLI that clones repo and runs setup
+```
+
+### Why Two Packages?
+
+| Package | npm Name | Published | Purpose |
+|---------|----------|-----------|---------|
+| Root | `cc-orchestrator-server` | No (`private: true`) | MCP server + hooks/skills/agents |
+| Installer | `cc-orchestrator` | Yes | CLI for `npx cc-orchestrator@latest` |
+
+### Installation Flow
+
+```
+npx cc-orchestrator@latest
+    ↓
+installer/index.js runs
+    ↓
+git clone GitHub repo → ~/.cc-orchestrator/
+    ↓
+npm install && npm run setup
+    ↓
+Components installed to ~/.claude/
+```
+
+The installer uses **git clone** (not npm install) because:
+- Hooks, skills, agents need to be copied to `~/.claude/`
+- MCP server runs from `~/.cc-orchestrator/`
+- Simple npm package can't handle this setup
+
+### Version Sync
+
+Both package.json files must have the **same version**. GitHub Actions handles this automatically during publish.
+
 ## npm Publishing
 
 ```bash

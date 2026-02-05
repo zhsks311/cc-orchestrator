@@ -543,23 +543,25 @@ function printVerificationResults(results) {
   return allOk;
 }
 
-// Get the most recent modification time in a directory (recursive)
-function getLatestMtime(dir, extensions = ['.ts', '.js']) {
-  let latest = 0;
-  if (!fs.existsSync(dir)) return latest;
+// Check if any file in a directory is newer than a given timestamp (recursive, short-circuits on first match)
+function hasNewerFile(dir, referenceMtime, extensions = ['.ts']) {
+  if (!fs.existsSync(dir)) return false;
 
   const entries = fs.readdirSync(dir, { withFileTypes: true });
   for (const entry of entries) {
     const fullPath = path.join(dir, entry.name);
     if (entry.isDirectory() && !entry.name.startsWith('.') && entry.name !== 'node_modules') {
-      const subLatest = getLatestMtime(fullPath, extensions);
-      if (subLatest > latest) latest = subLatest;
+      if (hasNewerFile(fullPath, referenceMtime, extensions)) {
+        return true;
+      }
     } else if (entry.isFile() && extensions.some(ext => entry.name.endsWith(ext))) {
       const stat = fs.statSync(fullPath);
-      if (stat.mtimeMs > latest) latest = stat.mtimeMs;
+      if (stat.mtimeMs > referenceMtime) {
+        return true;
+      }
     }
   }
-  return latest;
+  return false;
 }
 
 // Check if dist needs rebuild (src is newer than dist)
@@ -567,11 +569,10 @@ function checkNeedsRebuild() {
   const distIndexPath = path.join(rootDir, 'dist', 'index.js');
   if (!fs.existsSync(distIndexPath)) return true;
 
-  const srcDir = path.join(rootDir, 'src');
-  const srcLatest = getLatestMtime(srcDir, ['.ts']);
   const distMtime = fs.statSync(distIndexPath).mtimeMs;
+  const srcDir = path.join(rootDir, 'src');
 
-  return srcLatest > distMtime;
+  return hasNewerFile(srcDir, distMtime, ['.ts']);
 }
 
 // Check installation status (manifest-based + file verification)

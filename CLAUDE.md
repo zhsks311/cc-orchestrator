@@ -193,7 +193,7 @@ Setup script copies/links project files to developer environment (`~/.claude/`).
 
 ### 3. Development Cycle
 
-```
+```text
 [Edit in project] → [npm run setup] → [Test in Claude Code] → [Commit]
 ```
 
@@ -211,7 +211,7 @@ Setup script copies/links project files to developer environment (`~/.claude/`).
 
 This project has two package.json files with different purposes:
 
-```
+```text
 cc-orchestrator/
 ├── package.json              ← "cc-orchestrator-server" (private, not published)
 ├── src/                      ← MCP server code
@@ -233,7 +233,7 @@ cc-orchestrator/
 
 ### Installation Flow
 
-```
+```text
 npx cc-orchestrator@latest
     ↓
 installer/index.js runs

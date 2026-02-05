@@ -186,6 +186,66 @@ background_task(agent="index", ...)  // ERROR - Task tool 사용
 - [ ] 빌드 통과 (있으면)
 - [ ] 사용자 요청 완전히 충족
 
+### 3A: 브라우저 QA (프론트엔드 작업 시만)
+
+**실행 시점:** 프론트엔드/UI 변경 후 (컴포넌트, 페이지, 스타일, 레이아웃)
+
+**사전 조건:**
+- Claude in Chrome 확장 프로그램 활성화
+- 개발 서버 실행 중 (자동 감지 포트: 3000, 5173, 8080 등)
+
+**검증 단계:**
+
+```
+1. 브라우저 탭 가져오기
+   mcp__claude-in-chrome__tabs_context_mcp(createIfEmpty: true)
+
+2. 개발 서버로 이동
+   mcp__claude-in-chrome__navigate(url: "http://localhost:PORT", tabId)
+
+3. 페이지 로드 대기
+   mcp__claude-in-chrome__computer(action: "wait", duration: 3, tabId)
+
+4. 콘솔 에러 확인
+   mcp__claude-in-chrome__read_console_messages(
+     tabId,
+     pattern: "error|warning|hydration",
+     onlyErrors: false
+   )
+
+5. 네트워크 에러 확인
+   mcp__claude-in-chrome__read_network_requests(
+     tabId,
+     urlPattern: ""  // 모든 요청
+   )
+   → status >= 400 필터링
+
+6. 시각적 확인을 위한 스크린샷
+   mcp__claude-in-chrome__computer(action: "screenshot", tabId)
+```
+
+**에러 감지 체크리스트:**
+- [ ] 콘솔 에러 없음 (특히 Hydration 에러)
+- [ ] 네트워크 실패 없음 (4xx/5xx 응답)
+- [ ] Next.js 개발 오버레이 이슈 없음 (좌측 하단 에러 배지 확인)
+- [ ] 페이지 정상 렌더링 (시각적 확인)
+
+**감지할 주요 이슈:**
+
+| 이슈 | 감지 방법 | 패턴 |
+|------|-----------|------|
+| Hydration 불일치 | Console | `hydration|mismatch|server.*client` |
+| React 에러 | Console | `error|warning` |
+| API 실패 | Network | `status >= 400` |
+| 리소스 누락 | Network | `404` |
+| Next.js 오버레이 | Screenshot | 좌측 하단 빨간 배지 |
+
+**에러 발견 시:**
+1. 검증 중단
+2. 위치와 함께 구체적 에러 보고
+3. 진행 전 수정
+4. 브라우저 QA 재실행
+
 **정리:**
 ```
 background_cancel(all=true)  // 모든 백그라운드 작업 취소

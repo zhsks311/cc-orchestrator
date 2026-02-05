@@ -186,6 +186,66 @@ background_task(agent="index", ...)  // ERROR - use Task tool instead
 - [ ] Build passes (if exists)
 - [ ] User request fully satisfied
 
+### 3A: Browser QA (Frontend work only)
+
+**When to run:** After any frontend/UI changes (components, pages, styles, layouts)
+
+**Prerequisites:**
+- Claude in Chrome extension active
+- Dev server running (auto-detect ports: 3000, 5173, 8080, etc.)
+
+**Verification Steps:**
+
+```
+1. Get browser tab
+   mcp__claude-in-chrome__tabs_context_mcp(createIfEmpty: true)
+
+2. Navigate to dev server
+   mcp__claude-in-chrome__navigate(url: "http://localhost:PORT", tabId)
+
+3. Wait for page load
+   mcp__claude-in-chrome__computer(action: "wait", duration: 3, tabId)
+
+4. Check console errors
+   mcp__claude-in-chrome__read_console_messages(
+     tabId,
+     pattern: "error|warning|hydration",
+     onlyErrors: false
+   )
+
+5. Check network errors
+   mcp__claude-in-chrome__read_network_requests(
+     tabId,
+     urlPattern: ""  // all requests
+   )
+   → Filter for status >= 400
+
+6. Take screenshot for visual check
+   mcp__claude-in-chrome__computer(action: "screenshot", tabId)
+```
+
+**Error Detection Checklist:**
+- [ ] No console errors (especially Hydration errors)
+- [ ] No network failures (4xx/5xx responses)
+- [ ] No Next.js dev overlay issues (check for error badge in bottom-left)
+- [ ] Page renders correctly (visual verification)
+
+**Common Issues to Catch:**
+
+| Issue | Detection Method | Pattern |
+|-------|------------------|---------|
+| Hydration mismatch | Console | `hydration|mismatch|server.*client` |
+| React errors | Console | `error|warning` |
+| API failures | Network | `status >= 400` |
+| Missing resources | Network | `404` |
+| Next.js overlay | Screenshot | Red badge in bottom-left corner |
+
+**On Error Found:**
+1. Stop verification
+2. Report specific error with location
+3. Fix before proceeding
+4. Re-run browser QA
+
 **Cleanup:**
 ```
 background_cancel(all=true)  // Cancel all background tasks

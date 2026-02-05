@@ -543,15 +543,50 @@ function printVerificationResults(results) {
   return allOk;
 }
 
+// Get the most recent modification time in a directory (recursive)
+function getLatestMtime(dir, extensions = ['.ts', '.js']) {
+  let latest = 0;
+  if (!fs.existsSync(dir)) return latest;
+
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory() && !entry.name.startsWith('.') && entry.name !== 'node_modules') {
+      const subLatest = getLatestMtime(fullPath, extensions);
+      if (subLatest > latest) latest = subLatest;
+    } else if (entry.isFile() && extensions.some(ext => entry.name.endsWith(ext))) {
+      const stat = fs.statSync(fullPath);
+      if (stat.mtimeMs > latest) latest = stat.mtimeMs;
+    }
+  }
+  return latest;
+}
+
+// Check if dist needs rebuild (src is newer than dist)
+function checkNeedsRebuild() {
+  const distIndexPath = path.join(rootDir, 'dist', 'index.js');
+  if (!fs.existsSync(distIndexPath)) return true;
+
+  const srcDir = path.join(rootDir, 'src');
+  const srcLatest = getLatestMtime(srcDir, ['.ts']);
+  const distMtime = fs.statSync(distIndexPath).mtimeMs;
+
+  return srcLatest > distMtime;
+}
+
 // Check installation status (manifest-based + file verification)
 function checkStatus() {
   const hooksManifest = readManifest(hooksManifestPath);
   const skillsManifest = readManifest(skillsManifestPath);
   const agentsManifest = readManifest(agentsManifestPath);
 
+  const distExists = fs.existsSync(path.join(rootDir, 'dist', 'index.js'));
+  const needsRebuild = checkNeedsRebuild();
+
   const status = {
     nodeModules: fs.existsSync(path.join(rootDir, 'node_modules')),
-    dist: fs.existsSync(path.join(rootDir, 'dist', 'index.js')),
+    dist: distExists,
+    distNeedsRebuild: needsRebuild,
     hooks: {
       installed: hooksManifest?.name === 'cc-orchestrator',
       version: hooksManifest?.version || null,
@@ -631,7 +666,8 @@ async function main() {
   // Display status based on mode
   console.log('Current installation status:');
   console.log(`  node_modules:     ${status.nodeModules ? '✓' : '✗'}`);
-  console.log(`  Build (dist):     ${status.dist ? '✓' : '✗'}`);
+  const distStatus = !status.dist ? '✗' : status.distNeedsRebuild ? '⚠ rebuild needed (src updated)' : '✓';
+  console.log(`  Build (dist):     ${distStatus}`);
 
   // Hooks status with version info
   if (status.hooks.corrupted) {
@@ -678,7 +714,7 @@ async function main() {
 
   // Skip if already up-to-date and no corruption
   const hasCorruption = status.hooks.corrupted || status.skills.corrupted || status.agents.corrupted;
-  const needsBuild = !status.dist;
+  const needsBuild = !status.dist || status.distNeedsRebuild;
   if (installMode.mode === 'current' && !forceMode && !hasCorruption && !needsBuild) {
     console.log(`✅ CC Orchestrator v${CURRENT_VERSION} is already up to date.`);
     console.log('   To reinstall: npm run setup -- --force\n');
@@ -715,7 +751,7 @@ async function main() {
   }
 
   // Check if all components need installation
-  const allInstalled = status.nodeModules && status.dist &&
+  const allInstalled = status.nodeModules && status.dist && !status.distNeedsRebuild &&
                        status.hooks.installed && !status.hooks.needsUpdate &&
                        status.skills.installed && !status.skills.needsUpdate &&
                        status.agents.installed && !status.agents.needsUpdate &&
@@ -823,8 +859,9 @@ async function main() {
   }
 
   // 2. Build
-  if (!status.dist || forceMode) {
-    console.log('[2/8] Building (npm run build)...');
+  if (!status.dist || status.distNeedsRebuild || forceMode) {
+    const reason = !status.dist ? 'dist not found' : status.distNeedsRebuild ? 'src updated' : 'force mode';
+    console.log(`[2/8] Building (npm run build)... [${reason}]`);
     try {
       execSync('npm run build', { cwd: rootDir, stdio: 'inherit' });
       console.log('      ✓ Done');
@@ -834,7 +871,7 @@ async function main() {
       process.exit(1);
     }
   } else {
-    console.log('[2/8] Build: Already complete (skipped)');
+    console.log('[2/8] Build: Already up to date (skipped)');
   }
 
   // 3. Install Hooks

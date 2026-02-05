@@ -14,7 +14,7 @@ Exception: Language-specific README files (README.ko.md, etc.)
 
 **Always add language specifier to code blocks.**
 
-```markdown
+````markdown
 <!-- ✗ Bad -->
 ```
 const x = 1;
@@ -24,11 +24,11 @@ const x = 1;
 ```typescript
 const x = 1;
 ```
-```
+````
 
 ### MCP Protocol
 
-```
+```text
 stdout = MCP JSON-RPC only (never use console.log)
 stderr = logging only (use Logger class)
 ```

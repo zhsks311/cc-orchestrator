@@ -14,6 +14,7 @@ import {
   AgentRuntimeKind,
   DEFAULT_ADAPTER_CONFIGS,
 } from '../types/index.js';
+import { ConfigurationError } from '../types/errors.js';
 import { Logger } from './Logger.js';
 
 const CONFIG_DIR = '.cco';
@@ -102,10 +103,12 @@ export class ConfigLoader {
 
       if (parsed.defaults && typeof parsed.defaults === 'object') {
         config.defaults = {
-          primaryAdapter: String(parsed.defaults.primaryAdapter ?? 'codex'),
+          primaryAdapter: this.normalizeAdapterId(
+            String(parsed.defaults.primaryAdapter ?? 'codex')
+          ),
           fallbackAdapter:
             parsed.defaults.fallbackAdapter !== undefined
-              ? String(parsed.defaults.fallbackAdapter)
+              ? this.normalizeAdapterId(String(parsed.defaults.fallbackAdapter))
               : undefined,
         };
       }
@@ -139,8 +142,20 @@ export class ConfigLoader {
       this.logger.debug('Config loaded from file', { path: configPath });
       return config;
     } catch (error) {
-      this.logger.warn('Failed to load config file', { path: configPath, error });
-      return null;
+      if (error instanceof ConfigurationError) {
+        this.logger.error('Invalid config file', { path: configPath, error: error.toJSON() });
+        throw error;
+      }
+
+      if (error instanceof SyntaxError) {
+        throw new ConfigurationError(`Invalid JSON in config file: ${configPath}`);
+      }
+
+      if (error instanceof Error) {
+        throw new ConfigurationError(`Failed to load config file ${configPath}: ${error.message}`);
+      }
+
+      throw new ConfigurationError(`Failed to load config file ${configPath}`);
     }
   }
 
@@ -153,8 +168,8 @@ export class ConfigLoader {
 
     const config: Partial<CCOConfig> = {
       defaults: {
-        primaryAdapter: primaryAdapter ?? 'codex',
-        fallbackAdapter,
+        primaryAdapter: this.normalizeAdapterId(primaryAdapter ?? 'codex'),
+        fallbackAdapter: fallbackAdapter ? this.normalizeAdapterId(fallbackAdapter) : undefined,
       },
     };
 
@@ -174,7 +189,16 @@ export class ConfigLoader {
     }
 
     if (override.defaults) {
-      merged.defaults = { ...base.defaults, ...override.defaults };
+      merged.defaults = {
+        ...base.defaults,
+        ...override.defaults,
+        primaryAdapter: this.normalizeAdapterId(
+          override.defaults.primaryAdapter ?? base.defaults.primaryAdapter
+        ),
+        fallbackAdapter: override.defaults.fallbackAdapter
+          ? this.normalizeAdapterId(override.defaults.fallbackAdapter)
+          : base.defaults.fallbackAdapter,
+      };
     }
 
     if (override.debate) {
@@ -193,7 +217,14 @@ export class ConfigLoader {
     }
 
     if (override.adapters) {
-      merged.adapters = { ...base.adapters, ...override.adapters };
+      merged.adapters = { ...base.adapters };
+      for (const [key, value] of Object.entries(override.adapters)) {
+        const normalizedKey = this.normalizeAdapterKey(key);
+        merged.adapters[normalizedKey] = {
+          ...merged.adapters[normalizedKey],
+          ...value,
+        };
+      }
     }
 
     if (override.configPath) {
@@ -212,16 +243,34 @@ export class ConfigLoader {
       }
 
       const raw = value as Record<string, unknown>;
-      const normalizedId = this.normalizeAdapterId(String(raw.id ?? key));
-      const runtime = this.parseRuntime(raw.runtime);
+      const normalizedKey = this.normalizeAdapterKey(key);
+      const defaultAdapter = DEFAULT_ADAPTER_CONFIGS[normalizedKey];
+      const normalizedId = this.normalizeAdapterId(String(raw.id ?? defaultAdapter?.id ?? key));
+      const runtime =
+        raw.runtime !== undefined
+          ? this.parseRuntime(raw.runtime)
+          : (defaultAdapter?.runtime ??
+            (() => {
+              throw new ConfigurationError(`Adapter ${normalizedId} must declare a runtime`);
+            })());
 
-      parsedAdapters[key] = {
+      parsedAdapters[normalizedKey] = {
         id: normalizedId,
         runtime,
-        enabled: raw.enabled !== false,
-        command: String(raw.command ?? normalizedId),
-        args: Array.isArray(raw.args) ? raw.args.map((item) => String(item)) : undefined,
-        capabilities: this.parseCapabilities(raw.capabilities),
+        enabled:
+          raw.enabled !== undefined ? raw.enabled !== false : (defaultAdapter?.enabled ?? true),
+        command: String(raw.command ?? defaultAdapter?.command ?? normalizedId),
+        args: Array.isArray(raw.args)
+          ? raw.args.map((item) => String(item))
+          : defaultAdapter?.args
+            ? [...defaultAdapter.args]
+            : undefined,
+        capabilities:
+          raw.capabilities !== undefined
+            ? this.parseCapabilities(raw.capabilities)
+            : defaultAdapter?.capabilities
+              ? [...defaultAdapter.capabilities]
+              : [],
         env:
           raw.env && typeof raw.env === 'object'
             ? Object.fromEntries(
@@ -230,7 +279,9 @@ export class ConfigLoader {
                   String(envValue),
                 ])
               )
-            : undefined,
+            : defaultAdapter?.env
+              ? { ...defaultAdapter.env }
+              : undefined,
       };
     }
 
@@ -241,16 +292,16 @@ export class ConfigLoader {
     const normalized = String(value ?? '')
       .trim()
       .toLowerCase();
-    const runtimes = Object.values(AgentRuntimeKind);
-    if (runtimes.includes(normalized as AgentRuntimeKind)) {
-      return normalized as AgentRuntimeKind;
-    }
-
-    if (normalized === 'claude' || normalized === 'claude_code') {
+    const canonical = normalized.replace(/_/g, '-');
+    if (canonical === 'claude') {
       return AgentRuntimeKind.CLAUDE_CODE;
     }
+    const runtimes = Object.values(AgentRuntimeKind);
+    if (runtimes.includes(canonical as AgentRuntimeKind)) {
+      return canonical as AgentRuntimeKind;
+    }
 
-    return AgentRuntimeKind.CODEX;
+    throw new ConfigurationError(`Unknown adapter runtime: ${value}`);
   }
 
   private parseCapabilities(value: unknown): CapabilityKey[] {
@@ -259,9 +310,13 @@ export class ConfigLoader {
     }
 
     const capabilityValues = Object.values(CapabilityKey);
-    return value
-      .map((item) => String(item).trim().toLowerCase())
-      .filter((item): item is CapabilityKey => capabilityValues.includes(item as CapabilityKey));
+    return value.map((item) => {
+      const normalized = String(item).trim().toLowerCase().replace(/-/g, '_');
+      if (!capabilityValues.includes(normalized as CapabilityKey)) {
+        throw new ConfigurationError(`Unknown adapter capability: ${item}`);
+      }
+      return normalized as CapabilityKey;
+    });
   }
 
   private getConfigPath(): string {
@@ -362,6 +417,10 @@ export class ConfigLoader {
     return value.trim().toLowerCase().replace(/_/g, '-');
   }
 
+  private normalizeAdapterKey(value: string): string {
+    return this.normalizeAdapterId(value).replace(/-/g, '_');
+  }
+
   private parsePositiveInt(value: unknown, fallback: number): number {
     if (typeof value === 'number' && Number.isInteger(value) && value > 0) {
       return value;
@@ -386,16 +445,22 @@ export class ConfigLoader {
 
   private parseStances(value: unknown): DebateStance[] {
     if (!Array.isArray(value)) {
-      return [DebateStance.SKEPTIC, DebateStance.IMPLEMENTER, DebateStance.REVIEWER];
+      return this.getDefaultStances();
     }
 
     const stanceValues = Object.values(DebateStance);
-    const stances = value
-      .map((item) => String(item).trim().toLowerCase())
-      .filter((item): item is DebateStance => stanceValues.includes(item as DebateStance));
+    const stances = value.map((item) => {
+      const normalized = String(item).trim().toLowerCase();
+      if (!stanceValues.includes(normalized as DebateStance)) {
+        throw new ConfigurationError(`Unknown debate stance: ${item}`);
+      }
+      return normalized as DebateStance;
+    });
 
-    return stances.length > 0
-      ? stances
-      : [DebateStance.SKEPTIC, DebateStance.IMPLEMENTER, DebateStance.REVIEWER];
+    return stances.length > 0 ? stances : this.getDefaultStances();
+  }
+
+  private getDefaultStances(): DebateStance[] {
+    return [DebateStance.SKEPTIC, DebateStance.IMPLEMENTER, DebateStance.REVIEWER];
   }
 }

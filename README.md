@@ -85,11 +85,6 @@ The repository is in the middle of a runtime-first rewrite. The public direction
 
 The remaining parts of this README still describe the current implementation that is being replaced. They are kept temporarily so existing contributors can understand the code that is being migrated.
 
-cp -r skills/* ~/.claude/skills/
-
-# 7. Restart Claude Code and feel powerful
-```
-
 ---
 
 ## 🎮 Usage

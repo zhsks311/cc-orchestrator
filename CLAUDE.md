@@ -31,7 +31,7 @@ const x = 1;
 
 ### MCP Protocol
 
-```
+```text
 stdout = MCP JSON-RPC only (never use console.log)
 stderr = logging only (use Logger class)
 ```
@@ -170,7 +170,7 @@ import { Logger } from '../../infrastructure/Logger.js';
 
 ## Directory Structure
 
-```
+```text
 src/core/           # Pure business logic (no MCP dependency)
 src/server/         # MCP protocol handling
 src/types/          # Types + error definitions

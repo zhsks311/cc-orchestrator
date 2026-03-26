@@ -7,217 +7,84 @@
 
 > _"Why use one AI when you can summon an entire orchestra and make them fight over your code?"_
 
-**CC Orchestrator** transforms Claude Code into a maestro conducting a symphony of AI models. GPT-5.2 argues about architecture, Gemini obsesses over pixels, and Claude dives into documentation rabbit holes. All at the same time. Because waiting is for people who enjoy watching loading spinners.
+**CC Orchestrator** is a runtime-first orchestration engine for coding agent CLIs. A main coding agent installs it, discovers available sub-agent CLIs, and uses MCP tools to start sessions, relay context, run structured debate, and aggregate the result into a next action.
 
 ---
 
 ## 🎭 The Pitch
 
-Picture this: You need to build something complex. Traditionally, you'd ask one AI to be an architect, designer, researcher, and writer all at once. That's like asking your dentist to also fix your car.
+Picture this: you have a main coding agent that is good at steering a task, but you want it to consult and challenge other coding agents before it commits to a design or implementation path.
 
-**CC Orchestrator** says: _"What if we just... hired specialists?"_
+**CC Orchestrator** says: _"What if the main agent could spin up other agent CLIs, let them debate a plan, and keep a session graph of who said what?"_
 
 <p align="center">
   <img src="./assets/orchestrator-diagram.jpg" alt="CC Orchestrator Diagram" width="600">
 </p>
 
-Inspired by [Oh My OpenCode](https://github.com/code-yeongyu/oh-my-opencode). We stole the idea and made it work with Claude Code. Innovation!
+Inspired by [Oh My OpenCode](https://github.com/code-yeongyu/oh-my-opencode). The current rewrite keeps MCP as the first host integration, but the orchestration core itself is being rebuilt to stay independent from any single host.
 
 ---
 
 ## ✨ Features (The Good Stuff)
 
-### 🎯 Specialized Agents
+### 🎯 Main-Agent / Sub-Agent Sessions
 
-Each agent has exactly one job. They're very good at it. They will not shut up about it.
+The core unit is no longer "send a prompt to a model provider." It is "start a session on a coding agent CLI and keep talking to it."
 
-**🏠 Native Agents (FREE - Live in `.claude/agents/`):**
+- A main agent starts sub-agent sessions
+- Each session keeps its own transcript, artifacts, and status
+- Sessions can be revisited with follow-up messages
+- The orchestrator tracks session history instead of one-shot task output
 
-| Agent     | Model              | Personality                                                                                                 |
-| --------- | ------------------ | ----------------------------------------------------------------------------------------------------------- |
-| **Scout** | Haiku              | 🔍 The speedster. Finds files faster than you can say "where did I put that". 75% cheaper than alternatives |
-| **Index** | Sonnet + WebSearch | 📚 The librarian. Reads every doc, cites every source. Uses WebSearch so it's actually up to date           |
+### 🧠 Capability-First Routing
 
-**🌐 MCP Agents (External APIs):**
+The new runtime selects workers by capability instead of hard-coded personas.
 
-| Agent      | Model        | Personality                                                                                                                   |
-| ---------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------- |
-| **Arch**   | GPT-5.2      | 🧠 The overthinker. Will write 3 pages about why your variable name is "technically correct but philosophically questionable" |
-| **Canvas** | Gemini 3 Pro | 🎨 The artist. Believes every button deserves a 47ms cubic-bezier transition                                                  |
-| **Quill**  | Gemini 3 Pro | ✍️ The poet. Writes README files so beautiful they make developers cry                                                        |
-| **Lens**   | Gemini 3 Pro | 👁️ The detective. Stares at your screenshots and PDFs until they confess their secrets                                        |
+- `planning`
+- `implementation`
+- `codebase_search`
+- `patch_edit`
+- `shell_execution`
+- `multi_turn_chat`
+- `debate_participation`
+- `stance_simulation`
 
-### ⚡ Parallel Execution
+### 🗣️ Structured Debate
 
-Why do things one at a time like some kind of single-threaded peasant?
+The interesting part is not just parallel execution. It is verification.
 
-```text
-The old way:    Task A → Task B → Task C    (3 hours of your life, gone)
-
-The new way:    Task A ─┐
-                Task B ─┼→ Done!            (They raced. Everyone won)
-                Task C ─┘
-```
-
-### 🔄 Fallback System (The Safety Net)
-
-APIs go down. It happens. We're prepared.
+- One session drafts an idea or plan
+- Other sessions challenge it through structured debate threads
+- Each session can internally simulate multiple stances
+- The orchestrator returns consensus, dissent, and supporting evidence
 
 ```text
-You: "Arch, review this code"
-Arch: *tries to call GPT-5.2*
-OpenAI: "lol no" (503)
-CC Orchestrator: "Fine, Claude can do it"
-Claude: "I was literally made for this"
+Writer session      → Draft plan
+Reviewer sessions   → Challenge / refine / reject
+Internal stances    → Skeptic / implementer / reviewer
+Final output        → Consensus + disagreements + evidence
 ```
 
-Automatic cross-provider fallbacks. Your work continues. Your deadline survives.
+### 🔌 MCP As The First Host Adapter
 
-### 🛡️ Circuit Breaker (The Safety Net Upgrade)
+MCP is still the first public interface because it is a practical way for a main coding agent to call the orchestrator. But MCP is no longer the product boundary.
 
-APIs go down. It happens. We're prepared. Now we're **REALLY** prepared.
-
-```text
-OLD: Retry until the heat death of the universe
-NEW: "Provider's down? Cool. Moving on." (automatic, instant)
-```
-
-**How it works**:
-
-- Detects cascading failures before your wallet does (5 errors = circuit opens)
-- Automatic recovery attempts (we're optimists, after 60 seconds)
-- Fast-fail when there's no hope (we're also realists)
-
-**State Machine** (because everything needs a state machine):
-
-```text
-CLOSED (normal)
-  → 5 failures →
-OPEN (blocked, all requests rejected)
-  → 60s cooldown →
-HALF_OPEN (testing, 1 request allowed)
-  → success → CLOSED ✅
-  → failure → OPEN ❌ (back to timeout)
-```
-
-**What you get**:
-
-- No more thundering herd when APIs recover
-- Prevents burning money on doomed requests
-- Metrics for debugging ("Why is Arch down AGAIN?")
-
-### 🎹 Trigger Keywords
-
-Talk to your agents naturally. They're listening. (Not in a creepy way.)
-
-**Summon the whole squad:**
-| Say this... | What happens |
-|-------------|--------------|
-| `@all` | Everyone gets to work. Chaos ensues (productively) |
-| `@team` | Same energy, different vibe |
-| `parallel` | You want speed. We respect that |
-| `simultaneously` | For when you feel fancy |
-| `together` | Teamwork makes the dream work |
-
-**Call an MCP agent:**
-
-| Mention                                           | Who answers             |
-| ------------------------------------------------- | ----------------------- |
-| `@arch` or `@architect`                           | The overthinker arrives |
-| `@canvas`, `@ui`, `@frontend`, `@ux`, `@designer` | The pixel perfectionist |
-| `@quill`, `@docs`, `@writer`                      | The prose professional  |
-| `@lens`, `@image`, `@pdf`, `@analyzer`            | The visual investigator |
-
-**Native agents (use Claude Code's Task tool):**
-
-| Command                       | Who answers                                           |
-| ----------------------------- | ----------------------------------------------------- |
-| `Task(subagent_type="scout")` | 🔍 The speedy scout - finds files and code            |
-| `Task(subagent_type="index")` | 📚 The documentation hoarder - searches external docs |
+- The orchestration core lives in `src/core/`
+- MCP lives in `src/server/`
+- Future host adapters can be added without rewriting the core
 
 ---
 
 ## 🚀 Installation
 
-### The Easy Way (For Humans)
+### Current Rewrite Status
 
-```bash
-npx cc-orchestrator@latest
-```
+The repository is in the middle of a runtime-first rewrite. The public direction is stable, but some sections below still describe the legacy provider-based implementation. Treat those sections as migration notes until the rewrite lands.
 
-That's it. The installer will:
+### Legacy Notes
 
-- ✅ Ask you politely for API keys
-- ✅ Configure everything automagically
-- ✅ Not judge your messy home directory
+The remaining parts of this README still describe the current implementation that is being replaced. They are kept temporarily so existing contributors can understand the code that is being migrated.
 
-**Installer Options:**
-
-| Option            | Description                    |
-| ----------------- | ------------------------------ |
-| `--upgrade`, `-u` | Update existing installation   |
-| `--force`, `-f`   | Force reinstall all components |
-| `--keys`, `-k`    | Reconfigure API keys only      |
-| `--help`, `-h`    | Show help message              |
-
-```bash
-# Examples
-npx cc-orchestrator@latest --upgrade    # Update to latest version
-npx cc-orchestrator@latest --keys       # Change API keys
-npx cc-orchestrator@latest --force      # Full reinstall
-```
-
-### The Hard Way (For Claude Code)
-
-When Claude Code is doing this autonomously (hello, robot friend):
-
-```bash
-# 1. Clone it
-git clone https://github.com/zhsks311/cc-orchestrator.git
-cd cc-orchestrator
-
-# 2. Install the things
-npm install
-
-# 3. Create secrets file
-cat > .env << 'EOF'
-# Add at least one. More is better. All three is showing off.
-OPENAI_API_KEY=sk-...
-GOOGLE_API_KEY=AIza...
-ANTHROPIC_API_KEY=sk-ant-...
-
-# For the patient among us
-CCO_TIMEOUT_SECONDS=300
-EOF
-
-# 4. Build it
-npm run build
-
-# 5. Tell Claude Code about it
-```
-
-Add to `~/.claude.json` (Claude Code global config):
-
-```json
-{
-  "mcpServers": {
-    "cc-orchestrator": {
-      "type": "stdio",
-      "command": "node",
-      "args": ["/absolute/path/to/cc-orchestrator/dist/index.js"],
-      "env": {
-        "OPENAI_API_KEY": "sk-...",
-        "GOOGLE_API_KEY": "AIza...",
-        "ANTHROPIC_API_KEY": "sk-ant-..."
-      }
-    }
-  }
-}
-```
-
-```bash
-# 6. Optional: Install the fancy extras
-cp -r hooks/* ~/.claude/hooks/
 cp -r skills/* ~/.claude/skills/
 
 # 7. Restart Claude Code and feel powerful

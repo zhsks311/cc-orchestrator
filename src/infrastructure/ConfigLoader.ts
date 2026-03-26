@@ -238,7 +238,9 @@ export class ConfigLoader {
   }
 
   private parseRuntime(value: unknown): AgentRuntimeKind {
-    const normalized = String(value ?? '').trim().toLowerCase();
+    const normalized = String(value ?? '')
+      .trim()
+      .toLowerCase();
     const runtimes = Object.values(AgentRuntimeKind);
     if (runtimes.includes(normalized as AgentRuntimeKind)) {
       return normalized as AgentRuntimeKind;
@@ -368,8 +370,15 @@ export class ConfigLoader {
   }
 
   private parseLogLevel(value: unknown): 'debug' | 'info' | 'warn' | 'error' {
-    const normalized = String(value ?? '').trim().toLowerCase();
-    if (normalized === 'debug' || normalized === 'info' || normalized === 'warn' || normalized === 'error') {
+    const normalized = String(value ?? '')
+      .trim()
+      .toLowerCase();
+    if (
+      normalized === 'debug' ||
+      normalized === 'info' ||
+      normalized === 'warn' ||
+      normalized === 'error'
+    ) {
       return normalized;
     }
     return 'info';

@@ -3,6 +3,7 @@
  */
 
 import { FallbackInfo } from './model.js';
+import { AgentRuntimeKind } from './runtime.js';
 
 export enum AgentRole {
   ARCH = 'arch',
@@ -57,6 +58,8 @@ export interface Agent {
   tokensUsed?: TokenUsage;
   sessionId: string;
   priority: Priority;
+  runtimeKind?: AgentRuntimeKind;
+  runtimeSessionId?: string;
   /** Present if a provider fallback occurred */
   fallbackInfo?: FallbackInfo;
 }
@@ -83,6 +86,8 @@ export interface AgentResult {
   error?: AgentError;
   executionTimeMs: number;
   tokensUsed?: TokenUsage;
+  runtimeKind?: AgentRuntimeKind;
+  runtimeSessionId?: string;
   /** Present if a provider fallback occurred */
   fallbackInfo?: FallbackInfo;
 }

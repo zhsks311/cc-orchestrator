@@ -38,9 +38,33 @@ export class AgentNotFoundError extends CCOError {
   }
 }
 
+export class AdapterNotFoundError extends CCOError {
+  constructor(adapterId: string) {
+    super(`Adapter ${adapterId} not found`, 'ADAPTER_NOT_FOUND', false, 404);
+  }
+}
+
+export class AdapterUnavailableError extends CCOError {
+  constructor(adapterId: string) {
+    super(`Adapter ${adapterId} is unavailable`, 'ADAPTER_UNAVAILABLE', true, 503);
+  }
+}
+
 export class ContextNotFoundError extends CCOError {
   constructor(key: string) {
     super(`Context ${key} not found`, 'CONTEXT_NOT_FOUND', false, 404);
+  }
+}
+
+export class SessionNotFoundError extends CCOError {
+  constructor(sessionId: string) {
+    super(`Session ${sessionId} not found`, 'SESSION_NOT_FOUND', false, 404);
+  }
+}
+
+export class DebateThreadNotFoundError extends CCOError {
+  constructor(threadId: string) {
+    super(`Debate thread ${threadId} not found`, 'DEBATE_THREAD_NOT_FOUND', false, 404);
   }
 }
 
@@ -53,6 +77,17 @@ export class OrchestrationNotFoundError extends CCOError {
 export class InvalidRoleError extends CCOError {
   constructor(role: string) {
     super(`Invalid agent role: ${role}`, 'INVALID_ROLE', false, 400);
+  }
+}
+
+export class UnsupportedCapabilityError extends CCOError {
+  constructor(capability: string, adapterId: string) {
+    super(
+      `Adapter ${adapterId} does not support capability ${capability}`,
+      'UNSUPPORTED_CAPABILITY',
+      false,
+      400
+    );
   }
 }
 
@@ -101,6 +136,24 @@ export class RateLimitError extends CCOError {
 export class ConfigurationError extends CCOError {
   constructor(message: string) {
     super(message, 'CONFIGURATION_ERROR', false, 500);
+  }
+}
+
+export class ProcessExecutionError extends CCOError {
+  constructor(message: string) {
+    super(message, 'PROCESS_EXECUTION_ERROR', true, 502);
+  }
+}
+
+export class OutputParseError extends CCOError {
+  constructor(message: string) {
+    super(message, 'OUTPUT_PARSE_ERROR', false, 422);
+  }
+}
+
+export class DebatePolicyViolationError extends CCOError {
+  constructor(message: string) {
+    super(message, 'DEBATE_POLICY_VIOLATION', false, 400);
   }
 }
 

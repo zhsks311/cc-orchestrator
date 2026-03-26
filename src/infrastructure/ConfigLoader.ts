@@ -1,6 +1,6 @@
 /**
  * Configuration Loader
- * Loads and merges configuration from environment variables and config files
+ * Loads runtime-first orchestration configuration
  */
 
 import * as fs from 'fs';
@@ -8,10 +8,11 @@ import * as path from 'path';
 import * as os from 'os';
 import {
   CCOConfig,
-  RoleProviderConfig,
-  ModelProvider,
-  AgentRole,
-  DEFAULT_PROVIDER_PRIORITY,
+  AdapterConfig,
+  CapabilityKey,
+  DebateStance,
+  AgentRuntimeKind,
+  DEFAULT_ADAPTER_CONFIGS,
 } from '../types/index.js';
 import { Logger } from './Logger.js';
 
@@ -34,22 +35,16 @@ export class ConfigLoader {
     return this.config;
   }
 
-  /**
-   * Get provider priority for a specific role
-   * Role-specific config takes precedence over global config
-   */
-  getProviderPriority(role?: AgentRole): ModelProvider[] {
-    if (role && this.config.roles?.[role]?.providers) {
-      return this.config.roles[role]!.providers;
-    }
-    return this.config.providers.priority;
-  }
+  getAdapterConfigs(): AdapterConfig[] {
+    const adapters = Object.values(this.config.adapters).filter((adapter) => adapter.enabled);
+    const primary = this.config.defaults.primaryAdapter;
+    const fallback = this.config.defaults.fallbackAdapter;
 
-  /**
-   * Get custom model for a role and provider (if configured)
-   */
-  getCustomModel(role: AgentRole, provider: ModelProvider): string | undefined {
-    return this.config.roles?.[role]?.models?.[provider];
+    return adapters.sort((left, right) => {
+      const leftRank = this.getAdapterRank(left.id, primary, fallback);
+      const rightRank = this.getAdapterRank(right.id, primary, fallback);
+      return leftRank - rightRank || left.id.localeCompare(right.id);
+    });
   }
 
   /**
@@ -61,20 +56,14 @@ export class ConfigLoader {
   }
 
   private loadConfig(): CCOConfig {
-    // Start with default config
-    let config: CCOConfig = {
-      providers: { priority: [...DEFAULT_PROVIDER_PRIORITY] },
-      source: 'default',
-    };
+    let config = this.createDefaultRuntimeConfig();
 
-    // Try to load from file
     const fileConfig = this.loadFromFile();
     if (fileConfig) {
       config = this.mergeConfigs(config, fileConfig);
       config.source = 'file';
     }
 
-    // Override with environment variables (highest priority)
     const envConfig = this.loadFromEnv();
     if (envConfig) {
       config = this.mergeConfigs(config, envConfig);
@@ -83,7 +72,8 @@ export class ConfigLoader {
 
     this.logger.info('Configuration loaded', {
       source: config.source,
-      providerPriority: config.providers.priority,
+      primaryAdapter: config.defaults.primaryAdapter,
+      enabledAdapters: this.getEnabledAdapterIds(config),
       configPath: config.configPath,
     });
 
@@ -102,19 +92,48 @@ export class ConfigLoader {
       const content = fs.readFileSync(configPath, 'utf-8');
       const parsed = JSON.parse(content);
 
-      // Validate and transform
       const config: Partial<CCOConfig> = {
         configPath,
       };
 
-      if (parsed.providers?.priority && Array.isArray(parsed.providers.priority)) {
-        config.providers = {
-          priority: this.parseProviderList(parsed.providers.priority),
+      if (parsed.host?.transport === 'mcp-stdio') {
+        config.host = { transport: 'mcp-stdio' };
+      }
+
+      if (parsed.defaults && typeof parsed.defaults === 'object') {
+        config.defaults = {
+          primaryAdapter: String(parsed.defaults.primaryAdapter ?? 'codex'),
+          fallbackAdapter:
+            parsed.defaults.fallbackAdapter !== undefined
+              ? String(parsed.defaults.fallbackAdapter)
+              : undefined,
         };
       }
 
-      if (parsed.roles && typeof parsed.roles === 'object') {
-        config.roles = this.parseRolesConfig(parsed.roles);
+      if (parsed.debate && typeof parsed.debate === 'object') {
+        config.debate = {
+          autoValidate: parsed.debate.autoValidate !== false,
+          defaultParticipants: this.parsePositiveInt(parsed.debate.defaultParticipants, 2),
+          defaultStances: this.parseStances(parsed.debate.defaultStances),
+        };
+      }
+
+      if (parsed.workspacePolicy && typeof parsed.workspacePolicy === 'object') {
+        config.workspacePolicy = {
+          allowAbsolutePaths: parsed.workspacePolicy.allowAbsolutePaths !== false,
+          preferIsolatedWorktrees: parsed.workspacePolicy.preferIsolatedWorktrees !== false,
+        };
+      }
+
+      if (parsed.logging && typeof parsed.logging === 'object') {
+        config.logging = {
+          level: this.parseLogLevel(parsed.logging.level),
+          retainTranscripts: parsed.logging.retainTranscripts !== false,
+        };
+      }
+
+      if (parsed.adapters && typeof parsed.adapters === 'object') {
+        config.adapters = this.parseAdapters(parsed.adapters as Record<string, unknown>);
       }
 
       this.logger.debug('Config loaded from file', { path: configPath });
@@ -126,40 +145,22 @@ export class ConfigLoader {
   }
 
   private loadFromEnv(): Partial<CCOConfig> | null {
-    const envPriority = process.env.CCO_PROVIDER_PRIORITY;
-    if (!envPriority) {
-      return null;
-    }
-
-    const providers = this.parseProviderList(envPriority.split(','));
-    if (providers.length === 0) {
+    const primaryAdapter = process.env.CCO_PRIMARY_ADAPTER;
+    const fallbackAdapter = process.env.CCO_FALLBACK_ADAPTER;
+    if (!primaryAdapter && !fallbackAdapter) {
       return null;
     }
 
     const config: Partial<CCOConfig> = {
-      providers: { priority: providers },
+      defaults: {
+        primaryAdapter: primaryAdapter ?? 'codex',
+        fallbackAdapter,
+      },
     };
 
-    // Check for role-specific environment variables
-    const roleEnvVars: Partial<Record<AgentRole, RoleProviderConfig>> = {};
-
-    for (const role of Object.values(AgentRole)) {
-      const envKey = `CCO_${role.toUpperCase()}_PROVIDERS`;
-      const roleProviders = process.env[envKey];
-      if (roleProviders) {
-        roleEnvVars[role] = {
-          providers: this.parseProviderList(roleProviders.split(',')),
-        };
-      }
-    }
-
-    if (Object.keys(roleEnvVars).length > 0) {
-      config.roles = roleEnvVars;
-    }
-
     this.logger.debug('Config loaded from environment', {
-      priority: providers,
-      roleOverrides: Object.keys(roleEnvVars),
+      primaryAdapter,
+      fallbackAdapter,
     });
 
     return config;
@@ -168,12 +169,31 @@ export class ConfigLoader {
   private mergeConfigs(base: CCOConfig, override: Partial<CCOConfig>): CCOConfig {
     const merged: CCOConfig = { ...base };
 
-    if (override.providers) {
-      merged.providers = override.providers;
+    if (override.host) {
+      merged.host = override.host;
     }
 
-    if (override.roles) {
-      merged.roles = { ...base.roles, ...override.roles };
+    if (override.defaults) {
+      merged.defaults = { ...base.defaults, ...override.defaults };
+    }
+
+    if (override.debate) {
+      merged.debate = { ...base.debate, ...override.debate };
+    }
+
+    if (override.workspacePolicy) {
+      merged.workspacePolicy = {
+        ...base.workspacePolicy,
+        ...override.workspacePolicy,
+      };
+    }
+
+    if (override.logging) {
+      merged.logging = { ...base.logging, ...override.logging };
+    }
+
+    if (override.adapters) {
+      merged.adapters = { ...base.adapters, ...override.adapters };
     }
 
     if (override.configPath) {
@@ -183,73 +203,75 @@ export class ConfigLoader {
     return merged;
   }
 
-  private parseProviderList(list: string[]): ModelProvider[] {
-    const validProviders: ModelProvider[] = [];
-    const providerValues = Object.values(ModelProvider);
+  private parseAdapters(adapters: Record<string, unknown>): Record<string, AdapterConfig> {
+    const parsedAdapters: Record<string, AdapterConfig> = {};
 
-    for (const item of list) {
-      const normalized = item.trim().toLowerCase();
-      if (providerValues.includes(normalized as ModelProvider)) {
-        validProviders.push(normalized as ModelProvider);
-      } else {
-        this.logger.warn('Unknown provider in config', { provider: item });
-      }
-    }
-
-    return validProviders;
-  }
-
-  private parseRolesConfig(
-    roles: Record<string, unknown>
-  ): Partial<Record<AgentRole, RoleProviderConfig>> {
-    const result: Partial<Record<AgentRole, RoleProviderConfig>> = {};
-    const validRoles = Object.values(AgentRole);
-
-    for (const [key, value] of Object.entries(roles)) {
-      const normalizedKey = key.toLowerCase();
-      if (!validRoles.includes(normalizedKey as AgentRole)) {
-        this.logger.warn('Unknown role in config', { role: key });
+    for (const [key, value] of Object.entries(adapters)) {
+      if (typeof value !== 'object' || value === null) {
         continue;
       }
 
-      if (typeof value !== 'object' || value === null) continue;
+      const raw = value as Record<string, unknown>;
+      const normalizedId = this.normalizeAdapterId(String(raw.id ?? key));
+      const runtime = this.parseRuntime(raw.runtime);
 
-      const roleConfig = value as Record<string, unknown>;
-      const parsedConfig: RoleProviderConfig = {
-        providers: [],
+      parsedAdapters[key] = {
+        id: normalizedId,
+        runtime,
+        enabled: raw.enabled !== false,
+        command: String(raw.command ?? normalizedId),
+        args: Array.isArray(raw.args) ? raw.args.map((item) => String(item)) : undefined,
+        capabilities: this.parseCapabilities(raw.capabilities),
+        env:
+          raw.env && typeof raw.env === 'object'
+            ? Object.fromEntries(
+                Object.entries(raw.env as Record<string, unknown>).map(([envKey, envValue]) => [
+                  envKey,
+                  String(envValue),
+                ])
+              )
+            : undefined,
       };
-
-      if (Array.isArray(roleConfig.providers)) {
-        parsedConfig.providers = this.parseProviderList(roleConfig.providers as string[]);
-      }
-
-      if (roleConfig.models && typeof roleConfig.models === 'object') {
-        parsedConfig.models = roleConfig.models as Partial<Record<ModelProvider, string>>;
-      }
-
-      if (parsedConfig.providers.length > 0) {
-        result[normalizedKey as AgentRole] = parsedConfig;
-      }
     }
 
-    return result;
+    return parsedAdapters;
+  }
+
+  private parseRuntime(value: unknown): AgentRuntimeKind {
+    const normalized = String(value ?? '').trim().toLowerCase();
+    const runtimes = Object.values(AgentRuntimeKind);
+    if (runtimes.includes(normalized as AgentRuntimeKind)) {
+      return normalized as AgentRuntimeKind;
+    }
+
+    if (normalized === 'claude' || normalized === 'claude_code') {
+      return AgentRuntimeKind.CLAUDE_CODE;
+    }
+
+    return AgentRuntimeKind.CODEX;
+  }
+
+  private parseCapabilities(value: unknown): CapabilityKey[] {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    const capabilityValues = Object.values(CapabilityKey);
+    return value
+      .map((item) => String(item).trim().toLowerCase())
+      .filter((item): item is CapabilityKey => capabilityValues.includes(item as CapabilityKey));
   }
 
   private getConfigPath(): string {
-    // Check for custom config path
     const customPath = process.env.CCO_CONFIG_PATH;
     if (customPath) {
       return customPath;
     }
 
-    // Default to ~/.cco/config.json
     const homeDir = os.homedir();
     return path.join(homeDir, CONFIG_DIR, CONFIG_FILE);
   }
 
-  /**
-   * Create a default config file if it doesn't exist
-   */
   static createDefaultConfig(): string {
     const homeDir = os.homedir();
     const configDir = path.join(homeDir, CONFIG_DIR);
@@ -261,16 +283,110 @@ export class ConfigLoader {
     }
 
     if (!fs.existsSync(configPath)) {
-      const defaultConfig = {
-        providers: {
-          priority: DEFAULT_PROVIDER_PRIORITY,
+      const defaultConfig: Omit<CCOConfig, 'configPath' | 'source'> = {
+        host: {
+          transport: 'mcp-stdio',
         },
-        roles: {},
+        adapters: DEFAULT_ADAPTER_CONFIGS,
+        defaults: {
+          primaryAdapter: 'codex',
+          fallbackAdapter: 'claude-code',
+        },
+        debate: {
+          autoValidate: true,
+          defaultParticipants: 2,
+          defaultStances: [DebateStance.SKEPTIC, DebateStance.IMPLEMENTER, DebateStance.REVIEWER],
+        },
+        workspacePolicy: {
+          allowAbsolutePaths: true,
+          preferIsolatedWorktrees: true,
+        },
+        logging: {
+          level: 'info',
+          retainTranscripts: true,
+        },
       };
 
       fs.writeFileSync(configPath, JSON.stringify(defaultConfig, null, 2));
     }
 
     return configPath;
+  }
+
+  private createDefaultRuntimeConfig(): CCOConfig {
+    return {
+      host: {
+        transport: 'mcp-stdio',
+      },
+      adapters: { ...DEFAULT_ADAPTER_CONFIGS },
+      defaults: {
+        primaryAdapter: 'codex',
+        fallbackAdapter: 'claude-code',
+      },
+      debate: {
+        autoValidate: true,
+        defaultParticipants: 2,
+        defaultStances: [DebateStance.SKEPTIC, DebateStance.IMPLEMENTER, DebateStance.REVIEWER],
+      },
+      workspacePolicy: {
+        allowAbsolutePaths: true,
+        preferIsolatedWorktrees: true,
+      },
+      logging: {
+        level: 'info',
+        retainTranscripts: true,
+      },
+      source: 'default',
+    };
+  }
+
+  private getEnabledAdapterIds(config: CCOConfig): string[] {
+    return Object.values(config.adapters)
+      .filter((adapter) => adapter.enabled)
+      .map((adapter) => adapter.id);
+  }
+
+  private getAdapterRank(adapterId: string, primary: string, fallback?: string): number {
+    if (adapterId === primary) {
+      return 0;
+    }
+    if (fallback && adapterId === fallback) {
+      return 1;
+    }
+    return 2;
+  }
+
+  private normalizeAdapterId(value: string): string {
+    return value.trim().toLowerCase().replace(/_/g, '-');
+  }
+
+  private parsePositiveInt(value: unknown, fallback: number): number {
+    if (typeof value === 'number' && Number.isInteger(value) && value > 0) {
+      return value;
+    }
+    return fallback;
+  }
+
+  private parseLogLevel(value: unknown): 'debug' | 'info' | 'warn' | 'error' {
+    const normalized = String(value ?? '').trim().toLowerCase();
+    if (normalized === 'debug' || normalized === 'info' || normalized === 'warn' || normalized === 'error') {
+      return normalized;
+    }
+    return 'info';
+  }
+
+  private parseStances(value: unknown): DebateStance[] {
+    if (!Array.isArray(value)) {
+      return [DebateStance.SKEPTIC, DebateStance.IMPLEMENTER, DebateStance.REVIEWER];
+    }
+
+    const stanceValues = Object.values(DebateStance);
+    const stances = value
+      .map((item) => String(item).trim().toLowerCase())
+      .filter((item): item is DebateStance => stanceValues.includes(item as DebateStance));
+
+    return stances.length > 0
+      ? stances
+      : [DebateStance.SKEPTIC, DebateStance.IMPLEMENTER, DebateStance.REVIEWER];
   }
 }

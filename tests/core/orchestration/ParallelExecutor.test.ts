@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ParallelExecutor } from '../../../src/core/orchestration/ParallelExecutor.js';
 import { IAgentManager } from '../../../src/core/agents/AgentManager.js';
 import { AgentRole, AgentStatus, Priority } from '../../../src/types/agent.js';

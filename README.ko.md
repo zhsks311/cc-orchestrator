@@ -7,185 +7,78 @@
 
 > *"AI 하나로 버티지 말고, 오케스트라를 소환해서 코드 앞에서 싸우게 하자"*
 
-**CC Orchestrator**는 Claude Code를 지휘자로 만들어 AI 모델들의 심포니를 이끌게 합니다. GPT-5.2가 아키텍처로 논쟁하고, Gemini가 픽셀에 집착하고, Claude가 문서의 토끼굴로 뛰어드는 동안... 당신은 커피나 마시면 됩니다. 로딩 스피너 구경하는 게 취미가 아니라면요.
+**CC Orchestrator**는 coding agent CLI를 위한 runtime-first 오케스트레이션 엔진입니다. 메인 coding agent가 이 도구를 설치하고, 사용 가능한 서브 에이전트 CLI를 발견한 뒤, MCP 도구를 통해 세션을 시작하고, 컨텍스트를 전달하고, 구조화된 토론을 돌리고, 다음 액션으로 결과를 통합합니다.
 
 ---
 
 ## 🎭 왜 필요한가
 
-상상해보세요: 복잡한 기능을 만들어야 합니다. 보통은 하나의 AI에게 아키텍트, 디자이너, 리서처, 작가 역할을 동시에 시킵니다. 그건 마치 치과의사에게 자동차 수리도 맡기는 것과 같습니다.
+상상해보세요: 메인 coding agent는 방향을 잘 잡지만, 실제 설계나 구현 전에 다른 agent CLI들에게 검증과 반론을 받고 싶습니다.
 
-**CC Orchestrator**의 제안: *"그냥... 전문가를 각각 고용하면 안 될까요?"*
+**CC Orchestrator**의 제안: *"메인 agent가 다른 agent CLI 세션을 띄우고, 서로 토론시키고, 누가 어떤 근거를 냈는지 추적하면 어떨까요?"*
 
 <p align="center">
   <img src="./assets/orchestrator-diagram.jpg" alt="CC Orchestrator Diagram" width="600">
 </p>
 
-[Oh My OpenCode](https://github.com/code-yeongyu/oh-my-opencode)에서 아이디어를 ~~훔쳐~~영감을 받아 Claude Code용으로 만들었습니다. 혁신이란 이런 것!
+[Oh My OpenCode](https://github.com/code-yeongyu/oh-my-opencode)에서 아이디어를 ~~훔쳐~~영감을 받았습니다. 현재 리라이트는 MCP를 첫 번째 host adapter로 유지하되, 오케스트레이션 코어 자체는 특정 호스트에 종속되지 않도록 재구축하는 방향입니다.
 
 ---
 
 ## ✨ 주요 기능 (쓸모있는 것들)
 
-### 🎯 전문 에이전트
+### 🎯 메인 에이전트 / 서브 에이전트 세션
 
-각 에이전트는 딱 한 가지만 합니다. 그것만 아주 잘합니다. 그리고 그것에 대해 끊임없이 떠들 겁니다.
+핵심 단위는 더 이상 "모델 API에 프롬프트 하나 보내기"가 아닙니다. "coding agent CLI 위에서 세션을 시작하고, 계속 대화하기"입니다.
 
-**🏠 네이티브 에이전트 (무료 - `.claude/agents/`에 살고 있음):**
+- 메인 에이전트가 서브 에이전트 세션을 시작
+- 각 세션은 transcript, artifact, 상태를 유지
+- 세션은 후속 메시지로 다시 이어질 수 있음
+- 오케스트레이터는 일회성 결과가 아니라 세션 그래프를 관리
 
-| 에이전트 | 모델 | 성격 |
-|----------|------|------|
-| **Scout** | Haiku | 🔍 스피드형. "그 파일 어딨지?"라고 말하기도 전에 찾아냄. 대안 대비 75% 저렴 |
-| **Index** | Sonnet + WebSearch | 📚 사서형. 모든 문서를 읽고, 출처를 남기고. WebSearch라 실제로 최신 정보임 |
+### 🧠 capability-first 라우팅
 
-**🌐 MCP 에이전트 (외부 API):**
+새 런타임은 hard-coded persona 대신 capability 기준으로 세션을 선택합니다.
 
-| 에이전트 | 모델 | 성격 |
-|----------|------|------|
-| **Arch** | GPT-5.2 | 🧠 과대망상형. 변수명 하나에 "기술적으로는 맞지만 철학적으로 의문"이라며 3페이지 쓸 사람 |
-| **Canvas** | Gemini 3 Pro | 🎨 예술가형. 버튼 하나에 47ms cubic-bezier 트랜지션이 필요하다고 믿는 사람 |
-| **Quill** | Gemini 3 Pro | ✍️ 시인형. 개발자를 울리는 README를 쓰는 사람 |
-| **Lens** | Gemini 3 Pro | 👁️ 탐정형. 스크린샷과 PDF를 뚫어지게 쳐다보며 비밀을 캐내는 사람 |
+- `planning`
+- `implementation`
+- `codebase_search`
+- `patch_edit`
+- `shell_execution`
+- `multi_turn_chat`
+- `debate_participation`
+- `stance_simulation`
 
-### ⚡ 병렬 실행
+### 🗣️ 구조화된 토론
 
-왜 싱글스레드 평민처럼 하나씩 해요?
+핵심은 병렬 실행 자체보다 "검증"입니다.
 
-```
-옛날 방식:    작업 A → 작업 B → 작업 C    (인생의 3시간, 안녕)
-
-새로운 방식:  작업 A ─┐
-              작업 B ─┼→ 끝!            (경쟁시켰더니 다 이김)
-              작업 C ─┘
-```
-
-### 🔄 폴백 시스템 (안전망)
-
-API는 죽습니다. 그런 겁니다. 우리는 대비했습니다.
-
-```
-나: "Arch, 이 코드 리뷰해줘"
-Arch: *GPT-5.2 호출 시도*
-OpenAI: "ㅋㅋ 안됨" (503)
-CC Orchestrator: "됐고, Claude가 할게"
-Claude: "이것을 위해 태어났다"
+```text
+작성 세션          → 초안 생성
+리뷰 세션들        → 반박 / 보완 / 거절
+내부 스탠스 시뮬레이션 → 회의론자 / 구현자 / 리뷰어
+최종 산출물        → 합의안 + 이견 + 근거
 ```
 
-프로바이더간 자동 폴백. 작업은 계속됩니다. 데드라인은 살아남습니다.
+### 🔌 MCP는 첫 번째 host adapter
 
-### 🎹 트리거 키워드
+MCP는 여전히 메인 에이전트가 이 오케스트레이터를 호출하는 가장 현실적인 첫 인터페이스입니다. 하지만 이제 MCP가 제품 그 자체는 아닙니다.
 
-자연스럽게 말하세요. 듣고 있어요. (소름끼치는 방식은 아님)
-
-**전체 소환:**
-| 이렇게 말하면... | 이런 일이 |
-|------------------|----------|
-| `@all` | 전원 출동. 생산적인 혼돈 |
-| `@team` | 비슷한 에너지, 다른 느낌 |
-| `parallel` / `병렬` | 속도를 원하시는군요. 존중합니다 |
-| `simultaneously` / `동시에` | 폼 잡을 때 |
-| `together` / `함께` | 팀워크가 꿈을 이룬다 |
-
-**MCP 에이전트 호출:**
-| 멘션 | 누가 답함 |
-|------|----------|
-| `@arch` 또는 `@architect` | 과대망상가 등장 |
-| `@canvas`, `@ui`, `@frontend`, `@ux`, `@designer` | 픽셀 완벽주의자 |
-| `@quill`, `@docs`, `@writer` | 산문의 전문가 |
-| `@lens`, `@image`, `@pdf`, `@analyzer` | 시각 수사관 |
-
-**네이티브 에이전트 (Claude Code의 Task 도구 사용):**
-| 명령 | 누가 답함 |
-|------|----------|
-| `Task(subagent_type="scout")` | 🔍 빠른 탐험가 - 파일과 코드 검색 |
-| `Task(subagent_type="index")` | 📚 문서 수집광 - 외부 문서 검색 |
+- 오케스트레이션 코어는 `src/core/`
+- MCP는 `src/server/`
+- 이후 다른 host adapter를 추가해도 core는 유지
 
 ---
 
 ## 🚀 설치
 
-### 쉬운 방법 (인간용)
+### 현재 리라이트 상태
 
-```bash
-npx cc-orchestrator@latest
-```
+저장소는 runtime-first 재구축 중입니다. 상단의 제품 방향은 확정됐지만, 아래 일부 섹션은 아직 교체 중인 레거시 provider 기반 구현을 설명합니다. 해당 부분은 마이그레이션 노트로 읽어주세요.
 
-끝. 설치 프로그램이:
-- ✅ API 키를 정중하게 물어봄
-- ✅ 알아서 다 설정함
-- ✅ 지저분한 홈 디렉토리를 판단하지 않음
+### 레거시 노트
 
-**설치 옵션:**
-
-| 옵션 | 설명 |
-|------|------|
-| `--upgrade`, `-u` | 기존 설치 업데이트 |
-| `--force`, `-f` | 전체 컴포넌트 강제 재설치 |
-| `--keys`, `-k` | API 키만 재설정 |
-| `--help`, `-h` | 도움말 표시 |
-
-```bash
-# 예시
-npx cc-orchestrator@latest --upgrade    # 최신 버전으로 업데이트
-npx cc-orchestrator@latest --keys       # API 키 변경
-npx cc-orchestrator@latest --force      # 전체 재설치
-```
-
-### 어려운 방법 (Claude Code용)
-
-Claude Code가 자동으로 할 때 (안녕, 로봇 친구):
-
-```bash
-# 1. 클론
-git clone https://github.com/zhsks311/cc-orchestrator.git
-cd cc-orchestrator
-
-# 2. 설치
-npm install
-
-# 3. 비밀 파일 생성
-cat > .env << 'EOF'
-# 최소 하나는 넣으세요. 많을수록 좋음. 셋 다 있으면 자랑임.
-OPENAI_API_KEY=sk-...
-GOOGLE_API_KEY=AIza...
-ANTHROPIC_API_KEY=sk-ant-...
-
-# 인내심 있는 분들을 위해
-CCO_TIMEOUT_SECONDS=300
-EOF
-
-# 4. 빌드
-npm run build
-
-# 5. Claude Code에 등록
-```
-
-`~/.claude.json` (Claude Code 전역 설정)에 추가:
-
-```json
-{
-  "mcpServers": {
-    "cc-orchestrator": {
-      "type": "stdio",
-      "command": "node",
-      "args": ["/절대/경로/cc-orchestrator/dist/index.js"],
-      "env": {
-        "OPENAI_API_KEY": "sk-...",
-        "GOOGLE_API_KEY": "AIza...",
-        "ANTHROPIC_API_KEY": "sk-ant-..."
-      }
-    }
-  }
-}
-```
-
-```bash
-# 6. 선택: 멋진 추가 기능 설치
-cp -r hooks/* ~/.claude/hooks/
-cp -r skills/* ~/.claude/skills/
-
-# 7. Claude Code 재시작하고 파워풀해지기
-```
+이 README 아래쪽의 일부 내용은 현재 교체 대상인 구현을 설명합니다. 기여자가 마이그레이션 대상 코드를 이해할 수 있도록 잠시 남겨둡니다.
 
 ---
 
@@ -349,18 +242,26 @@ background_task(arch, "보안 리뷰해줘...")  // GPT-5.2
 
 ## 🔧 설정
 
-### 프로바이더 우선순위
+### 어댑터 기본값
 
-누가 먼저 호출될지 `~/.cco/config.json`에서 커스터마이징:
+선호하는 런타임 어댑터를 `~/.cco/config.json`에서 커스터마이징:
 
 ```json
 {
-  "providers": {
-    "priority": ["anthropic", "google", "openai"]
+  "defaults": {
+    "primaryAdapter": "codex",
+    "fallbackAdapter": "claude-code"
   },
-  "roles": {
-    "arch": {
-      "providers": ["openai", "anthropic"]
+  "adapters": {
+    "codex": {
+      "runtime": "codex",
+      "enabled": true,
+      "command": "codex"
+    },
+    "claude_code": {
+      "runtime": "claude-code",
+      "enabled": true,
+      "command": "claude"
     }
   }
 }
@@ -369,21 +270,22 @@ background_task(arch, "보안 리뷰해줘...")  // GPT-5.2
 ### 환경 변수
 
 ```bash
-# "Anthropic 먼저, 그 다음 Google, 그 다음 OpenAI"
-export CCO_PROVIDER_PRIORITY=anthropic,google,openai
+# primary adapter만 덮어쓰기
+export CCO_PRIMARY_ADAPTER=claude-code
 
-# "Arch는 특별히 OpenAI 먼저, 그 다음 Anthropic"
-export CCO_ARCH_PROVIDERS=openai,anthropic
+# fallback adapter만 덮어쓰기
+export CCO_FALLBACK_ADAPTER=codex
 
-# "나 인내심 있음" (타임아웃, 초 단위)
-export CCO_TIMEOUT_SECONDS=300
+# Circuit Breaker 설정
+export CCO_CIRCUIT_FAILURE_THRESHOLD=5
+export CCO_CIRCUIT_RESET_TIMEOUT=60000
 ```
 
 ---
 
 ## 📦 프로젝트 구조
 
-```
+```text
 cc-orchestrator/
 ├── .claude/                # Claude Code 네이티브 설정
 │   └── agents/             # 네이티브 에이전트 (무료, API 호출 없음)
@@ -460,7 +362,7 @@ npm run uninstall
 |------|------|------|
 | MCP 연결 안 됨 | 누군가 `console.log` 씀 | 찾아서. 지워. 이 얘기는 없었던 거야. |
 | 에이전트 멈춤 | API가 드라마 중 | 키 확인. 상태 페이지 확인. 욕하기. |
-| 타임아웃 | 모델이 "생각 중" | `CCO_TIMEOUT_SECONDS` 올려. 커피 마셔. |
+| 세션 멈춤 | adapter CLI가 입력 대기 중 | stderr 로그 확인 후 세션 다시 시작 |
 | 응답 없음 | 네가 망가뜨렸어 | `LOG_LEVEL=debug npm run dev`, 그리고 패닉 |
 
 ---

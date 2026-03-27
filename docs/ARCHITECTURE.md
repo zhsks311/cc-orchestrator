@@ -1,309 +1,170 @@
 # CC Orchestrator Architecture
 
-This document describes the architecture of the CC Orchestrator MCP Server.
+This document describes the target architecture of the runtime-first rewrite.
 
 ## Overview
 
-CC Orchestrator is a **multi-LLM orchestration server** built on the Model Context Protocol (MCP). It manages the lifecycle, routing, and execution of specialized agents powered by different LLM providers (OpenAI, Google, Anthropic).
+CC Orchestrator is being rebuilt as a **host-neutral orchestration core for coding agent CLIs**.
 
-### Core Design Principles
+The product is not "an MCP server that calls model providers." The product is:
 
-1. **Fire-and-Forget Execution**: Agent creation returns immediately; execution runs in background
-2. **Provider Abstraction**: Unified interface with intelligent fallbacks across providers
-3. **Non-Blocking**: Claude Code must not block; users explicitly wait with `block=true`
-4. **Interface-First Design**: All major components define interfaces before implementation
+- a runtime-first orchestration core
+- a session and transcript manager
+- a debate and validation coordinator
+- a capability-based selector for coding agent CLIs
 
-## Directory Structure
+MCP remains the **first host integration layer**, not the architectural center.
 
+## Core Design Principles
+
+1. **Core Before Host**: `src/core/` must stay independent from MCP-specific request handling
+2. **Sessions Over One-Shot Tasks**: the primary unit is a long-lived agent session
+3. **Capability-First Selection**: worker choice is based on declared capabilities, not personas
+4. **Structured Validation**: sessions can challenge each other through debate threads
+5. **Evidence Preservation**: transcripts, artifacts, and debate resolutions are first-class outputs
+
+## Target Layers
+
+```text
+Main Coding Agent
+    ↓
+Host Integration Layer (MCP first)
+    ↓
+Core Orchestration Engine
+    ├─ Capability Selection
+    ├─ Debate Orchestration
+    ├─ Stance Simulation Planning
+    └─ Result Aggregation
+    ↓
+Runtime Layer
+    ├─ Adapter Registry
+    ├─ Session Manager
+    ├─ Process Supervisor
+    ├─ Artifact Store
+    └─ Debate Manager
+    ↓
+Agent CLI Adapters
+    ├─ Codex
+    └─ Claude Code
 ```
+
+## Directory Direction
+
+```text
 src/
-├── core/                    # Pure business logic (no MCP dependency)
-│   ├── agents/             # Agent lifecycle & execution
-│   │   ├── AgentManager.ts
-│   │   └── prompts.ts
-│   ├── models/             # LLM provider integration
-│   │   ├── ModelRouter.ts
-│   │   ├── ProviderHealthManager.ts
-│   │   └── providers/
-│   │       ├── OpenAIProvider.ts
-│   │       ├── GoogleProvider.ts
-│   │       └── AnthropicProvider.ts
-│   ├── orchestration/      # Multi-agent workflow execution
-│   │   └── OrchestrationEngine.ts
-│   ├── routing/            # Intent-based agent selection
-│   │   └── IntentAnalyzer.ts
-│   ├── context/            # Session-scoped data sharing
-│   │   └── ContextStore.ts
-│   └── ast/                # Code analysis
-│       └── AstGrepService.ts
-├── server/                 # MCP protocol handling
+├── core/
+│   ├── runtime/        # Adapter registry, session manager, process supervisor
+│   ├── debate/         # Debate threads, stance simulation, resolution
+│   ├── orchestration/  # Task decomposition, capability routing, aggregation
+│   ├── agents/         # Runtime-backed agent lifecycle
+│   ├── context/        # Shared orchestration context
+│   └── ast/            # Local code analysis
+├── server/             # MCP adapter only
 │   ├── MCPServer.ts
 │   ├── handlers/
-│   │   └── index.ts
 │   └── tools/
-│       ├── definitions.ts
-│       └── schemas.ts
-├── types/                  # Type definitions & errors
-│   ├── agent.ts
-│   ├── model.ts
-│   ├── errors.ts
-│   └── ...
-└── infrastructure/         # Cross-cutting concerns
-    ├── Logger.ts
-    ├── ConfigLoader.ts
-    └── RetryStrategy.ts
+├── types/              # Runtime, session, artifact, debate, errors
+└── infrastructure/     # Logging, config loading, common utilities
 ```
 
-**Dependency Rule**: `core/` must not import from `server/` (unidirectional dependency).
+`core/` must not import from `server/`.
 
 ## Core Components
 
-### 1. MCPServer
+### 1. Host Integration Layer
 
-Entry point for MCP protocol communication.
+Responsibilities:
 
-```
-MCPServer
-├─ AgentManager (manages agent lifecycle)
-├─ ContextStore (manages session context)
-├─ ModelRouter (selects LLM providers)
-└─ ToolHandlers (executes MCP tools)
-```
+- expose MCP tools
+- validate inputs
+- map host requests onto core use cases
+- return normalized session, debate, and artifact results
 
-**Responsibilities:**
-- Initialize core components
-- Handle MCP ListTools & CallTool requests
-- Route tool calls to handlers
-- Manage session lifecycle & cleanup
+### 2. Adapter Registry
 
-### 2. AgentManager
+Tracks available runtime adapters and their declared capabilities.
 
-Manages agent lifecycle and execution.
+Capabilities include:
 
-**Data Structures:**
-```typescript
-agents: Map<agentId, Agent>           // In-memory agent store
-idempotencyCache: Map<key, agentId>   // Idempotency support
-executionPromises: Map<agentId, Promise> // Track async execution
-```
+- `planning`
+- `implementation`
+- `codebase_search`
+- `patch_edit`
+- `shell_execution`
+- `multi_turn_chat`
+- `debate_participation`
+- `stance_simulation`
 
-**Agent Lifecycle:**
-```
-QUEUED → RUNNING → COMPLETED
-                ↘ FAILED
-                ↘ CANCELLED
-                ↘ TIMEOUT
-```
+### 3. Session Manager
 
-**Key Methods:**
-- `createAgent(params)`: Create & queue agent (returns immediately)
-- `getAgent(agentId)`: Retrieve agent by ID
-- `waitForCompletion(agentId, timeoutMs)`: Block until completion
-- `cancelAgent(agentId)`: Cancel agent (if not terminal)
+Tracks:
 
-### 3. ModelRouter
+- live sessions
+- transcript events
+- terminal states
+- linked artifacts
+- per-session metadata
 
-Intelligent provider selection with runtime fallbacks.
+### 4. Debate Manager
 
-**Fallback Strategy (3-tier):**
-```
-Tier 1: Primary model within provider
-Tier 2: Fallback model within same provider
-Tier 3: Provider fallbacks (cross-provider)
-```
+Coordinates structured validation threads between sessions.
 
-**Agent-to-Model Mapping:**
-```typescript
-ROLE_MODEL_MAPPING = {
-  arch: { provider: OPENAI, model: 'gpt-5.2', fallbacks: [...] },
-  canvas: { provider: GOOGLE, model: 'gemini-3-pro', fallbacks: [...] },
-  index: { provider: ANTHROPIC, model: 'claude-sonnet-4-5', fallbacks: [...] },
-  // ...
-}
-```
+Thread types:
 
-### 4. ProviderHealthManager
+- `review`
+- `debate`
 
-Circuit breaker & health tracking for providers.
+Expected outputs:
 
-**Health State:**
-```typescript
-interface ProviderState {
-  available: boolean
-  consecutiveErrors: number
-  lastError?: Date
-  lastSuccess?: Date
-  cooldownUntil?: Date
-  circuitOpen: boolean
-}
-```
+- consensus summary
+- key disagreements
+- supporting evidence
+- recommended next action
 
-**Thresholds:**
-- `MAX_CONSECUTIVE_ERRORS`: 3 failures → circuit breaker opens
-- `CIRCUIT_RESET_MS`: 5 minutes
-- `DEFAULT_COOLDOWN_MS`: 1 minute (rate limit)
+### 5. Process Supervisor
 
-### 5. ContextStore
+Owns child-process lifecycle for CLI adapters:
 
-Session & global scoped context sharing between agents.
-
-**Scopes:**
-- `SESSION`: Per-session, auto-cleanup
-- `GLOBAL`: Across sessions, manual cleanup
-
-**Features:**
-- TTL support for automatic expiration
-- Access count tracking
-- Automatic cleanup scheduler (every 5 minutes)
-
-### 6. RetryStrategy
-
-Exponential backoff retry utility with intelligent error handling.
-
-**Features:**
-- Configurable exponential backoff
-- Jitter to prevent thundering herd
-- Respects `CCOError.retryable` flag
-- Callback hooks for monitoring
-
-**Configuration:**
-```typescript
-{
-  maxRetries: 3,
-  initialDelayMs: 1000,
-  maxDelayMs: 30000,
-  backoffMultiplier: 2,
-  jitter: true,
-  respectRetryable: true,
-}
-```
+- spawn
+- timeout
+- cancellation
+- stdout/stderr capture
+- exit classification
 
 ## Data Flow
 
-### Simple Agent Execution
+### Session Lifecycle
 
-```
-Client (Claude Code)
-    ↓ MCP: CallTool "background_task"
-MCPServer.ToolHandlers
+```text
+Main agent
+    ↓ start_agent_session
+MCP handler
     ↓
-AgentManager.createAgent()
-    ├─ Validate input (Zod schema)
-    ├─ Create agent (status: QUEUED)
-    └─ Return agent immediately
-    ↓ (async, non-blocking)
-AgentManager.executeAgent()
-    ├─ Update status: RUNNING
-    ├─ Build system prompt
-    └─ Call ModelRouter
-        ↓
-ModelRouter.executeWithFallback()
-    ├─ Find available provider
-    ├─ Execute with retry strategy
-    └─ Return response
+Core use case
     ↓
-AgentManager updates agent
-    ├─ status: COMPLETED
-    └─ result: response content
+Adapter registry selects runtime
     ↓
-Client polls via "background_output"
+Process supervisor launches CLI session
+    ↓
+Session manager tracks transcript + status
 ```
 
-### Provider Selection with Fallback
+### Validation Flow
 
-```
-ModelRouter.executeWithFallback()
-    ├─ Get ROLE_MODEL_MAPPING[role]
-    ├─ Check primary provider
-    │   ├─ API key available?
-    │   └─ Provider healthy?
-    ├─ If unavailable, try providerFallbacks
-    ├─ Execute with RetryStrategy
-    │   ├─ Retry on retryable errors
-    │   └─ Exponential backoff between attempts
-    ├─ Update ProviderHealthManager
-    └─ Return response + fallbackInfo
-```
-
-## Error Handling
-
-### Error Class Hierarchy
-
-```
-CCOError (abstract base)
-├── Client Errors (4xx, retryable=false)
-│   ├── ValidationError (400)
-│   ├── AgentNotFoundError (404)
-│   ├── ContextNotFoundError (404)
-│   └── InvalidRoleError (400)
-└── Server Errors (5xx, retryable=true)
-    ├── ModelAPIError (502)
-    ├── TimeoutError (504)
-    ├── RateLimitError (429)
-    ├── ResourceExhaustedError (503)
-    └── CircuitBreakerOpenError (503)
+```text
+Writer session produces draft
+    ↓
+Debate manager opens thread
+    ↓
+Reviewer sessions receive structured prompt
+    ↓
+Each reviewer may run stance simulation
+    ↓
+Debate manager aggregates consensus + dissent + evidence
+    ↓
+Core returns structured validation result
 ```
 
-### Retry Behavior
+## Legacy Note
 
-1. **Automatic Retry**: Errors with `retryable=true` are automatically retried
-2. **Exponential Backoff**: Delay increases exponentially between retries
-3. **Max Retries**: Configurable via `CCO_MAX_RETRIES` (default: 3)
-4. **Fallback**: After retry exhaustion, system falls back to alternative providers
-
-## MCP Tools
-
-| Tool | Description |
-|------|-------------|
-| `background_task` | Create and start an agent |
-| `background_output` | Check status or get result |
-| `background_cancel` | Cancel running agent |
-| `list_tasks` | Query agents by filter |
-| `share_context` | Store context data |
-| `get_context` | Retrieve context data |
-| `suggest_agent` | Route by intent analysis |
-| `ast_search` | Search code with AST patterns |
-| `ast_replace` | Replace code with AST patterns |
-
-## Configuration
-
-### Environment Variables
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `OPENAI_API_KEY` | - | OpenAI API key |
-| `ANTHROPIC_API_KEY` | - | Anthropic API key |
-| `GOOGLE_API_KEY` | - | Google AI API key |
-| `CCO_MAX_PARALLEL_AGENTS` | 5 | Max concurrent agents |
-| `CCO_MAX_RETRIES` | 3 | Max retry attempts |
-| `CCO_RETRY_INITIAL_DELAY_MS` | 1000 | Initial retry delay |
-| `CCO_RETRY_MAX_DELAY_MS` | 30000 | Max retry delay |
-| `CCO_RETRY_BACKOFF_MULTIPLIER` | 2 | Backoff multiplier |
-| `LOG_LEVEL` | info | Logging level |
-
-## Testing
-
-### Test Infrastructure
-
-- **API Cost Guard**: Blocks real API calls in tests
-- **Contract-Based Mocks**: Schema-validated mock implementations
-- **Cost Tracker**: Estimates API costs for awareness
-
-### Running Tests
-
-```bash
-npm test           # Run all tests
-npm run test:watch # Watch mode
-npm run lint       # Run linter
-npm run typecheck  # Type check
-npm run ci         # Full CI pipeline
-```
-
-## Design Patterns
-
-1. **Fire-and-Forget**: Non-blocking agent creation
-2. **Circuit Breaker**: Automatic provider failure handling
-3. **Retry with Backoff**: Resilient error recovery
-4. **Interface-First**: Clear contracts between components
-5. **Zod Validation**: Schema validation at boundaries
-6. **Session Isolation**: Context scoped to sessions
+The current repository still contains provider-specific files and tests. Those belong to the implementation being replaced and should be treated as migration targets, not the long-term architecture.

@@ -1,6 +1,9 @@
 # CC Orchestrator Development Guide
 
-MCP server for multi-LLM orchestration in Claude Code.
+Development guide for the runtime-first rewrite.
+
+The target product is a host-neutral orchestration core for coding agent CLIs.
+MCP remains the first host integration layer, but it is not the architectural center.
 
 ## Core Constraints
 
@@ -35,6 +38,16 @@ stderr = logging only (use Logger class)
 
 Using `console.log` breaks the MCP protocol. Always use `Logger`.
 
+### Rewrite Direction
+
+The repository still contains legacy provider-based code and Claude-specific setup flows.
+
+During the rewrite:
+
+- prefer runtime/session/debate terminology over provider/model terminology
+- keep `src/core/` independent from MCP specifics
+- treat `~/.claude/` installation paths as legacy migration targets, not future architecture
+
 ### Async Execution Pattern
 
 Agent execution follows **fire-and-forget** pattern:
@@ -46,7 +59,7 @@ const agent = await this.agentManager.createAgent(params);
 // Track Promise in executionPromises Map
 ```
 
-Claude Code must not block. Users can explicitly wait with `block=true`.
+The host must not block. Users can explicitly wait with `block=true`.
 
 ### Terminal States
 
@@ -157,7 +170,7 @@ import { Logger } from '../../infrastructure/Logger.js';
 
 ## Directory Structure
 
-```
+```text
 src/core/           # Pure business logic (no MCP dependency)
 src/server/         # MCP protocol handling
 src/types/          # Types + error definitions
@@ -166,46 +179,37 @@ src/infrastructure/ # Logging, common utilities
 
 `core/` must not import from `server/` (unidirectional dependency).
 
-## Extension Development Workflow
+## Migration Workflow
 
-When developing Claude Code extensions (Hook, Skill, Agent, MCP), follow this order:
+When developing the rewrite, follow this order:
 
 ### 1. Develop in Project (Source of Truth)
 
-```
-oh-my-claudecode/
-├── hooks/          # Hook scripts
-├── skills/         # Skill definitions
-├── src/            # MCP server/Agent
-└── scripts/        # Install/deploy scripts
+```text
+cc-orchestrator/
+├── src/core/       # Runtime-first orchestration core
+├── src/server/     # MCP host adapter
+├── src/types/      # Runtime/session/debate types
+└── scripts/        # Install/bootstrap scripts
 ```
 
 **All code is written and tested in this project first.**
 
-### 2. Install to Developer Environment
+### 2. Keep Host Adapters Thin
 
-```bash
-npm run setup        # Install to ~/.claude/
-npm run setup --force  # Force reinstall
-```
-
-Setup script copies/links project files to developer environment (`~/.claude/`).
+`src/server/` may evolve, but business rules belong in `src/core/`.
 
 ### 3. Development Cycle
 
 ```text
-[Edit in project] → [npm run setup] → [Test in Claude Code] → [Commit]
+[Edit in project] → [Run focused tests] → [Run full verification] → [Commit]
 ```
 
-**Never edit directly in `~/.claude/`.** Project is always the source of truth.
+Legacy installation steps that copy files into `~/.claude/` are migration notes only.
 
-### Directory Mapping
+### Legacy Install Mapping
 
-| Project | Install Location | Purpose |
-|---------|------------------|---------|
-| `hooks/` | `~/.claude/hooks/` | Hook scripts |
-| `skills/` | `~/.claude/skills/` | Skill definitions |
-| `hooks/config.json` | `~/.claude/settings.json` (merge) | Hook settings |
+The old `~/.claude/` mapping is still present in parts of the repository, but it should not guide new architecture decisions.
 
 ## Package Structure
 
@@ -299,7 +303,7 @@ LOG_LEVEL=debug npm run dev
 |---------|-------|----------|
 | MCP connection fails | stdout pollution | Remove console.log |
 | Agent fails | Missing API key | Check .env |
-| Timeout | Slow response | Increase CCO_TIMEOUT_SECONDS |
+| Session stalls | Adapter process is blocked | Check stderr logs and restart the session |
 
 ## Cost Reference
 

@@ -14,7 +14,7 @@ Exception: Language-specific README files (README.ko.md, etc.)
 
 **Always add language specifier to code blocks.**
 
-```markdown
+````markdown
 <!-- ✗ Bad -->
 ```
 const x = 1;
@@ -24,7 +24,7 @@ const x = 1;
 ```typescript
 const x = 1;
 ```
-```
+````
 
 ### MCP Protocol
 

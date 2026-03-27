@@ -278,6 +278,8 @@ export class AgentManager implements IAgentManager {
       error: agent.error,
       executionTimeMs: agent.executionTimeMs ?? 0,
       tokensUsed: agent.tokensUsed,
+      runtimeKind: agent.runtimeKind,
+      runtimeSessionId: agent.runtimeSessionId,
       fallbackInfo: agent.fallbackInfo,
     };
   }

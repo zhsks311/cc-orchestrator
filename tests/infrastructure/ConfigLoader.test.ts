@@ -101,6 +101,24 @@ describe('ConfigLoader', () => {
     expect(adapters.map((adapter) => adapter.id)).toEqual(['claude-code', 'codex']);
   });
 
+  it('should preserve file primary adapter when only fallback adapter is overridden by env', () => {
+    const configPath = createConfigFile({
+      defaults: {
+        primaryAdapter: 'claude-code',
+        fallbackAdapter: 'gemini-cli',
+      },
+    });
+
+    vi.stubEnv('CCO_CONFIG_PATH', configPath);
+    vi.stubEnv('CCO_FALLBACK_ADAPTER', 'codex');
+
+    const loader = new ConfigLoader();
+    const config = loader.getConfig();
+
+    expect(config.defaults.primaryAdapter).toBe('claude-code');
+    expect(config.defaults.fallbackAdapter).toBe('codex');
+  });
+
   it('should deep-merge adapter overrides and canonicalize adapter keys', () => {
     const configPath = createConfigFile({
       adapters: {

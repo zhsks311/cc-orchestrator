@@ -303,7 +303,7 @@ LOG_LEVEL=debug npm run dev
 |---------|-------|----------|
 | MCP connection fails | stdout pollution | Remove console.log |
 | Agent fails | Missing API key | Check .env |
-| Timeout | Slow response | Increase CCO_TIMEOUT_SECONDS |
+| Session stalls | Adapter process is blocked | Check stderr logs and restart the session |
 
 ## Cost Reference
 

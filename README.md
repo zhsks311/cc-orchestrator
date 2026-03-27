@@ -314,18 +314,26 @@ Native + MCP agents. Running in parallel. Maximum efficiency.
 
 ## 🔧 Configuration
 
-### Provider Priority
+### Adapter Defaults
 
-Customize who gets called first in `~/.cco/config.json`:
+Customize the preferred runtime adapters in `~/.cco/config.json`:
 
 ```json
 {
-  "providers": {
-    "priority": ["anthropic", "google", "openai"]
+  "defaults": {
+    "primaryAdapter": "codex",
+    "fallbackAdapter": "claude-code"
   },
-  "roles": {
-    "arch": {
-      "providers": ["openai", "anthropic"]
+  "adapters": {
+    "codex": {
+      "runtime": "codex",
+      "enabled": true,
+      "command": "codex"
+    },
+    "claude_code": {
+      "runtime": "claude-code",
+      "enabled": true,
+      "command": "claude"
     }
   }
 }
@@ -334,14 +342,11 @@ Customize who gets called first in `~/.cco/config.json`:
 ### Environment Variables
 
 ```bash
-# "Call Anthropic first, then Google, then OpenAI"
-export CCO_PROVIDER_PRIORITY=anthropic,google,openai
+# Override only the primary adapter
+export CCO_PRIMARY_ADAPTER=claude-code
 
-# "Arch specifically should try OpenAI, then Anthropic"
-export CCO_ARCH_PROVIDERS=openai,anthropic
-
-# "I have patience" (timeout in seconds)
-export CCO_TIMEOUT_SECONDS=300
+# Override only the fallback adapter
+export CCO_FALLBACK_ADAPTER=codex
 
 # Circuit Breaker Settings (NEW!)
 # How many failures before we give up on a provider (default: 5)
@@ -433,7 +438,7 @@ Options:
 | ----------------- | -------------------------- | ------------------------------------------------ |
 | MCP won't connect | Someone used `console.log` | Find it. Delete it. Never speak of this.         |
 | Agent stuck       | API being dramatic         | Check your keys. Check their status page. Curse. |
-| Timeout           | Model is "thinking"        | Increase `CCO_TIMEOUT_SECONDS`. Get coffee.      |
+| Session stalls    | Adapter CLI is blocked     | Inspect stderr logs, then restart the session    |
 | No response       | You broke it               | `LOG_LEVEL=debug npm run dev`, then panic        |
 
 ---

@@ -242,18 +242,26 @@ background_task(arch, "보안 리뷰해줘...")  // GPT-5.2
 
 ## 🔧 설정
 
-### 프로바이더 우선순위
+### 어댑터 기본값
 
-누가 먼저 호출될지 `~/.cco/config.json`에서 커스터마이징:
+선호하는 런타임 어댑터를 `~/.cco/config.json`에서 커스터마이징:
 
 ```json
 {
-  "providers": {
-    "priority": ["anthropic", "google", "openai"]
+  "defaults": {
+    "primaryAdapter": "codex",
+    "fallbackAdapter": "claude-code"
   },
-  "roles": {
-    "arch": {
-      "providers": ["openai", "anthropic"]
+  "adapters": {
+    "codex": {
+      "runtime": "codex",
+      "enabled": true,
+      "command": "codex"
+    },
+    "claude_code": {
+      "runtime": "claude-code",
+      "enabled": true,
+      "command": "claude"
     }
   }
 }
@@ -262,14 +270,15 @@ background_task(arch, "보안 리뷰해줘...")  // GPT-5.2
 ### 환경 변수
 
 ```bash
-# "Anthropic 먼저, 그 다음 Google, 그 다음 OpenAI"
-export CCO_PROVIDER_PRIORITY=anthropic,google,openai
+# primary adapter만 덮어쓰기
+export CCO_PRIMARY_ADAPTER=claude-code
 
-# "Arch는 특별히 OpenAI 먼저, 그 다음 Anthropic"
-export CCO_ARCH_PROVIDERS=openai,anthropic
+# fallback adapter만 덮어쓰기
+export CCO_FALLBACK_ADAPTER=codex
 
-# "나 인내심 있음" (타임아웃, 초 단위)
-export CCO_TIMEOUT_SECONDS=300
+# Circuit Breaker 설정
+export CCO_CIRCUIT_FAILURE_THRESHOLD=5
+export CCO_CIRCUIT_RESET_TIMEOUT=60000
 ```
 
 ---
@@ -353,7 +362,7 @@ npm run uninstall
 |------|------|------|
 | MCP 연결 안 됨 | 누군가 `console.log` 씀 | 찾아서. 지워. 이 얘기는 없었던 거야. |
 | 에이전트 멈춤 | API가 드라마 중 | 키 확인. 상태 페이지 확인. 욕하기. |
-| 타임아웃 | 모델이 "생각 중" | `CCO_TIMEOUT_SECONDS` 올려. 커피 마셔. |
+| 세션 멈춤 | adapter CLI가 입력 대기 중 | stderr 로그 확인 후 세션 다시 시작 |
 | 응답 없음 | 네가 망가뜨렸어 | `LOG_LEVEL=debug npm run dev`, 그리고 패닉 |
 
 ---

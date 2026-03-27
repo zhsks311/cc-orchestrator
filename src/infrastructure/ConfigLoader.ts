@@ -20,6 +20,16 @@ import { Logger } from './Logger.js';
 const CONFIG_DIR = '.cco';
 const CONFIG_FILE = 'config.json';
 
+type ConfigOverride = {
+  host?: CCOConfig['host'];
+  adapters?: Record<string, AdapterConfig>;
+  defaults?: Partial<CCOConfig['defaults']>;
+  debate?: Partial<CCOConfig['debate']>;
+  workspacePolicy?: Partial<CCOConfig['workspacePolicy']>;
+  logging?: Partial<CCOConfig['logging']>;
+  configPath?: string;
+};
+
 export class ConfigLoader {
   private config: CCOConfig;
   private logger: Logger;
@@ -81,7 +91,7 @@ export class ConfigLoader {
     return config;
   }
 
-  private loadFromFile(): Partial<CCOConfig> | null {
+  private loadFromFile(): ConfigOverride | null {
     const configPath = this.getConfigPath();
 
     if (!fs.existsSync(configPath)) {
@@ -93,7 +103,7 @@ export class ConfigLoader {
       const content = fs.readFileSync(configPath, 'utf-8');
       const parsed = JSON.parse(content);
 
-      const config: Partial<CCOConfig> = {
+      const config: ConfigOverride = {
         configPath,
       };
 
@@ -102,15 +112,18 @@ export class ConfigLoader {
       }
 
       if (parsed.defaults && typeof parsed.defaults === 'object') {
-        config.defaults = {
-          primaryAdapter: this.normalizeAdapterId(
-            String(parsed.defaults.primaryAdapter ?? 'codex')
-          ),
-          fallbackAdapter:
-            parsed.defaults.fallbackAdapter !== undefined
-              ? this.normalizeAdapterId(String(parsed.defaults.fallbackAdapter))
-              : undefined,
-        };
+        const defaults: ConfigOverride['defaults'] = {};
+        if (parsed.defaults.primaryAdapter !== undefined) {
+          defaults.primaryAdapter = this.normalizeAdapterId(String(parsed.defaults.primaryAdapter));
+        }
+        if (parsed.defaults.fallbackAdapter !== undefined) {
+          defaults.fallbackAdapter = this.normalizeAdapterId(
+            String(parsed.defaults.fallbackAdapter)
+          );
+        }
+        if (Object.keys(defaults).length > 0) {
+          config.defaults = defaults;
+        }
       }
 
       if (parsed.debate && typeof parsed.debate === 'object') {
@@ -159,19 +172,22 @@ export class ConfigLoader {
     }
   }
 
-  private loadFromEnv(): Partial<CCOConfig> | null {
+  private loadFromEnv(): ConfigOverride | null {
     const primaryAdapter = process.env.CCO_PRIMARY_ADAPTER;
     const fallbackAdapter = process.env.CCO_FALLBACK_ADAPTER;
     if (!primaryAdapter && !fallbackAdapter) {
       return null;
     }
 
-    const config: Partial<CCOConfig> = {
-      defaults: {
-        primaryAdapter: this.normalizeAdapterId(primaryAdapter ?? 'codex'),
-        fallbackAdapter: fallbackAdapter ? this.normalizeAdapterId(fallbackAdapter) : undefined,
-      },
-    };
+    const defaults: NonNullable<ConfigOverride['defaults']> = {};
+    if (primaryAdapter) {
+      defaults.primaryAdapter = this.normalizeAdapterId(primaryAdapter);
+    }
+    if (fallbackAdapter) {
+      defaults.fallbackAdapter = this.normalizeAdapterId(fallbackAdapter);
+    }
+
+    const config: ConfigOverride = { defaults };
 
     this.logger.debug('Config loaded from environment', {
       primaryAdapter,
@@ -181,7 +197,7 @@ export class ConfigLoader {
     return config;
   }
 
-  private mergeConfigs(base: CCOConfig, override: Partial<CCOConfig>): CCOConfig {
+  private mergeConfigs(base: CCOConfig, override: ConfigOverride): CCOConfig {
     const merged: CCOConfig = { ...base };
 
     if (override.host) {
@@ -192,12 +208,14 @@ export class ConfigLoader {
       merged.defaults = {
         ...base.defaults,
         ...override.defaults,
-        primaryAdapter: this.normalizeAdapterId(
-          override.defaults.primaryAdapter ?? base.defaults.primaryAdapter
-        ),
-        fallbackAdapter: override.defaults.fallbackAdapter
-          ? this.normalizeAdapterId(override.defaults.fallbackAdapter)
-          : base.defaults.fallbackAdapter,
+        primaryAdapter:
+          override.defaults.primaryAdapter !== undefined
+            ? this.normalizeAdapterId(override.defaults.primaryAdapter)
+            : base.defaults.primaryAdapter,
+        fallbackAdapter:
+          override.defaults.fallbackAdapter !== undefined
+            ? this.normalizeAdapterId(override.defaults.fallbackAdapter)
+            : base.defaults.fallbackAdapter,
       };
     }
 

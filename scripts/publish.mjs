@@ -1,9 +1,15 @@
 #!/usr/bin/env node
 /**
  * CC Orchestrator Publish Script
- * Publishes installer package to npm registry
+ * Local/manual fallback for publishing the installer package to npm.
  *
- * Features:
+ * Canonical release path:
+ *   - GitHub Actions -> "Publish to npm" workflow_dispatch job
+ *
+ * This script exists for troubleshooting and dry-run work when you need to
+ * reproduce the release flow locally.
+ *
+ * Behavior:
  *   - Runs tests and builds before publishing
  *   - Syncs version between root and installer package.json
  *   - Creates git tag and pushes to remote automatically

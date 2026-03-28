@@ -18,7 +18,7 @@ function extractPublishJobBlock(workflow: string): string {
   for (let index = publishJobIndex + 1; index < lines.length; index += 1) {
     const line = lines[index];
 
-    if (/^  [^\s].*:\s*$/.test(line)) {
+    if (/^\s{2}[^\s].*:\s*$/.test(line)) {
       break;
     }
 
@@ -93,30 +93,43 @@ describe('publish workflow', () => {
     const stepNames = getStepNames(publishJobBlock);
     const branchGuardIndex = stepNames.indexOf('Fail if workflow is not running on main');
     const checkoutIndex = stepNames.indexOf('Checkout');
-    const commitPushIndex = stepNames.indexOf('Commit and push release ref');
+    const pushReleaseRefIndex = stepNames.indexOf('Commit and push release ref');
     const publishIndex = stepNames.indexOf('Publish installer to npm');
     const cleanupIndex = stepNames.indexOf('Explain post-push cleanup');
-    const branchGuardBlock = extractStepBlock(publishJobBlock, 'Fail if workflow is not running on main');
+    const branchGuardBlock = extractStepBlock(
+      publishJobBlock,
+      'Fail if workflow is not running on main'
+    );
+    const pushReleaseRefBlock = extractStepBlock(publishJobBlock, 'Commit and push release ref');
     const cleanupBlock = extractStepBlock(publishJobBlock, 'Explain post-push cleanup');
 
     expect(branchGuardIndex).toBeGreaterThan(-1);
-    expect(branchGuardBlock).toContain('GITHUB_REF_NAME');
+    expect(branchGuardBlock).toContain('GITHUB_REF');
+    expect(branchGuardBlock).toContain('refs/heads/main');
+    expect(branchGuardBlock).toContain('if [ "${GITHUB_REF}" != "refs/heads/main" ]; then');
     expect(branchGuardBlock).toContain('exit 1');
     expect(branchGuardIndex).toBe(0);
     expect(branchGuardIndex).toBeLessThan(checkoutIndex);
-    expect(commitPushIndex).toBeGreaterThan(branchGuardIndex);
-    expect(publishIndex).toBeGreaterThan(commitPushIndex);
+    expect(pushReleaseRefIndex).toBeGreaterThan(branchGuardIndex);
+    expect(publishIndex).toBeGreaterThan(pushReleaseRefIndex);
     expect(cleanupIndex).toBeGreaterThan(publishIndex);
 
     expect(publishJobBlock).toContain('id: push_release_ref');
     expect(publishJobBlock).toContain('id: publish_to_npm');
-    expect(publishJobBlock).toContain("steps.push_release_ref.outcome == 'success'");
-    expect(publishJobBlock).toContain("steps.publish_to_npm.outcome == 'failure'");
+    expect(pushReleaseRefBlock).toContain('if ! git push --tags; then');
+    expect(pushReleaseRefBlock).toContain(
+      'git tag -d v${{ steps.version.outputs.version }} && git push --delete origin v${{ steps.version.outputs.version }}'
+    );
+    expect(pushReleaseRefBlock).toContain(
+      'Before the next release, revert the pushed release commit or recover from the same version baseline.'
+    );
+    expect(cleanupBlock).toContain("steps.push_release_ref.outcome == 'success'");
+    expect(cleanupBlock).toContain("steps.publish_to_npm.outcome == 'failure'");
     expect(cleanupBlock).toContain(
-      'That removes the tag only; it does not undo any release commit already pushed.',
+      'That removes the tag only; it does not undo any release commit already pushed.'
     );
     expect(cleanupBlock).toContain(
-      'Before the next release, revert the pushed release commit or recover from the same version baseline.',
+      'Before the next release, revert the pushed release commit or recover from the same version baseline.'
     );
   });
 });

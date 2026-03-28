@@ -23,8 +23,8 @@ jobs:
     steps:
       - name: Fail if workflow is not running on main
         run: |
-          if [ "${GITHUB_REF_NAME}" != "main" ]; then
-            echo "This workflow can only run on main."
+          if [ "${GITHUB_REF}" != "refs/heads/main" ]; then
+            echo "Releases must run from main. Current ref: ${GITHUB_REF}" >&2
             exit 1
           fi
 
@@ -83,7 +83,13 @@ jobs:
           git commit -m "chore: release v${{ steps.version.outputs.version }}"
           git tag -a "v${{ steps.version.outputs.version }}" -m "Release v${{ steps.version.outputs.version }}"
           git push
-          git push --tags
+          if ! git push --tags; then
+            echo "Tag push failed after the release commit may have been pushed."
+            echo "If needed, delete the tag with: git tag -d v${{ steps.version.outputs.version }} && git push --delete origin v${{ steps.version.outputs.version }}"
+            echo "That removes the tag only; it does not undo any release commit already pushed."
+            echo "Before the next release, revert the pushed release commit or recover from the same version baseline."
+            exit 1
+          fi
 
       - name: Publish installer to npm
         id: publish_to_npm
@@ -93,11 +99,11 @@ jobs:
       - name: Explain post-push cleanup
         if: ${{ failure() && steps.push_release_ref.outcome == 'success' && steps.publish_to_npm.outcome == 'failure' }}
         run: |
-          echo "npm publish failed after the release commit and tag were pushed."
-          echo "To clean up the tag locally and remotely:"
+          echo "Publish failed after pushing tag v${{ steps.version.outputs.version }}"
+          echo "If needed, delete the tag with: git tag -d v${{ steps.version.outputs.version }} && git push --delete origin v${{ steps.version.outputs.version }}"
+          echo "That removes the tag only; it does not undo any release commit already pushed."
           echo "  git tag -d v${{ steps.version.outputs.version }}"
           echo "  git push origin :refs/tags/v${{ steps.version.outputs.version }}"
-          echo "That removes the tag only; it does not undo any release commit already pushed."
           echo "Before the next release, revert the pushed release commit or recover from the same version baseline."
 
       - name: Create GitHub Release

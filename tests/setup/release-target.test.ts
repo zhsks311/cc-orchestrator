@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildCloneCommand,
+  buildUpgradeCommands,
   getReleaseTag,
   getLatestVersionTag,
   ensureTagPrefix,
@@ -21,5 +23,24 @@ describe('release-target helpers', () => {
 
   it('returns null when no version tags exist', () => {
     expect(getLatestVersionTag([])).toBeNull();
+  });
+});
+
+describe('tag-aware installer commands', () => {
+  it('clones a specific release tag', () => {
+    expect(
+      buildCloneCommand('https://github.com/zhsks311/cc-orchestrator.git', '/tmp/cco', 'v0.2.8')
+    ).toBe(
+      'git clone --branch v0.2.8 --depth 1 https://github.com/zhsks311/cc-orchestrator.git "/tmp/cco"'
+    );
+  });
+
+  it('upgrades an existing install to the requested tag', () => {
+    expect(buildUpgradeCommands('v0.2.8')).toEqual([
+      'git fetch --tags origin',
+      'git rev-parse -q --verify refs/tags/v0.2.8',
+      'git checkout --force v0.2.8',
+      'git reset --hard v0.2.8',
+    ]);
   });
 });

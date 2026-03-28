@@ -6,6 +6,19 @@ export function getReleaseTag(version) {
   return ensureTagPrefix(version.trim());
 }
 
+export function buildCloneCommand(repoUrl, installDir, releaseTag) {
+  return `git clone --branch ${releaseTag} --depth 1 ${repoUrl} "${installDir}"`;
+}
+
+export function buildUpgradeCommands(releaseTag) {
+  return [
+    'git fetch --tags origin',
+    `git rev-parse -q --verify refs/tags/${releaseTag}`,
+    `git checkout --force ${releaseTag}`,
+    `git reset --hard ${releaseTag}`,
+  ];
+}
+
 export function getLatestVersionTag(tags) {
   if (!Array.isArray(tags) || tags.length === 0) {
     return null;

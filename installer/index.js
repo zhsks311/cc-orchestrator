@@ -16,7 +16,11 @@ import * as os from 'os';
 import * as readline from 'readline';
 import { execSync, spawn } from 'child_process';
 import { fileURLToPath } from 'url';
-import { getReleaseTag } from './lib/release-target.js';
+import {
+  buildCloneCommand,
+  buildUpgradeCommands,
+  getReleaseTag,
+} from './lib/release-target.js';
 
 const REPO_URL = 'https://github.com/zhsks311/cc-orchestrator.git';
 const DEFAULT_INSTALL_DIR = path.join(os.homedir(), '.cc-orchestrator');
@@ -129,16 +133,25 @@ async function install(installDir) {
   // Step 1: Clone or pull
   console.log('─'.repeat(50));
   if (fs.existsSync(path.join(installDir, '.git'))) {
-    console.log('\n[1/3] Fetching latest code...\n');
-    // Use fetch + reset to handle local changes (e.g., package-lock.json from npm install)
-    exec('git fetch origin main', { cwd: installDir });
-    exec('git reset --hard origin/main', { cwd: installDir });
+    console.log(`\n[1/3] Checking out release ${RELEASE_TAG}...\n`);
+    for (const command of buildUpgradeCommands(RELEASE_TAG)) {
+      try {
+        exec(command, { cwd: installDir });
+      } catch (error) {
+        if (command === `git rev-parse -q --verify refs/tags/${RELEASE_TAG}`) {
+          throw new Error(
+            `Release tag ${RELEASE_TAG} is not available yet. Retry after the release publish finishes.`,
+          );
+        }
+        throw error;
+      }
+    }
   } else {
-    console.log('\n[1/3] Cloning repository...\n');
+    console.log(`\n[1/3] Cloning release ${RELEASE_TAG}...\n`);
     if (fs.existsSync(installDir)) {
       fs.rmSync(installDir, { recursive: true, force: true });
     }
-    exec(`git clone ${REPO_URL} "${installDir}"`);
+    exec(buildCloneCommand(REPO_URL, installDir, RELEASE_TAG));
   }
 
   // Step 2: npm install

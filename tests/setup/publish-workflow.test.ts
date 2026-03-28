@@ -117,6 +117,10 @@ describe('publish workflow', () => {
     expect(publishJobBlock).toContain('id: push_release_ref');
     expect(publishJobBlock).toContain('id: publish_to_npm');
     expect(pushReleaseRefBlock).toContain('if ! git push --tags; then');
+    expect(pushReleaseRefBlock).toContain('for lockfile in package-lock.json npm-shrinkwrap.json installer/package-lock.json installer/npm-shrinkwrap.json; do');
+    expect(pushReleaseRefBlock).toContain('if [ -f "$lockfile" ]; then');
+    expect(pushReleaseRefBlock).toContain('git add "$lockfile"');
+    expect(pushReleaseRefBlock).toContain('done');
     expect(pushReleaseRefBlock).toContain(
       'git tag -d v${{ steps.version.outputs.version }} && git push --delete origin v${{ steps.version.outputs.version }}'
     );

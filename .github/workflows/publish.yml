@@ -80,6 +80,11 @@ jobs:
         id: push_release_ref
         run: |
           git add package.json installer/package.json
+          for lockfile in package-lock.json npm-shrinkwrap.json installer/package-lock.json installer/npm-shrinkwrap.json; do
+            if [ -f "$lockfile" ]; then
+              git add "$lockfile"
+            fi
+          done
           git commit -m "chore: release v${{ steps.version.outputs.version }}"
           git tag -a "v${{ steps.version.outputs.version }}" -m "Release v${{ steps.version.outputs.version }}"
           git push

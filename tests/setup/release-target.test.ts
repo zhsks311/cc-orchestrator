@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
-  buildForcedSetupCommand,
+  buildSetupCommand,
   buildCloneCommand,
   buildRemoteTagCheckCommand,
   buildUpgradeCommands,
   getMissingReleaseTagErrorMessage,
   getLatestVersionTagFromOutput,
-  getLatestVersionTagFromRemoteRefsOutput,
+  getLatestReleaseFromRemoteRefsOutput,
   getReleaseTag,
   getLatestVersionTag,
   isReleaseCheckoutUpToDate,
@@ -38,7 +38,7 @@ describe('release-target helpers', () => {
     expect(getLatestVersionTagFromOutput(gitStdout)).toBe('v0.2.8');
   });
 
-  it('selects the latest semver tag from remote refs output', () => {
+  it('selects the latest semver tag and commit from remote refs output', () => {
     const remoteRefsOutput = [
       '1111111111111111111111111111111111111111\trefs/tags/v0.2.6',
       '2222222222222222222222222222222222222222\trefs/tags/v0.2.8',
@@ -47,7 +47,10 @@ describe('release-target helpers', () => {
       '5555555555555555555555555555555555555555\trefs/tags/v0.2.7',
     ].join('\n');
 
-    expect(getLatestVersionTagFromRemoteRefsOutput(remoteRefsOutput)).toBe('v0.2.8');
+    expect(getLatestReleaseFromRemoteRefsOutput(remoteRefsOutput)).toEqual({
+      tag: 'v0.2.8',
+      commit: '2222222222222222222222222222222222222222',
+    });
   });
 
   it('treats matching release names as stale when commits differ', () => {
@@ -81,8 +84,8 @@ describe('tag-aware installer commands', () => {
     ]);
   });
 
-  it('forces setup during update so dependencies are refreshed', () => {
-    expect(buildForcedSetupCommand()).toBe('npm run setup -- --yes --force');
+  it('delegates post-checkout work to plain setup', () => {
+    expect(buildSetupCommand()).toBe('npm run setup -- --yes');
   });
 });
 

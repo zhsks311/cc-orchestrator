@@ -13,9 +13,9 @@ import * as path from 'path';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
 import {
-  buildForcedSetupCommand,
+  buildSetupCommand,
   buildUpgradeCommands,
-  getLatestVersionTagFromRemoteRefsOutput,
+  getLatestReleaseFromRemoteRefsOutput,
   isReleaseCheckoutUpToDate,
 } from '../installer/lib/release-target.js';
 
@@ -51,20 +51,21 @@ function getLocalCommit() {
   }
 }
 
-function getRemoteVersionTag() {
+function getRemoteRelease() {
   try {
     const remoteRefsOutput = exec('git ls-remote --tags --refs origin', { stdio: 'pipe' });
-    return getLatestVersionTagFromRemoteRefsOutput(remoteRefsOutput);
+    return getLatestReleaseFromRemoteRefsOutput(remoteRefsOutput);
   } catch {
     return null;
   }
 }
 
-function getCommitForRef(ref) {
+function fetchRemoteTags() {
   try {
-    return exec(`git rev-parse ${ref}^{commit}`, { stdio: 'pipe' }).trim().slice(0, 7);
+    exec('git fetch --tags origin', { stdio: 'pipe' });
+    return true;
   } catch {
-    return null;
+    return false;
   }
 }
 
@@ -85,8 +86,9 @@ async function main() {
   const currentVersion = getCurrentVersion();
   const currentReleaseTag = `v${currentVersion}`;
   const localCommit = getLocalCommit();
-  const remoteTag = getRemoteVersionTag();
-  const remoteCommit = remoteTag ? getCommitForRef(remoteTag) : null;
+  const remoteRelease = getRemoteRelease();
+  const remoteTag = remoteRelease?.tag ?? null;
+  const remoteCommit = remoteRelease?.commit?.slice(0, 7) ?? null;
 
   console.log(`Current version: ${currentReleaseTag}`);
   console.log(`Local commit: ${localCommit || 'Unable to check'}`);
@@ -95,7 +97,13 @@ async function main() {
 
   if (!localCommit || !remoteTag || !remoteCommit) {
     console.log('\n⚠ Not a git repository or cannot resolve a published release tag.');
-    console.log('  Update manually after checking remote tags, then run: npm run setup -- --force\n');
+    console.log('  Update manually after checking remote tags, then run: npm install && npm run setup -- --yes\n');
+    process.exit(1);
+  }
+
+  if (!fetchRemoteTags()) {
+    console.log('\n⚠ Cannot fetch remote tag objects for checkout.');
+    console.log('  Update manually after checking remote tags, then run: npm install && npm run setup -- --yes\n');
     process.exit(1);
   }
 
@@ -138,7 +146,7 @@ async function main() {
   console.log('\n' + '═'.repeat(60));
   console.log('Starting update...\n');
 
-  console.log(`[1/3] Checking out latest release (${remoteTag})...`);
+  console.log(`[1/4] Checking out latest release (${remoteTag})...`);
   try {
     for (const command of buildUpgradeCommands(remoteTag)) {
       exec(command, { stdio: 'inherit' });
@@ -149,16 +157,25 @@ async function main() {
     process.exit(1);
   }
 
-  console.log(`[2/3] Running setup (${buildForcedSetupCommand()})...`);
+  console.log('[2/4] Updating dependencies (npm install)...');
   try {
-    execSync(buildForcedSetupCommand(), { cwd: rootDir, stdio: 'inherit' });
+    execSync('npm install', { cwd: rootDir, stdio: 'inherit' });
     console.log('      ✓ Done');
   } catch {
     console.error('      ✗ Failed');
     process.exit(1);
   }
 
-  console.log('[3/3] Refreshing version info...');
+  console.log(`[3/4] Running setup (${buildSetupCommand()})...`);
+  try {
+    execSync(buildSetupCommand(), { cwd: rootDir, stdio: 'inherit' });
+    console.log('      ✓ Done');
+  } catch {
+    console.error('      ✗ Failed');
+    process.exit(1);
+  }
+
+  console.log('[4/4] Refreshing version info...');
   const newVersion = getCurrentVersion();
   console.log(`      ✓ Current version: v${newVersion}`);
 

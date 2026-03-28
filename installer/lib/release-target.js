@@ -42,8 +42,8 @@ export function buildUpgradeCommands(releaseTag) {
   ];
 }
 
-export function buildForcedSetupCommand() {
-  return 'npm run setup -- --yes --force';
+export function buildSetupCommand() {
+  return 'npm run setup -- --yes';
 }
 
 export function getLatestVersionTag(tags) {
@@ -66,20 +66,33 @@ export function getLatestVersionTagFromOutput(output) {
   return getLatestVersionTag(output.split('\n').map((line) => line.trim()).filter(Boolean));
 }
 
-export function getLatestVersionTagFromRemoteRefsOutput(output) {
+export function getLatestReleaseFromRemoteRefsOutput(output) {
   if (typeof output !== 'string') {
     return null;
   }
 
-  const tags = output
+  const releases = output
     .split('\n')
     .map((line) => line.trim())
     .filter(Boolean)
-    .map((line) => line.split('\t')[1] ?? '')
-    .filter((ref) => ref.startsWith('refs/tags/'))
-    .map((ref) => ref.replace('refs/tags/', ''));
+    .map((line) => {
+      const [commit = '', ref = ''] = line.split('\t');
+      return {
+        commit,
+        tag: ref.startsWith('refs/tags/') ? ref.replace('refs/tags/', '') : '',
+      };
+    })
+    .filter((release) => /^v\d+\.\d+\.\d+$/.test(release.tag));
 
-  return getLatestVersionTag(tags);
+  if (releases.length === 0) {
+    return null;
+  }
+
+  return (
+    [...releases].sort((left, right) =>
+      right.tag.localeCompare(left.tag, undefined, { numeric: true })
+    )[0] ?? null
+  );
 }
 
 export function isReleaseCheckoutUpToDate(localCommit, releaseCommit) {

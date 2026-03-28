@@ -13,9 +13,10 @@ import * as path from 'path';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
 import {
+  buildReleaseCommitRef,
   buildSetupCommand,
   buildUpgradeCommands,
-  getLatestReleaseFromRemoteRefsOutput,
+  getLatestVersionTagFromRemoteRefsOutput,
   isReleaseCheckoutUpToDate,
 } from '../installer/lib/release-target.js';
 
@@ -54,7 +55,7 @@ function getLocalCommit() {
 function getRemoteRelease() {
   try {
     const remoteRefsOutput = exec('git ls-remote --tags --refs origin', { stdio: 'pipe' });
-    return getLatestReleaseFromRemoteRefsOutput(remoteRefsOutput);
+    return getLatestVersionTagFromRemoteRefsOutput(remoteRefsOutput);
   } catch {
     return null;
   }
@@ -66,6 +67,14 @@ function fetchRemoteTags() {
     return true;
   } catch {
     return false;
+  }
+}
+
+function getFetchedReleaseCommit(releaseTag) {
+  try {
+    return exec(`git rev-parse ${buildReleaseCommitRef(releaseTag)}`, { stdio: 'pipe' }).trim().slice(0, 7);
+  } catch {
+    return null;
   }
 }
 
@@ -86,9 +95,8 @@ async function main() {
   const currentVersion = getCurrentVersion();
   const currentReleaseTag = `v${currentVersion}`;
   const localCommit = getLocalCommit();
-  const remoteRelease = getRemoteRelease();
-  const remoteTag = remoteRelease?.tag ?? null;
-  const remoteCommit = remoteRelease?.commit?.slice(0, 7) ?? null;
+  const remoteTag = getRemoteRelease();
+  const remoteCommit = remoteTag && fetchRemoteTags() ? getFetchedReleaseCommit(remoteTag) : null;
 
   console.log(`Current version: ${currentReleaseTag}`);
   console.log(`Local commit: ${localCommit || 'Unable to check'}`);
@@ -97,12 +105,6 @@ async function main() {
 
   if (!localCommit || !remoteTag || !remoteCommit) {
     console.log('\n⚠ Not a git repository or cannot resolve a published release tag.');
-    console.log('  Update manually after checking remote tags, then run: npm install && npm run setup -- --yes\n');
-    process.exit(1);
-  }
-
-  if (!fetchRemoteTags()) {
-    console.log('\n⚠ Cannot fetch remote tag objects for checkout.');
     console.log('  Update manually after checking remote tags, then run: npm install && npm run setup -- --yes\n');
     process.exit(1);
   }

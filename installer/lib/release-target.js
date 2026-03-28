@@ -10,6 +10,10 @@ export function buildCloneCommand(repoUrl, installDir, releaseTag) {
   return `git clone --branch ${releaseTag} --depth 1 ${repoUrl} "${installDir}"`;
 }
 
+export function buildRemoteTagCheckCommand(repoUrl, releaseTag) {
+  return `git ls-remote --exit-code --tags ${repoUrl} refs/tags/${releaseTag}`;
+}
+
 export function buildUpgradeCommands(releaseTag) {
   return [
     'git fetch --tags origin',

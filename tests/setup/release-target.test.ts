@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildCloneCommand,
+  buildRemoteTagCheckCommand,
   buildUpgradeCommands,
   getReleaseTag,
   getLatestVersionTag,
@@ -32,6 +33,14 @@ describe('tag-aware installer commands', () => {
       buildCloneCommand('https://github.com/zhsks311/cc-orchestrator.git', '/tmp/cco', 'v0.2.8')
     ).toBe(
       'git clone --branch v0.2.8 --depth 1 https://github.com/zhsks311/cc-orchestrator.git "/tmp/cco"'
+    );
+  });
+
+  it('checks for a specific release tag on the remote', () => {
+    expect(
+      buildRemoteTagCheckCommand('https://github.com/zhsks311/cc-orchestrator.git', 'v0.2.8')
+    ).toBe(
+      'git ls-remote --exit-code --tags https://github.com/zhsks311/cc-orchestrator.git refs/tags/v0.2.8'
     );
   });
 

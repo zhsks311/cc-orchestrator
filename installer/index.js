@@ -18,6 +18,7 @@ import { execSync, spawn } from 'child_process';
 import { fileURLToPath } from 'url';
 import {
   buildCloneCommand,
+  buildRemoteTagCheckCommand,
   buildUpgradeCommands,
   getReleaseTag,
 } from './lib/release-target.js';
@@ -102,15 +103,20 @@ function exec(cmd, options = {}) {
   execSync(cmd, { stdio: 'inherit', ...options });
 }
 
-function isMissingReleaseTagError(error, releaseTag) {
-  const stderr = error?.stderr?.toString?.() ?? '';
-  const message = error?.message ?? '';
-  return (
-    stderr.includes(`Remote branch ${releaseTag} not found`) ||
-    stderr.includes(`refs/tags/${releaseTag}`) ||
-    message.includes(`Remote branch ${releaseTag} not found`) ||
-    message.includes(`refs/tags/${releaseTag}`)
-  );
+function ensureRemoteReleaseTagExists(releaseTag) {
+  try {
+    execSync(buildRemoteTagCheckCommand(REPO_URL, releaseTag), {
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+  } catch (error) {
+    if (error?.status === 2) {
+      throw new Error(
+        `Release tag ${releaseTag} is not available yet. Retry after the release publish finishes.`,
+      );
+    }
+
+    throw error;
+  }
 }
 
 function spawnAsync(cmd, args, options = {}) {
@@ -162,16 +168,8 @@ async function install(installDir) {
     if (fs.existsSync(installDir)) {
       fs.rmSync(installDir, { recursive: true, force: true });
     }
-    try {
-      exec(buildCloneCommand(REPO_URL, installDir, RELEASE_TAG));
-    } catch (error) {
-      if (isMissingReleaseTagError(error, RELEASE_TAG)) {
-        throw new Error(
-          `Release tag ${RELEASE_TAG} is not available yet. Retry after the release publish finishes.`,
-        );
-      }
-      throw error;
-    }
+    ensureRemoteReleaseTagExists(RELEASE_TAG);
+    exec(buildCloneCommand(REPO_URL, installDir, RELEASE_TAG));
   }
 
   // Step 2: npm install

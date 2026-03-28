@@ -56,6 +56,12 @@ function extractStepBlock(jobBlock: string, stepName: string): string {
 }
 
 describe('publish workflow', () => {
+  it('throws when publish job is missing', () => {
+    expect(() => extractPublishJobBlock('jobs:\n  other:\n    runs-on: ubuntu-latest\n')).toThrow(
+      'publish job not found'
+    );
+  });
+
   it('keeps release validation steps before Bump version', () => {
     const publishJobBlock = extractPublishJobBlock(publishWorkflow);
     const stepNames = getStepNames(publishJobBlock);

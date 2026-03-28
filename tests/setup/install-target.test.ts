@@ -109,5 +109,13 @@ describe('install-target helpers', () => {
     expect(() =>
       resolveInstallTargetAction({ installTarget: 'foreign_git', upgradeMode: true })
     ).toThrow('Upgrade mode is only supported for verified CC Orchestrator installations.');
+
+    expect(() =>
+      resolveInstallTargetAction({ installTarget: 'foreign_directory', upgradeMode: true })
+    ).toThrow('Upgrade mode is only supported for verified CC Orchestrator installations.');
+
+    expect(() =>
+      resolveInstallTargetAction({ installTarget: 'missing', upgradeMode: true })
+    ).toThrow('Upgrade mode is only supported for verified CC Orchestrator installations.');
   });
 });

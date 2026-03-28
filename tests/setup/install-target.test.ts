@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   classifyInstallTarget,
   isManagedInstallRemoteUrl,
+  resolveInstallTargetAction,
 } from '../../installer/lib/install-target.js';
 
 describe('install-target helpers', () => {
@@ -63,5 +64,48 @@ describe('install-target helpers', () => {
     expect(
       isManagedInstallRemoteUrl('ssh://git@github.com/zhsks311/cc-orchestrator.git')
     ).toBe(true);
+  });
+
+  it('routes missing targets to prompt-free fresh install', () => {
+    expect(resolveInstallTargetAction({ installTarget: 'missing', upgradeMode: false })).toEqual({
+      action: 'fresh_install',
+      confirmation: 'none',
+    });
+  });
+
+  it('routes managed installs to upgrade or managed overwrite prompts', () => {
+    expect(resolveInstallTargetAction({ installTarget: 'managed_install', upgradeMode: true })).toEqual({
+      action: 'upgrade_existing',
+      confirmation: 'none',
+    });
+
+    expect(resolveInstallTargetAction({ installTarget: 'managed_install', upgradeMode: false })).toEqual({
+      action: 'fresh_install',
+      confirmation: 'managed_overwrite',
+    });
+  });
+
+  it('requires explicit delete confirmation for foreign directories', () => {
+    expect(
+      resolveInstallTargetAction({ installTarget: 'foreign_directory', upgradeMode: false })
+    ).toEqual({
+      action: 'fresh_install',
+      confirmation: 'explicit_delete',
+    });
+  });
+
+  it('refuses foreign git repositories instead of deleting them', () => {
+    expect(
+      resolveInstallTargetAction({ installTarget: 'foreign_git', upgradeMode: false })
+    ).toEqual({
+      action: 'abort_foreign_git',
+      confirmation: 'none',
+    });
+  });
+
+  it('blocks upgrade mode before any destructive action on non-managed targets', () => {
+    expect(() =>
+      resolveInstallTargetAction({ installTarget: 'foreign_git', upgradeMode: true })
+    ).toThrow('Upgrade mode is only supported for verified CC Orchestrator installations.');
   });
 });

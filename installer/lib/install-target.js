@@ -55,3 +55,40 @@ export function classifyInstallTarget({
 
   return 'foreign_git';
 }
+
+export function resolveInstallTargetAction({ installTarget, upgradeMode }) {
+  if (upgradeMode && installTarget !== 'managed_install') {
+    throw new Error('Upgrade mode is only supported for verified CC Orchestrator installations.');
+  }
+
+  if (installTarget === 'missing') {
+    return {
+      action: 'fresh_install',
+      confirmation: 'none',
+    };
+  }
+
+  if (installTarget === 'managed_install') {
+    return upgradeMode
+      ? {
+          action: 'upgrade_existing',
+          confirmation: 'none',
+        }
+      : {
+          action: 'fresh_install',
+          confirmation: 'managed_overwrite',
+        };
+  }
+
+  if (installTarget === 'foreign_directory') {
+    return {
+      action: 'fresh_install',
+      confirmation: 'explicit_delete',
+    };
+  }
+
+  return {
+    action: 'abort_foreign_git',
+    confirmation: 'none',
+  };
+}

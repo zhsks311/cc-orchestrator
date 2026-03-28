@@ -24,7 +24,7 @@ import {
   runExistingInstallUpgradeWorkflow,
   runFreshInstallWorkflow,
 } from './lib/release-target.js';
-import { classifyInstallTarget } from './lib/install-target.js';
+import { classifyInstallTarget, resolveInstallTargetAction } from './lib/install-target.js';
 
 const REPO_URL = 'https://github.com/zhsks311/cc-orchestrator.git';
 const DEFAULT_INSTALL_DIR = path.join(os.homedir(), '.cc-orchestrator');
@@ -162,17 +162,23 @@ async function install(installDir) {
     remoteOriginUrl: installDirExists ? readRemoteOriginUrl(installDir) : null,
     packageJsonName: installDirExists ? readPackageJsonName(installDir) : null,
   });
-
-  if (upgradeMode && installTarget !== 'managed_install') {
-    throw new Error('Upgrade mode is only supported for verified CC Orchestrator installations.');
-  }
+  const installAction = resolveInstallTargetAction({ installTarget, upgradeMode });
 
   if (installDirExists) {
-    if (upgradeMode) {
+    if (installAction.action === 'upgrade_existing') {
       console.log('📦 Existing installation found - upgrade mode\n');
-    } else {
+    } else if (installAction.confirmation === 'managed_overwrite') {
       const answer = await question('⚠️  Already installed. Overwrite? (y/N): ');
       if (answer.toLowerCase() !== 'y') {
+        console.log('\nInstallation cancelled.');
+        console.log('To upgrade: npx cc-orchestrator@latest --upgrade\n');
+        process.exit(0);
+      }
+    } else if (installAction.confirmation === 'explicit_delete') {
+      const answer = await question(
+        '⚠️  Existing directory is not managed by CC Orchestrator and will be deleted. Type DELETE to continue: '
+      );
+      if (answer !== 'DELETE') {
         console.log('\nInstallation cancelled.');
         console.log('To upgrade: npx cc-orchestrator@latest --upgrade\n');
         process.exit(0);
@@ -180,9 +186,15 @@ async function install(installDir) {
     }
   }
 
+  if (installAction.action === 'abort_foreign_git') {
+    throw new Error(
+      'This directory is a git repository that is not managed by CC Orchestrator. Refusing to delete it.'
+    );
+  }
+
   // Step 1: Clone or pull
   console.log('─'.repeat(50));
-  if (installTarget === 'managed_install') {
+  if (installAction.action === 'upgrade_existing') {
     console.log(`\n[1/3] Checking out release ${RELEASE_TAG}...\n`);
     runExistingInstallUpgradeWorkflow({
       releaseTag: RELEASE_TAG,

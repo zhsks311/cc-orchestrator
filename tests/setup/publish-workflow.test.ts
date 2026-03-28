@@ -116,6 +116,16 @@ describe('publish workflow', () => {
 
     expect(publishJobBlock).toContain('id: push_release_ref');
     expect(publishJobBlock).toContain('id: publish_to_npm');
+    const lockfileLoopStart = pushReleaseRefBlock.indexOf(
+      'for lockfile in package-lock.json npm-shrinkwrap.json installer/package-lock.json installer/npm-shrinkwrap.json; do'
+    );
+    const commitStart = pushReleaseRefBlock.indexOf(
+      'git commit -m "chore: release v${{ steps.version.outputs.version }}"'
+    );
+
+    expect(lockfileLoopStart).toBeGreaterThan(-1);
+    expect(commitStart).toBeGreaterThan(-1);
+    expect(lockfileLoopStart).toBeLessThan(commitStart);
     expect(pushReleaseRefBlock).toContain('if ! git push --tags; then');
     expect(pushReleaseRefBlock).toContain('for lockfile in package-lock.json npm-shrinkwrap.json installer/package-lock.json installer/npm-shrinkwrap.json; do');
     expect(pushReleaseRefBlock).toContain('if [ -f "$lockfile" ]; then');

@@ -151,7 +151,7 @@ function checkPackageJson() {
   }
 }
 
-function publish() {
+function publish(version, tagPushed = false) {
   log('Publishing to npm...');
 
   const publishCmd = dryRun ? 'npm publish --dry-run' : 'npm publish';
@@ -164,6 +164,13 @@ function publish() {
       log('Published successfully!', 'success');
     }
   } catch (error) {
+    if (tagPushed) {
+      log(`Publish failed after pushing tag v${version}`, 'error');
+      log(
+        `Rollback manually if needed: git tag -d v${version} && git push --delete origin v${version}`,
+        'info'
+      );
+    }
     log(`Publish failed: ${error.message}`, 'error');
     throw error;
   }
@@ -180,6 +187,7 @@ function createGitTag(version) {
     log(`Created tag v${version}`, 'success');
   } catch (error) {
     log(`Failed to create git tag: ${error.message}`, 'warn');
+    throw error;
   }
 }
 
@@ -194,6 +202,7 @@ function pushToRemote(version) {
   } catch (error) {
     log(`Failed to push: ${error.message}`, 'warn');
     log('Manual push required: git push && git push --tags', 'info');
+    throw error;
   }
 }
 
@@ -251,21 +260,22 @@ async function main() {
     console.log('');
   }
 
-  // Step 5: Publish
-  checkPackageJson();
-  publish();
-  console.log('');
-
-  // Step 6: Create git tag (if version was bumped)
+  // Step 5: Create git tag and push first (if version was bumped)
   if (bumpType && !dryRun) {
     createGitTag(version);
     console.log('');
 
-    // Step 7: Push to remote
     pushToRemote(version);
     console.log('');
+  }
 
-    // Step 8: Create GitHub Release
+  // Step 6: Publish
+  checkPackageJson();
+  publish(version, bumpType && !dryRun);
+  console.log('');
+
+  // Step 7: Create GitHub Release
+  if (bumpType && !dryRun) {
     createGitHubRelease(version);
   }
 

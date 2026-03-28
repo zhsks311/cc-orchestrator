@@ -1,6 +1,6 @@
 # cc-orchestrator
 
-One-line installer for [CC Orchestrator](https://github.com/zhsks311/cc-orchestratorestrator) - Multi-model orchestration for Claude Code.
+One-line installer for [CC Orchestrator](https://github.com/zhsks311/cc-orchestrator) - Multi-model orchestration for Claude Code.
 
 ## Quick Start
 
@@ -9,21 +9,22 @@ npx cc-orchestrator
 ```
 
 That's it! The installer will:
-1. Clone the repository to `~/.cc-orchestratorestrator`
-2. Install dependencies
-3. Run the interactive setup wizard
-4. Configure Claude Code automatically
+1. Clone the repository to `~/.cc-orchestrator`
+2. Check out the released git tag that matches the installer version
+3. Install dependencies
+4. Run the interactive setup wizard
+5. Configure Claude Code automatically
 
 ## Usage
 
 ```bash
-# Install to default location (~/.cc-orchestratorestrator)
+# Install to default location (~/.cc-orchestrator)
 npx cc-orchestrator
 
 # Install to custom directory
 npx cc-orchestrator ./my-cco
 
-# Update existing installation
+# Update existing installation to the latest published release tag
 npx cc-orchestrator --upgrade
 
 # Force reinstall all components
@@ -44,9 +45,11 @@ npx cc-orchestrator --force
 npx cc-orchestrator --upgrade
 
 # Option 2: Use npm script
-cd ~/.cc-orchestratorestrator
+cd ~/.cc-orchestrator
 npm run update
 ```
+
+`npm run update` checks out the latest release tag again, then runs `npm install` and `npm run setup -- --yes`.
 
 ## Requirements
 

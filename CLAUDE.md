@@ -244,15 +244,18 @@ installer/index.js runs
     ↓
 git clone GitHub repo → ~/.cc-orchestrator/
     ↓
+checkout release tag for the installer version
+    ↓
 npm install && npm run setup
     ↓
 Components installed to ~/.claude/
 ```
 
-The installer uses **git clone** (not npm install) because:
+The installer still uses **git clone** (not npm install) because:
 - Hooks, skills, agents need to be copied to `~/.claude/`
 - MCP server runs from `~/.cc-orchestrator/`
 - Simple npm package can't handle this setup
+- The cloned repo is pinned to a release tag and no longer tracks `origin/main`
 
 ### Version Sync
 

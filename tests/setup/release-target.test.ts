@@ -15,7 +15,7 @@ describe('release-target helpers', () => {
   });
 
   it('selects the latest semver tag from git output', () => {
-    const gitTagList = ['v0.2.8', 'v0.2.7', 'v0.2.6'];
+    const gitTagList = ['noise', 'v0.2.6', 'v0.2.8', 'v0.2.7', 'v0.2.8-rc.1'];
     expect(getLatestVersionTag(gitTagList)).toBe('v0.2.8');
   });
 

@@ -102,6 +102,17 @@ function exec(cmd, options = {}) {
   execSync(cmd, { stdio: 'inherit', ...options });
 }
 
+function isMissingReleaseTagError(error, releaseTag) {
+  const stderr = error?.stderr?.toString?.() ?? '';
+  const message = error?.message ?? '';
+  return (
+    stderr.includes(`Remote branch ${releaseTag} not found`) ||
+    stderr.includes(`refs/tags/${releaseTag}`) ||
+    message.includes(`Remote branch ${releaseTag} not found`) ||
+    message.includes(`refs/tags/${releaseTag}`)
+  );
+}
+
 function spawnAsync(cmd, args, options = {}) {
   return new Promise((resolve, reject) => {
     const proc = spawn(cmd, args, { stdio: 'inherit', shell: true, ...options });
@@ -151,7 +162,16 @@ async function install(installDir) {
     if (fs.existsSync(installDir)) {
       fs.rmSync(installDir, { recursive: true, force: true });
     }
-    exec(buildCloneCommand(REPO_URL, installDir, RELEASE_TAG));
+    try {
+      exec(buildCloneCommand(REPO_URL, installDir, RELEASE_TAG));
+    } catch (error) {
+      if (isMissingReleaseTagError(error, RELEASE_TAG)) {
+        throw new Error(
+          `Release tag ${RELEASE_TAG} is not available yet. Retry after the release publish finishes.`,
+        );
+      }
+      throw error;
+    }
   }
 
   // Step 2: npm install

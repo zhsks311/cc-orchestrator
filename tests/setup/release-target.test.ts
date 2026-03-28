@@ -5,6 +5,7 @@ import {
   buildSetupCommand,
   buildCloneCommand,
   buildRemoteTagCheckCommand,
+  getLatestPublishedInstallerReleaseTagFromOutput,
   buildUpgradeCommands,
   getMissingReleaseTagErrorMessage,
   getLatestVersionTagFromOutput,
@@ -50,6 +51,10 @@ describe('release-target helpers', () => {
     ].join('\n');
 
     expect(getLatestVersionTagFromRemoteRefsOutput(remoteRefsOutput)).toBe('v0.2.8');
+  });
+
+  it('maps npm-published installer version output to a release tag', () => {
+    expect(getLatestPublishedInstallerReleaseTagFromOutput('"0.2.8"')).toBe('v0.2.8');
   });
 
   it('uses peeled commit refs for annotated release tags', () => {

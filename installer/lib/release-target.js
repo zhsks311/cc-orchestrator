@@ -90,6 +90,28 @@ export function getLatestVersionTagFromRemoteRefsOutput(output) {
   return getLatestVersionTag(tags);
 }
 
+export function getLatestPublishedInstallerReleaseTagFromOutput(output) {
+  if (typeof output !== 'string') {
+    return null;
+  }
+
+  const trimmed = output.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(trimmed);
+    if (typeof parsed === 'string' && parsed.trim()) {
+      return getReleaseTag(parsed);
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
 export function isReleaseCheckoutUpToDate(localCommit, releaseCommit) {
   return Boolean(localCommit && releaseCommit && localCommit === releaseCommit);
 }

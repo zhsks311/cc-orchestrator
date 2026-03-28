@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * CC Orchestrator Update Script
- * Fetch and update to the latest released tag from the remote repository
+ * Fetch and update to the latest npm-published release tag
  *
  * Usage:
  *   npm run update              # Run update
@@ -16,7 +16,7 @@ import {
   buildReleaseCommitLookupArgs,
   buildSetupCommand,
   buildUpgradeCommands,
-  getLatestVersionTagFromRemoteRefsOutput,
+  getLatestPublishedInstallerReleaseTagFromOutput,
   isReleaseCheckoutUpToDate,
 } from '../installer/lib/release-target.js';
 
@@ -52,10 +52,10 @@ function getLocalCommit() {
   }
 }
 
-function getRemoteRelease() {
+function getLatestPublishedReleaseTag() {
   try {
-    const remoteRefsOutput = exec('git ls-remote --tags --refs origin', { stdio: 'pipe' });
-    return getLatestVersionTagFromRemoteRefsOutput(remoteRefsOutput);
+    const npmVersionOutput = exec('npm view cc-orchestrator version --json', { stdio: 'pipe' });
+    return getLatestPublishedInstallerReleaseTagFromOutput(npmVersionOutput);
   } catch {
     return null;
   }
@@ -101,21 +101,22 @@ async function main() {
   const currentVersion = getCurrentVersion();
   const currentReleaseTag = `v${currentVersion}`;
   const localCommit = getLocalCommit();
-  const remoteTag = getRemoteRelease();
-  const remoteCommit = remoteTag && fetchRemoteTags() ? getFetchedReleaseCommit(remoteTag) : null;
+  const latestReleaseTag = getLatestPublishedReleaseTag();
+  const latestReleaseCommit =
+    latestReleaseTag && fetchRemoteTags() ? getFetchedReleaseCommit(latestReleaseTag) : null;
 
   console.log(`Current version: ${currentReleaseTag}`);
   console.log(`Local commit: ${localCommit || 'Unable to check'}`);
-  console.log(`Latest release: ${remoteTag || 'Unable to check'}`);
-  console.log(`Release commit: ${remoteCommit || 'Unable to check'}`);
+  console.log(`Latest release: ${latestReleaseTag || 'Unable to check'}`);
+  console.log(`Release commit: ${latestReleaseCommit || 'Unable to check'}`);
 
-  if (!localCommit || !remoteTag || !remoteCommit) {
+  if (!localCommit || !latestReleaseTag || !latestReleaseCommit) {
     console.log('\n⚠ Not a git repository or cannot resolve a published release tag.');
     console.log('  Update manually after checking remote tags, then run: npm install && npm run setup -- --yes\n');
     process.exit(1);
   }
 
-  if (isReleaseCheckoutUpToDate(localCommit, remoteCommit)) {
+  if (isReleaseCheckoutUpToDate(localCommit, latestReleaseCommit)) {
     console.log('\n✅ Already up to date.\n');
     process.exit(0);
   }
@@ -123,7 +124,7 @@ async function main() {
   console.log('\n📦 New update available!');
 
   try {
-    const log = exec(`git log ${localCommit}..${remoteTag} --oneline`, { stdio: 'pipe' });
+    const log = exec(`git log ${localCommit}..${latestReleaseTag} --oneline`, { stdio: 'pipe' });
     if (log.trim()) {
       console.log('\nChangelog:');
       log
@@ -154,9 +155,9 @@ async function main() {
   console.log('\n' + '═'.repeat(60));
   console.log('Starting update...\n');
 
-  console.log(`[1/4] Checking out latest release (${remoteTag})...`);
+  console.log(`[1/4] Checking out latest release (${latestReleaseTag})...`);
   try {
-    for (const command of buildUpgradeCommands(remoteTag)) {
+    for (const command of buildUpgradeCommands(latestReleaseTag)) {
       exec(command, { stdio: 'inherit' });
     }
     console.log('      ✓ Done');

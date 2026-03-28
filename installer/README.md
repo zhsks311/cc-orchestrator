@@ -5,7 +5,7 @@ One-line installer for [CC Orchestrator](https://github.com/zhsks311/cc-orchestr
 ## Quick Start
 
 ```bash
-npx cc-orchestrator
+npx cc-orchestrator@latest
 ```
 
 That's it! The installer will:
@@ -19,16 +19,16 @@ That's it! The installer will:
 
 ```bash
 # Install to default location (~/.cc-orchestrator)
-npx cc-orchestrator
+npx cc-orchestrator@latest
 
 # Install to custom directory
-npx cc-orchestrator ./my-cco
+npx cc-orchestrator@latest ./my-cco
 
 # Update existing installation to the latest published release tag
-npx cc-orchestrator --upgrade
+npx cc-orchestrator@latest --upgrade
 
 # Force reinstall all components
-npx cc-orchestrator --force
+npx cc-orchestrator@latest --force
 ```
 
 ## After Installation
@@ -42,7 +42,7 @@ npx cc-orchestrator --force
 
 ```bash
 # Option 1: Use npx
-npx cc-orchestrator --upgrade
+npx cc-orchestrator@latest --upgrade
 
 # Option 2: Use npm script
 cd ~/.cc-orchestrator

@@ -167,9 +167,10 @@ function publish(version, tagPushed = false) {
     if (tagPushed) {
       log(`Publish failed after pushing tag v${version}`, 'error');
       log(
-        `Rollback manually if needed: git tag -d v${version} && git push --delete origin v${version}`,
+        `If needed, delete the tag with: git tag -d v${version} && git push --delete origin v${version}`,
         'info'
       );
+      log('That removes the tag only; it does not undo any release commit already pushed.', 'info');
     }
     log(`Publish failed: ${error.message}`, 'error');
     throw error;

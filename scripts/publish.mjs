@@ -43,7 +43,7 @@ const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
 // Parse args
 const args = process.argv.slice(2);
 const dryRun = args.includes('--dry-run');
-const bumpType = args.find(a => ['patch', 'minor', 'major'].includes(a));
+const bumpType = args.find((a) => ['patch', 'minor', 'major'].includes(a));
 
 function log(message, type = 'info') {
   const prefix = {
@@ -95,13 +95,16 @@ function checkPrerequisites() {
   }
 
   // 3. Check if on main branch (from root)
-  const branch = exec('git branch --show-current', { cwd: rootDir, silent: true, stdio: 'pipe' }).trim();
+  const branch = exec('git branch --show-current', {
+    cwd: rootDir,
+    silent: true,
+    stdio: 'pipe',
+  }).trim();
   if (branch !== 'main' && branch !== 'master') {
     log(`Current branch is '${branch}', not main/master`, 'warn');
   } else {
     log(`On branch: ${branch}`, 'success');
   }
-
 }
 
 function runTests() {
@@ -221,10 +224,9 @@ function createGitHubRelease(version) {
     exec('gh --version', { cwd: rootDir, silent: true, stdio: 'pipe' });
 
     // Create release with auto-generated notes
-    exec(
-      `gh release create v${version} --title "v${version}" --generate-notes --latest`,
-      { cwd: rootDir }
-    );
+    exec(`gh release create v${version} --title "v${version}" --generate-notes --latest`, {
+      cwd: rootDir,
+    });
     log(`GitHub Release v${version} created`, 'success');
   } catch (error) {
     if (error.message?.includes('gh')) {

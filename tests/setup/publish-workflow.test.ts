@@ -127,7 +127,9 @@ describe('publish workflow', () => {
     expect(commitStart).toBeGreaterThan(-1);
     expect(lockfileLoopStart).toBeLessThan(commitStart);
     expect(pushReleaseRefBlock).toContain('if ! git push --tags; then');
-    expect(pushReleaseRefBlock).toContain('for lockfile in package-lock.json npm-shrinkwrap.json installer/package-lock.json installer/npm-shrinkwrap.json; do');
+    expect(pushReleaseRefBlock).toContain(
+      'for lockfile in package-lock.json npm-shrinkwrap.json installer/package-lock.json installer/npm-shrinkwrap.json; do'
+    );
     expect(pushReleaseRefBlock).toContain('if [ -f "$lockfile" ]; then');
     expect(pushReleaseRefBlock).toContain('git add "$lockfile"');
     expect(pushReleaseRefBlock).toContain('done');

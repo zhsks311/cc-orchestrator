@@ -57,13 +57,11 @@ describe('install-target helpers', () => {
   });
 
   it('accepts matching repo slugs for https and ssh remotes', () => {
-    expect(
-      isManagedInstallRemoteUrl('https://github.com/zhsks311/cc-orchestrator.git')
-    ).toBe(true);
+    expect(isManagedInstallRemoteUrl('https://github.com/zhsks311/cc-orchestrator.git')).toBe(true);
     expect(isManagedInstallRemoteUrl('git@github.com:zhsks311/cc-orchestrator.git')).toBe(true);
-    expect(
-      isManagedInstallRemoteUrl('ssh://git@github.com/zhsks311/cc-orchestrator.git')
-    ).toBe(true);
+    expect(isManagedInstallRemoteUrl('ssh://git@github.com/zhsks311/cc-orchestrator.git')).toBe(
+      true
+    );
   });
 
   it('routes missing targets to prompt-free fresh install', () => {
@@ -74,12 +72,16 @@ describe('install-target helpers', () => {
   });
 
   it('routes managed installs to upgrade or managed overwrite prompts', () => {
-    expect(resolveInstallTargetAction({ installTarget: 'managed_install', upgradeMode: true })).toEqual({
+    expect(
+      resolveInstallTargetAction({ installTarget: 'managed_install', upgradeMode: true })
+    ).toEqual({
       action: 'upgrade_existing',
       confirmation: 'none',
     });
 
-    expect(resolveInstallTargetAction({ installTarget: 'managed_install', upgradeMode: false })).toEqual({
+    expect(
+      resolveInstallTargetAction({ installTarget: 'managed_install', upgradeMode: false })
+    ).toEqual({
       action: 'fresh_install',
       confirmation: 'managed_overwrite',
     });

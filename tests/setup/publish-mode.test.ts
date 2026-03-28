@@ -46,7 +46,9 @@ describe('publish script guard', () => {
     });
 
     expect(result.status).toBe(1);
-    expect(result.stdout).toContain('Refusing to publish v0.2.8 from the local/manual fallback without a version bump.');
+    expect(result.stdout).toContain(
+      'Refusing to publish v0.2.8 from the local/manual fallback without a version bump.'
+    );
     expect(result.stdout).toContain('GitHub Actions "Publish to npm" workflow_dispatch job');
     expect(result.stdout).toContain('or run with --dry-run to preview v0.2.8.');
     expect(result.stdout).not.toContain('Checking prerequisites...');

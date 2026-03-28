@@ -92,11 +92,17 @@ describe('publish workflow', () => {
     const publishJobBlock = extractPublishJobBlock(publishWorkflow);
     const stepNames = getStepNames(publishJobBlock);
     const branchGuardIndex = stepNames.indexOf('Fail if workflow is not running on main');
+    const buildIndex = stepNames.indexOf('Build');
     const commitPushIndex = stepNames.indexOf('Commit and push release ref');
     const publishIndex = stepNames.indexOf('Publish installer to npm');
     const cleanupIndex = stepNames.indexOf('Explain post-push cleanup');
+    const branchGuardBlock = extractStepBlock(publishJobBlock, 'Fail if workflow is not running on main');
+    const cleanupBlock = extractStepBlock(publishJobBlock, 'Explain post-push cleanup');
 
     expect(branchGuardIndex).toBeGreaterThan(-1);
+    expect(branchGuardBlock).toContain('GITHUB_REF_NAME');
+    expect(branchGuardBlock).toContain('exit 1');
+    expect(branchGuardIndex).toBeLessThan(buildIndex);
     expect(commitPushIndex).toBeGreaterThan(branchGuardIndex);
     expect(publishIndex).toBeGreaterThan(commitPushIndex);
     expect(cleanupIndex).toBeGreaterThan(publishIndex);
@@ -105,8 +111,11 @@ describe('publish workflow', () => {
     expect(publishJobBlock).toContain('id: publish_to_npm');
     expect(publishJobBlock).toContain("steps.push_release_ref.outcome == 'success'");
     expect(publishJobBlock).toContain("steps.publish_to_npm.outcome == 'failure'");
-    expect(publishJobBlock).toContain(
+    expect(cleanupBlock).toContain(
       'That removes the tag only; it does not undo any release commit already pushed.',
+    );
+    expect(cleanupBlock).toContain(
+      'Before the next release, revert the pushed release commit or recover from the same version baseline.',
     );
   });
 });

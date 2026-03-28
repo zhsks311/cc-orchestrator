@@ -19,10 +19,12 @@ import { fileURLToPath } from 'url';
 import {
   buildCloneCommand,
   buildRemoteTagCheckCommand,
+  getMissingReleaseTagErrorMessage,
   getReleaseTag,
   runExistingInstallUpgradeWorkflow,
   runFreshInstallWorkflow,
 } from './lib/release-target.js';
+import { classifyInstallTarget } from './lib/install-target.js';
 
 const REPO_URL = 'https://github.com/zhsks311/cc-orchestrator.git';
 const DEFAULT_INSTALL_DIR = path.join(os.homedir(), '.cc-orchestrator');
@@ -118,6 +120,27 @@ function ensureRemoteReleaseTagExists(releaseTag) {
   }
 }
 
+function readPackageJsonName(installDir) {
+  try {
+    const packageJson = JSON.parse(fs.readFileSync(path.join(installDir, 'package.json'), 'utf8'));
+    return typeof packageJson?.name === 'string' ? packageJson.name : null;
+  } catch {
+    return null;
+  }
+}
+
+function readRemoteOriginUrl(installDir) {
+  try {
+    return execSync('git config --get remote.origin.url', {
+      cwd: installDir,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    }).trim();
+  } catch {
+    return null;
+  }
+}
+
 function spawnAsync(cmd, args, options = {}) {
   return new Promise((resolve, reject) => {
     const proc = spawn(cmd, args, { stdio: 'inherit', shell: true, ...options });
@@ -132,8 +155,19 @@ function spawnAsync(cmd, args, options = {}) {
 async function install(installDir) {
   console.log(`\n📁 Install path: ${installDir}\n`);
 
-  // Check if directory exists
-  if (fs.existsSync(installDir)) {
+  const installDirExists = fs.existsSync(installDir);
+  const installTarget = classifyInstallTarget({
+    installDirExists,
+    gitDirExists: fs.existsSync(path.join(installDir, '.git')),
+    remoteOriginUrl: installDirExists ? readRemoteOriginUrl(installDir) : null,
+    packageJsonName: installDirExists ? readPackageJsonName(installDir) : null,
+  });
+
+  if (upgradeMode && installTarget !== 'managed_install') {
+    throw new Error('Upgrade mode is only supported for verified CC Orchestrator installations.');
+  }
+
+  if (installDirExists) {
     if (upgradeMode) {
       console.log('📦 Existing installation found - upgrade mode\n');
     } else {
@@ -148,7 +182,7 @@ async function install(installDir) {
 
   // Step 1: Clone or pull
   console.log('─'.repeat(50));
-  if (fs.existsSync(path.join(installDir, '.git'))) {
+  if (installTarget === 'managed_install') {
     console.log(`\n[1/3] Checking out release ${RELEASE_TAG}...\n`);
     runExistingInstallUpgradeWorkflow({
       releaseTag: RELEASE_TAG,
@@ -158,7 +192,6 @@ async function install(installDir) {
     });
   } else {
     console.log(`\n[1/3] Cloning release ${RELEASE_TAG}...\n`);
-    const installDirExists = fs.existsSync(installDir);
     await runFreshInstallWorkflow({
       installDirExists,
       ensureRemoteReleaseTagExists: () => ensureRemoteReleaseTagExists(RELEASE_TAG),

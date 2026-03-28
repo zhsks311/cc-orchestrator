@@ -3,9 +3,11 @@ import {
   buildCloneCommand,
   buildRemoteTagCheckCommand,
   buildUpgradeCommands,
+  getMissingReleaseTagErrorMessage,
   getReleaseTag,
   getLatestVersionTag,
   ensureTagPrefix,
+  runFreshInstallWorkflow,
 } from '../../installer/lib/release-target.js';
 
 describe('release-target helpers', () => {
@@ -51,5 +53,49 @@ describe('tag-aware installer commands', () => {
       'git checkout --force v0.2.8',
       'git reset --hard v0.2.8',
     ]);
+  });
+});
+
+describe('fresh install workflow', () => {
+  it('preflights the remote tag before removing an existing install directory', async () => {
+    const calls: string[] = [];
+
+    await runFreshInstallWorkflow({
+      installDirExists: true,
+      ensureRemoteReleaseTagExists: async () => {
+        calls.push('preflight');
+      },
+      removeExistingInstallDir: () => {
+        calls.push('remove');
+      },
+      cloneRelease: async () => {
+        calls.push('clone');
+      },
+    });
+
+    expect(calls).toEqual(['preflight', 'remove', 'clone']);
+  });
+
+  it('does not remove the install directory when remote tag preflight fails', async () => {
+    const calls: string[] = [];
+    const missingTagError = getMissingReleaseTagErrorMessage('v0.2.8');
+
+    await expect(
+      runFreshInstallWorkflow({
+        installDirExists: true,
+        ensureRemoteReleaseTagExists: async () => {
+          calls.push('preflight');
+          throw new Error(missingTagError);
+        },
+        removeExistingInstallDir: () => {
+          calls.push('remove');
+        },
+        cloneRelease: async () => {
+          calls.push('clone');
+        },
+      })
+    ).rejects.toThrow(missingTagError);
+
+    expect(calls).toEqual(['preflight']);
   });
 });

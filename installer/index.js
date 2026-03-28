@@ -20,7 +20,9 @@ import {
   buildCloneCommand,
   buildRemoteTagCheckCommand,
   buildUpgradeCommands,
+  getMissingReleaseTagErrorMessage,
   getReleaseTag,
+  runFreshInstallWorkflow,
 } from './lib/release-target.js';
 
 const REPO_URL = 'https://github.com/zhsks311/cc-orchestrator.git';
@@ -110,9 +112,7 @@ function ensureRemoteReleaseTagExists(releaseTag) {
     });
   } catch (error) {
     if (error?.status === 2) {
-      throw new Error(
-        `Release tag ${releaseTag} is not available yet. Retry after the release publish finishes.`,
-      );
+      throw new Error(getMissingReleaseTagErrorMessage(releaseTag));
     }
 
     throw error;
@@ -156,20 +156,22 @@ async function install(installDir) {
         exec(command, { cwd: installDir });
       } catch (error) {
         if (command === `git rev-parse -q --verify refs/tags/${RELEASE_TAG}`) {
-          throw new Error(
-            `Release tag ${RELEASE_TAG} is not available yet. Retry after the release publish finishes.`,
-          );
+          throw new Error(getMissingReleaseTagErrorMessage(RELEASE_TAG));
         }
         throw error;
       }
     }
   } else {
     console.log(`\n[1/3] Cloning release ${RELEASE_TAG}...\n`);
-    if (fs.existsSync(installDir)) {
-      fs.rmSync(installDir, { recursive: true, force: true });
-    }
-    ensureRemoteReleaseTagExists(RELEASE_TAG);
-    exec(buildCloneCommand(REPO_URL, installDir, RELEASE_TAG));
+    const installDirExists = fs.existsSync(installDir);
+    await runFreshInstallWorkflow({
+      installDirExists,
+      ensureRemoteReleaseTagExists: () => ensureRemoteReleaseTagExists(RELEASE_TAG),
+      removeExistingInstallDir: () => {
+        fs.rmSync(installDir, { recursive: true, force: true });
+      },
+      cloneRelease: () => exec(buildCloneCommand(REPO_URL, installDir, RELEASE_TAG)),
+    });
   }
 
   // Step 2: npm install

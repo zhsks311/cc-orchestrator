@@ -14,6 +14,25 @@ export function buildRemoteTagCheckCommand(repoUrl, releaseTag) {
   return `git ls-remote --exit-code --tags ${repoUrl} refs/tags/${releaseTag}`;
 }
 
+export function getMissingReleaseTagErrorMessage(releaseTag) {
+  return `Release tag ${releaseTag} is not available yet. Retry after the release publish finishes.`;
+}
+
+export async function runFreshInstallWorkflow({
+  installDirExists,
+  ensureRemoteReleaseTagExists,
+  removeExistingInstallDir,
+  cloneRelease,
+}) {
+  await ensureRemoteReleaseTagExists();
+
+  if (installDirExists) {
+    removeExistingInstallDir();
+  }
+
+  await cloneRelease();
+}
+
 export function buildUpgradeCommands(releaseTag) {
   return [
     'git fetch --tags origin',

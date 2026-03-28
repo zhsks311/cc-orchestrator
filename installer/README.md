@@ -24,7 +24,7 @@ npx cc-orchestrator@latest
 # Install to custom directory
 npx cc-orchestrator@latest ./my-cco
 
-# Update existing installation to the latest published release tag
+# Update existing installation via the latest npm-published installer version
 npx cc-orchestrator@latest --upgrade
 
 # Force reinstall all components
@@ -49,7 +49,7 @@ cd ~/.cc-orchestrator
 npm run update
 ```
 
-`npm run update` checks out the latest release tag again, then runs `npm install` and `npm run setup -- --yes`.
+`npm run update` checks the npm registry for the latest installer version, checks out the matching release tag, then runs `npm install` and `npm run setup -- --yes`.
 
 ## Requirements
 

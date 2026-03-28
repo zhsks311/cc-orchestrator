@@ -112,7 +112,9 @@ async function main() {
 
   if (!localCommit || !latestReleaseTag || !latestReleaseCommit) {
     console.log('\n⚠ Not a git repository or cannot resolve a published release tag.');
-    console.log('  Update manually after checking remote tags, then run: npm install && npm run setup -- --yes\n');
+    console.log(
+      '  Update manually after checking the npm registry latest installer version, then run: npm install && npm run setup -- --yes\n'
+    );
     process.exit(1);
   }
 

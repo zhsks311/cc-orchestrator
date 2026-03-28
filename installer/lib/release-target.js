@@ -42,6 +42,10 @@ export function buildUpgradeCommands(releaseTag) {
   ];
 }
 
+export function buildForcedSetupCommand() {
+  return 'npm run setup -- --yes --force';
+}
+
 export function getLatestVersionTag(tags) {
   if (!Array.isArray(tags) || tags.length === 0) {
     return null;
@@ -60,6 +64,22 @@ export function getLatestVersionTagFromOutput(output) {
   }
 
   return getLatestVersionTag(output.split('\n').map((line) => line.trim()).filter(Boolean));
+}
+
+export function getLatestVersionTagFromRemoteRefsOutput(output) {
+  if (typeof output !== 'string') {
+    return null;
+  }
+
+  const tags = output
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => line.split('\t')[1] ?? '')
+    .filter((ref) => ref.startsWith('refs/tags/'))
+    .map((ref) => ref.replace('refs/tags/', ''));
+
+  return getLatestVersionTag(tags);
 }
 
 export function isReleaseCheckoutUpToDate(localCommit, releaseCommit) {

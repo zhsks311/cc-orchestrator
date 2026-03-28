@@ -13,8 +13,9 @@ import * as path from 'path';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
 import {
+  buildForcedSetupCommand,
   buildUpgradeCommands,
-  getLatestVersionTagFromOutput,
+  getLatestVersionTagFromRemoteRefsOutput,
   isReleaseCheckoutUpToDate,
 } from '../installer/lib/release-target.js';
 
@@ -52,9 +53,8 @@ function getLocalCommit() {
 
 function getRemoteVersionTag() {
   try {
-    exec('git fetch --tags origin', { stdio: 'pipe' });
-    const tagOutput = exec("git tag --list 'v*' --sort=-version:refname", { stdio: 'pipe' });
-    return getLatestVersionTagFromOutput(tagOutput);
+    const remoteRefsOutput = exec('git ls-remote --tags --refs origin', { stdio: 'pipe' });
+    return getLatestVersionTagFromRemoteRefsOutput(remoteRefsOutput);
   } catch {
     return null;
   }
@@ -149,9 +149,9 @@ async function main() {
     process.exit(1);
   }
 
-  console.log('[2/3] Running setup (npm run setup -- --yes)...');
+  console.log(`[2/3] Running setup (${buildForcedSetupCommand()})...`);
   try {
-    execSync('npm run setup -- --yes', { cwd: rootDir, stdio: 'inherit' });
+    execSync(buildForcedSetupCommand(), { cwd: rootDir, stdio: 'inherit' });
     console.log('      ✓ Done');
   } catch {
     console.error('      ✗ Failed');

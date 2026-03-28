@@ -53,3 +53,11 @@ export function getLatestVersionTag(tags) {
       .sort((left, right) => right.localeCompare(left, undefined, { numeric: true }))[0] ?? null
   );
 }
+
+export function getLatestVersionTagFromOutput(output) {
+  if (typeof output !== 'string') {
+    return null;
+  }
+
+  return getLatestVersionTag(output.split('\n').map((line) => line.trim()).filter(Boolean));
+}

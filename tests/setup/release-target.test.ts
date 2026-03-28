@@ -4,6 +4,7 @@ import {
   buildRemoteTagCheckCommand,
   buildUpgradeCommands,
   getMissingReleaseTagErrorMessage,
+  getLatestVersionTagFromOutput,
   getReleaseTag,
   getLatestVersionTag,
   ensureTagPrefix,
@@ -26,6 +27,12 @@ describe('release-target helpers', () => {
 
   it('returns null when no version tags exist', () => {
     expect(getLatestVersionTag([])).toBeNull();
+  });
+
+  it('selects the latest semver tag from git stdout', () => {
+    const gitStdout = '\nnoise\nv0.2.6\nv0.2.8\nv0.2.8-rc.1\nv0.2.7\n';
+
+    expect(getLatestVersionTagFromOutput(gitStdout)).toBe('v0.2.8');
   });
 });
 

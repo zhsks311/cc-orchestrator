@@ -15,6 +15,7 @@ import { execSync } from 'child_process';
 import {
   buildUpgradeCommands,
   getLatestVersionTagFromOutput,
+  isReleaseCheckoutUpToDate,
 } from '../installer/lib/release-target.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -98,7 +99,7 @@ async function main() {
     process.exit(1);
   }
 
-  if (currentReleaseTag === remoteTag) {
+  if (isReleaseCheckoutUpToDate(localCommit, remoteCommit)) {
     console.log('\n✅ Already up to date.\n');
     process.exit(0);
   }
@@ -137,7 +138,7 @@ async function main() {
   console.log('\n' + '═'.repeat(60));
   console.log('Starting update...\n');
 
-  console.log(`[1/4] Checking out latest release (${remoteTag})...`);
+  console.log(`[1/3] Checking out latest release (${remoteTag})...`);
   try {
     for (const command of buildUpgradeCommands(remoteTag)) {
       exec(command, { stdio: 'inherit' });
@@ -148,16 +149,7 @@ async function main() {
     process.exit(1);
   }
 
-  console.log('[2/4] Updating dependencies (npm install)...');
-  try {
-    execSync('npm install', { cwd: rootDir, stdio: 'inherit' });
-    console.log('      ✓ Done');
-  } catch {
-    console.error('      ✗ Failed');
-    process.exit(1);
-  }
-
-  console.log('[3/4] Running setup (npm run setup -- --yes)...');
+  console.log('[2/3] Running setup (npm run setup -- --yes)...');
   try {
     execSync('npm run setup -- --yes', { cwd: rootDir, stdio: 'inherit' });
     console.log('      ✓ Done');
@@ -166,7 +158,7 @@ async function main() {
     process.exit(1);
   }
 
-  console.log('[4/4] Refreshing version info...');
+  console.log('[3/3] Refreshing version info...');
   const newVersion = getCurrentVersion();
   console.log(`      ✓ Current version: v${newVersion}`);
 

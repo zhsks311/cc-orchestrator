@@ -7,6 +7,7 @@ import {
   getLatestVersionTagFromOutput,
   getReleaseTag,
   getLatestVersionTag,
+  isReleaseCheckoutUpToDate,
   ensureTagPrefix,
   runFreshInstallWorkflow,
 } from '../../installer/lib/release-target.js';
@@ -33,6 +34,10 @@ describe('release-target helpers', () => {
     const gitStdout = '\nnoise\nv0.2.6\nv0.2.8\nv0.2.8-rc.1\nv0.2.7\n';
 
     expect(getLatestVersionTagFromOutput(gitStdout)).toBe('v0.2.8');
+  });
+
+  it('treats matching release names as stale when commits differ', () => {
+    expect(isReleaseCheckoutUpToDate('abc1234', 'def5678')).toBe(false);
   });
 });
 

@@ -61,3 +61,7 @@ export function getLatestVersionTagFromOutput(output) {
 
   return getLatestVersionTag(output.split('\n').map((line) => line.trim()).filter(Boolean));
 }
+
+export function isReleaseCheckoutUpToDate(localCommit, releaseCommit) {
+  return Boolean(localCommit && releaseCommit && localCommit === releaseCommit);
+}

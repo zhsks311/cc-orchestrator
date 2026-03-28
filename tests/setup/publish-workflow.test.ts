@@ -87,4 +87,26 @@ describe('publish workflow', () => {
 
     expect(setupNodeBlock).toContain("cache: 'npm'");
   });
+
+  it('guards publish flow on main and preserves release cleanup guidance', () => {
+    const publishJobBlock = extractPublishJobBlock(publishWorkflow);
+    const stepNames = getStepNames(publishJobBlock);
+    const branchGuardIndex = stepNames.indexOf('Fail if workflow is not running on main');
+    const commitPushIndex = stepNames.indexOf('Commit and push release ref');
+    const publishIndex = stepNames.indexOf('Publish installer to npm');
+    const cleanupIndex = stepNames.indexOf('Explain post-push cleanup');
+
+    expect(branchGuardIndex).toBeGreaterThan(-1);
+    expect(commitPushIndex).toBeGreaterThan(branchGuardIndex);
+    expect(publishIndex).toBeGreaterThan(commitPushIndex);
+    expect(cleanupIndex).toBeGreaterThan(publishIndex);
+
+    expect(publishJobBlock).toContain('id: push_release_ref');
+    expect(publishJobBlock).toContain('id: publish_to_npm');
+    expect(publishJobBlock).toContain("steps.push_release_ref.outcome == 'success'");
+    expect(publishJobBlock).toContain("steps.publish_to_npm.outcome == 'failure'");
+    expect(publishJobBlock).toContain(
+      'That removes the tag only; it does not undo any release commit already pushed.',
+    );
+  });
 });

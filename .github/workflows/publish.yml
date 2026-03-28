@@ -59,6 +59,13 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
+      - name: Fail if workflow is not running on main
+        run: |
+          if [ "${GITHUB_REF_NAME}" != "main" ]; then
+            echo "This workflow can only run on main."
+            exit 1
+          fi
+
       - name: Bump version
         id: version
         run: |
@@ -69,7 +76,8 @@ jobs:
           npm version $NEW_VERSION --no-git-tag-version --allow-same-version
           echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
 
-      - name: Commit and push
+      - name: Commit and push release ref
+        id: push_release_ref
         run: |
           git add package.json installer/package.json
           git commit -m "chore: release v${{ steps.version.outputs.version }}"
@@ -77,9 +85,19 @@ jobs:
           git push
           git push --tags
 
-      - name: Publish to npm
+      - name: Publish installer to npm
+        id: publish_to_npm
         working-directory: installer
         run: npm publish --provenance --access public
+
+      - name: Explain post-push cleanup
+        if: ${{ failure() && steps.push_release_ref.outcome == 'success' && steps.publish_to_npm.outcome == 'failure' }}
+        run: |
+          echo "npm publish failed after the release commit and tag were pushed."
+          echo "To clean up the tag locally and remotely:"
+          echo "  git tag -d v${{ steps.version.outputs.version }}"
+          echo "  git push origin :refs/tags/v${{ steps.version.outputs.version }}"
+          echo "That removes the tag only; it does not undo any release commit already pushed."
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1

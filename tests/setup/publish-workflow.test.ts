@@ -92,7 +92,7 @@ describe('publish workflow', () => {
     const publishJobBlock = extractPublishJobBlock(publishWorkflow);
     const stepNames = getStepNames(publishJobBlock);
     const branchGuardIndex = stepNames.indexOf('Fail if workflow is not running on main');
-    const buildIndex = stepNames.indexOf('Build');
+    const checkoutIndex = stepNames.indexOf('Checkout');
     const commitPushIndex = stepNames.indexOf('Commit and push release ref');
     const publishIndex = stepNames.indexOf('Publish installer to npm');
     const cleanupIndex = stepNames.indexOf('Explain post-push cleanup');
@@ -102,7 +102,8 @@ describe('publish workflow', () => {
     expect(branchGuardIndex).toBeGreaterThan(-1);
     expect(branchGuardBlock).toContain('GITHUB_REF_NAME');
     expect(branchGuardBlock).toContain('exit 1');
-    expect(branchGuardIndex).toBeLessThan(buildIndex);
+    expect(branchGuardIndex).toBe(0);
+    expect(branchGuardIndex).toBeLessThan(checkoutIndex);
     expect(commitPushIndex).toBeGreaterThan(branchGuardIndex);
     expect(publishIndex).toBeGreaterThan(commitPushIndex);
     expect(cleanupIndex).toBeGreaterThan(publishIndex);

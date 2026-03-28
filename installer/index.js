@@ -15,9 +15,16 @@ import * as path from 'path';
 import * as os from 'os';
 import * as readline from 'readline';
 import { execSync, spawn } from 'child_process';
+import { fileURLToPath } from 'url';
+import { getReleaseTag } from './lib/release-target.js';
 
 const REPO_URL = 'https://github.com/zhsks311/cc-orchestrator.git';
 const DEFAULT_INSTALL_DIR = path.join(os.homedir(), '.cc-orchestrator');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const installerPackageJson = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
+const INSTALLER_VERSION = installerPackageJson.version;
+const RELEASE_TAG = getReleaseTag(INSTALLER_VERSION);
 
 // Parse arguments
 const args = process.argv.slice(2);

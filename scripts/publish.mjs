@@ -6,21 +6,19 @@
  * Canonical release path:
  *   - GitHub Actions -> "Publish to npm" workflow_dispatch job
  *
- * This script exists for troubleshooting and dry-run work when you need to
- * reproduce the release flow locally.
+ * Supported local modes:
+ *   - npm run publish -- --dry-run     # preview the current version
+ *   - npm run publish -- patch|minor|major
  *
- * Behavior:
- *   - Runs tests and builds before publishing
- *   - Syncs version between root and installer package.json
- *   - Creates git tag and pushes to remote automatically
- *   - Creates GitHub Release with auto-generated notes
+ * Unsupported local mode:
+ *   - npm run publish                  # real publish without a version bump
+ *     Use the GitHub Actions workflow instead.
  *
  * Usage:
- *   npm run publish              # Publish current version
+ *   npm run publish -- --dry-run # Preview current version without publishing
  *   npm run publish -- patch     # Bump patch version and publish
  *   npm run publish -- minor     # Bump minor version and publish
  *   npm run publish -- major     # Bump major version and publish
- *   npm run publish -- --dry-run # Preview without publishing
  *
  * Prerequisites:
  *   - npm login (authenticated to npm registry)
@@ -31,6 +29,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import { execSync, spawnSync } from 'child_process';
+import { assertSupportedPublishMode } from './lib/publish-mode.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -45,6 +44,11 @@ const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
 const args = process.argv.slice(2);
 const dryRun = args.includes('--dry-run');
 const bumpType = args.find(a => ['patch', 'minor', 'major'].includes(a));
+assertSupportedPublishMode({
+  version: packageJson.version,
+  dryRun,
+  bumpType,
+});
 
 function log(message, type = 'info') {
   const prefix = {

@@ -77,6 +77,12 @@ MCP is still the first public interface because it is a practical way for a main
 
 ## 🚀 Installation
 
+### Installer Semantics
+
+- `npx cc-orchestrator@latest` installs the released git tag that matches that npm installer version, not `main`.
+- `npx cc-orchestrator@latest --upgrade` moves an existing install to the release tag for the latest npm-published installer version.
+- `npm run update` checks npm registry for the latest installer version, checks out the matching release tag, then reruns `npm install` and `npm run setup -- --yes`.
+
 ### Current Rewrite Status
 
 The repository is in the middle of a runtime-first rewrite. The public direction is stable, but some sections below still describe the legacy provider-based implementation. Treat those sections as migration notes until the rewrite lands.

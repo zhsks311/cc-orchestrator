@@ -1,20 +1,24 @@
 #!/usr/bin/env node
 /**
  * CC Orchestrator Publish Script
- * Publishes installer package to npm registry
+ * Local/manual fallback for publishing the installer package to npm.
  *
- * Features:
- *   - Runs tests and builds before publishing
- *   - Syncs version between root and installer package.json
- *   - Creates git tag and pushes to remote automatically
- *   - Creates GitHub Release with auto-generated notes
+ * Canonical release path:
+ *   - GitHub Actions -> "Publish to npm" workflow_dispatch job
+ *
+ * Supported local modes:
+ *   - npm run publish -- --dry-run     # preview the current version
+ *   - npm run publish -- patch|minor|major
+ *
+ * Unsupported local mode:
+ *   - npm run publish                  # real publish without a version bump
+ *     Use the GitHub Actions workflow instead.
  *
  * Usage:
- *   npm run publish              # Publish current version
+ *   npm run publish -- --dry-run # Preview current version without publishing
  *   npm run publish -- patch     # Bump patch version and publish
  *   npm run publish -- minor     # Bump minor version and publish
  *   npm run publish -- major     # Bump major version and publish
- *   npm run publish -- --dry-run # Preview without publishing
  *
  * Prerequisites:
  *   - npm login (authenticated to npm registry)
@@ -25,6 +29,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import { execSync, spawnSync } from 'child_process';
+import { assertSupportedPublishMode } from './lib/publish-mode.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -38,7 +43,7 @@ const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
 // Parse args
 const args = process.argv.slice(2);
 const dryRun = args.includes('--dry-run');
-const bumpType = args.find(a => ['patch', 'minor', 'major'].includes(a));
+const bumpType = args.find((a) => ['patch', 'minor', 'major'].includes(a));
 
 function log(message, type = 'info') {
   const prefix = {
@@ -90,13 +95,16 @@ function checkPrerequisites() {
   }
 
   // 3. Check if on main branch (from root)
-  const branch = exec('git branch --show-current', { cwd: rootDir, silent: true, stdio: 'pipe' }).trim();
+  const branch = exec('git branch --show-current', {
+    cwd: rootDir,
+    silent: true,
+    stdio: 'pipe',
+  }).trim();
   if (branch !== 'main' && branch !== 'master') {
     log(`Current branch is '${branch}', not main/master`, 'warn');
   } else {
     log(`On branch: ${branch}`, 'success');
   }
-
 }
 
 function runTests() {
@@ -151,7 +159,7 @@ function checkPackageJson() {
   }
 }
 
-function publish() {
+function publish(version, tagPushed = false) {
   log('Publishing to npm...');
 
   const publishCmd = dryRun ? 'npm publish --dry-run' : 'npm publish';
@@ -164,6 +172,14 @@ function publish() {
       log('Published successfully!', 'success');
     }
   } catch (error) {
+    if (tagPushed) {
+      log(`Publish failed after pushing tag v${version}`, 'error');
+      log(
+        `If needed, delete the tag with: git tag -d v${version} && git push --delete origin v${version}`,
+        'info'
+      );
+      log('That removes the tag only; it does not undo any release commit already pushed.', 'info');
+    }
     log(`Publish failed: ${error.message}`, 'error');
     throw error;
   }
@@ -180,6 +196,7 @@ function createGitTag(version) {
     log(`Created tag v${version}`, 'success');
   } catch (error) {
     log(`Failed to create git tag: ${error.message}`, 'warn');
+    throw error;
   }
 }
 
@@ -194,6 +211,7 @@ function pushToRemote(version) {
   } catch (error) {
     log(`Failed to push: ${error.message}`, 'warn');
     log('Manual push required: git push && git push --tags', 'info');
+    throw error;
   }
 }
 
@@ -206,10 +224,9 @@ function createGitHubRelease(version) {
     exec('gh --version', { cwd: rootDir, silent: true, stdio: 'pipe' });
 
     // Create release with auto-generated notes
-    exec(
-      `gh release create v${version} --title "v${version}" --generate-notes --latest`,
-      { cwd: rootDir }
-    );
+    exec(`gh release create v${version} --title "v${version}" --generate-notes --latest`, {
+      cwd: rootDir,
+    });
     log(`GitHub Release v${version} created`, 'success');
   } catch (error) {
     if (error.message?.includes('gh')) {
@@ -226,6 +243,12 @@ async function main() {
   console.log('  CC Orchestrator - Publish Script');
   console.log('  Target: installer/ -> npm cc-orchestrator');
   console.log('='.repeat(60) + '\n');
+
+  assertSupportedPublishMode({
+    version: packageJson.version,
+    dryRun,
+    bumpType,
+  });
 
   if (dryRun) {
     log('DRY RUN MODE - No actual publish will occur', 'warn');
@@ -251,21 +274,22 @@ async function main() {
     console.log('');
   }
 
-  // Step 5: Publish
-  checkPackageJson();
-  publish();
-  console.log('');
-
-  // Step 6: Create git tag (if version was bumped)
+  // Step 5: Create git tag and push first (if version was bumped)
   if (bumpType && !dryRun) {
     createGitTag(version);
     console.log('');
 
-    // Step 7: Push to remote
     pushToRemote(version);
     console.log('');
+  }
 
-    // Step 8: Create GitHub Release
+  // Step 6: Publish
+  checkPackageJson();
+  publish(version, bumpType && !dryRun);
+  console.log('');
+
+  // Step 7: Create GitHub Release
+  if (bumpType && !dryRun) {
     createGitHubRelease(version);
   }
 

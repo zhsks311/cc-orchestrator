@@ -244,15 +244,18 @@ installer/index.js runs
     ↓
 git clone GitHub repo → ~/.cc-orchestrator/
     ↓
+checkout release tag for the installer version
+    ↓
 npm install && npm run setup
     ↓
 Components installed to ~/.claude/
 ```
 
-The installer uses **git clone** (not npm install) because:
+The installer still uses **git clone** (not npm install) because:
 - Hooks, skills, agents need to be copied to `~/.claude/`
 - MCP server runs from `~/.cc-orchestrator/`
 - Simple npm package can't handle this setup
+- The cloned repo is pinned to a release tag and no longer tracks `origin/main`
 
 ### Version Sync
 
@@ -260,24 +263,28 @@ Both package.json files must have the **same version**. GitHub Actions handles t
 
 ## npm Publishing
 
+Official release path:
+
+1. Open GitHub Actions
+2. Run `Publish to npm`
+3. Choose `patch`, `minor`, or `major`
+
+The workflow:
+
+- runs install, lint, format check, typecheck, test, and build before mutating versions
+- bumps `installer/package.json` first, then syncs the root version
+- commits the release bump, tags `v<version>`, pushes the release ref, publishes to npm, and creates the GitHub Release
+
+`npm run publish` remains a local/manual helper for troubleshooting or dry-run work.
+
 ```bash
-# Publish current version
+# Local/manual fallback
 npm run publish
-
-# Bump version + publish (one step)
-npm run publish -- patch     # Bug fix: 0.1.1 → 0.1.2
-npm run publish -- minor     # New feature: 0.1.1 → 0.2.0
-npm run publish -- major     # Breaking change: 0.1.1 → 1.0.0
-
-# Preview (no actual publish)
+npm run publish -- patch
+npm run publish -- minor
+npm run publish -- major
 npm run publish -- --dry-run
 ```
-
-Script automatically handles:
-- npm login/git status check
-- Run tests and build
-- Remove `private: true` before publish
-- Create git tag (on version bump)
 
 ## Adding New Features
 

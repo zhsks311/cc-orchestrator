@@ -21,6 +21,13 @@ jobs:
       id-token: write
 
     steps:
+      - name: Fail if workflow is not running on main
+        run: |
+          if [ "${GITHUB_REF}" != "refs/heads/main" ]; then
+            echo "Releases must run from main. Current ref: ${GITHUB_REF}" >&2
+            exit 1
+          fi
+
       - name: Checkout
         uses: actions/checkout@v4
         with:
@@ -31,6 +38,25 @@ jobs:
         with:
           node-version: '22'
           registry-url: 'https://registry.npmjs.org'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Check formatting
+        run: npm run format:check
+
+      - name: Run type check
+        run: npm run typecheck
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
 
       - name: Update npm
         run: npm install -g npm@latest
@@ -50,17 +76,40 @@ jobs:
           npm version $NEW_VERSION --no-git-tag-version --allow-same-version
           echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
 
-      - name: Commit and push
+      - name: Commit and push release ref
+        id: push_release_ref
         run: |
           git add package.json installer/package.json
+          for lockfile in package-lock.json npm-shrinkwrap.json installer/package-lock.json installer/npm-shrinkwrap.json; do
+            if [ -f "$lockfile" ]; then
+              git add "$lockfile"
+            fi
+          done
           git commit -m "chore: release v${{ steps.version.outputs.version }}"
           git tag -a "v${{ steps.version.outputs.version }}" -m "Release v${{ steps.version.outputs.version }}"
           git push
-          git push --tags
+          if ! git push --tags; then
+            echo "Tag push failed after the release commit may have been pushed."
+            echo "If needed, delete the tag with: git tag -d v${{ steps.version.outputs.version }} && git push --delete origin v${{ steps.version.outputs.version }}"
+            echo "That removes the tag only; it does not undo any release commit already pushed."
+            echo "Before the next release, revert the pushed release commit or recover from the same version baseline."
+            exit 1
+          fi
 
-      - name: Publish to npm
+      - name: Publish installer to npm
+        id: publish_to_npm
         working-directory: installer
         run: npm publish --provenance --access public
+
+      - name: Explain post-push cleanup
+        if: ${{ failure() && steps.push_release_ref.outcome == 'success' && steps.publish_to_npm.outcome == 'failure' }}
+        run: |
+          echo "Publish failed after pushing tag v${{ steps.version.outputs.version }}"
+          echo "If needed, delete the tag with: git tag -d v${{ steps.version.outputs.version }} && git push --delete origin v${{ steps.version.outputs.version }}"
+          echo "That removes the tag only; it does not undo any release commit already pushed."
+          echo "  git tag -d v${{ steps.version.outputs.version }}"
+          echo "  git push origin :refs/tags/v${{ steps.version.outputs.version }}"
+          echo "Before the next release, revert the pushed release commit or recover from the same version baseline."
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1

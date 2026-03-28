@@ -44,11 +44,6 @@ const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
 const args = process.argv.slice(2);
 const dryRun = args.includes('--dry-run');
 const bumpType = args.find(a => ['patch', 'minor', 'major'].includes(a));
-assertSupportedPublishMode({
-  version: packageJson.version,
-  dryRun,
-  bumpType,
-});
 
 function log(message, type = 'info') {
   const prefix = {
@@ -246,6 +241,12 @@ async function main() {
   console.log('  CC Orchestrator - Publish Script');
   console.log('  Target: installer/ -> npm cc-orchestrator');
   console.log('='.repeat(60) + '\n');
+
+  assertSupportedPublishMode({
+    version: packageJson.version,
+    dryRun,
+    bumpType,
+  });
 
   if (dryRun) {
     log('DRY RUN MODE - No actual publish will occur', 'warn');

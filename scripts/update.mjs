@@ -11,9 +11,9 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
-import { execSync } from 'child_process';
+import { execFileSync, execSync } from 'child_process';
 import {
-  buildReleaseCommitRef,
+  buildReleaseCommitLookupArgs,
   buildSetupCommand,
   buildUpgradeCommands,
   getLatestVersionTagFromRemoteRefsOutput,
@@ -72,7 +72,13 @@ function fetchRemoteTags() {
 
 function getFetchedReleaseCommit(releaseTag) {
   try {
-    return exec(`git rev-parse ${buildReleaseCommitRef(releaseTag)}`, { stdio: 'pipe' }).trim().slice(0, 7);
+    return execFileSync('git', buildReleaseCommitLookupArgs(releaseTag), {
+      cwd: rootDir,
+      encoding: 'utf8',
+      stdio: 'pipe',
+    })
+      .trim()
+      .slice(0, 7);
   } catch {
     return null;
   }

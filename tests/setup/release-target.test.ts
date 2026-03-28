@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildReleaseCommitLookupArgs,
   buildReleaseCommitRef,
   buildSetupCommand,
   buildCloneCommand,
@@ -53,6 +54,13 @@ describe('release-target helpers', () => {
 
   it('uses peeled commit refs for annotated release tags', () => {
     expect(buildReleaseCommitRef('v0.2.8')).toBe('refs/tags/v0.2.8^{commit}');
+  });
+
+  it('builds argv-safe release commit lookup args', () => {
+    expect(buildReleaseCommitLookupArgs('v0.2.8')).toEqual([
+      'rev-parse',
+      'refs/tags/v0.2.8^{commit}',
+    ]);
   });
 
   it('treats matching release names as stale when commits differ', () => {

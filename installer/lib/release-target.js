@@ -50,6 +50,10 @@ export function buildReleaseCommitRef(releaseTag) {
   return `refs/tags/${releaseTag}^{commit}`;
 }
 
+export function buildReleaseCommitLookupArgs(releaseTag) {
+  return ['rev-parse', buildReleaseCommitRef(releaseTag)];
+}
+
 export function getLatestVersionTag(tags) {
   if (!Array.isArray(tags) || tags.length === 0) {
     return null;

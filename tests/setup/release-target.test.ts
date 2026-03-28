@@ -14,6 +14,7 @@ import {
   getLatestVersionTag,
   isReleaseCheckoutUpToDate,
   ensureTagPrefix,
+  runExistingInstallUpgradeWorkflow,
   runFreshInstallWorkflow,
 } from '../../installer/lib/release-target.js';
 
@@ -101,6 +102,48 @@ describe('tag-aware installer commands', () => {
 
   it('delegates post-checkout work to plain setup', () => {
     expect(buildSetupCommand()).toBe('npm run setup -- --yes');
+  });
+});
+
+describe('existing install upgrade workflow', () => {
+  it('runs the upgrade commands in order', () => {
+    const calls: string[] = [];
+
+    runExistingInstallUpgradeWorkflow({
+      releaseTag: 'v0.2.8',
+      runCommand: (command) => {
+        calls.push(command);
+      },
+    });
+
+    expect(calls).toEqual([
+      'git fetch --tags origin',
+      'git rev-parse -q --verify refs/tags/v0.2.8',
+      'git checkout --force v0.2.8',
+      'git reset --hard v0.2.8',
+    ]);
+  });
+
+  it('maps tag verification failures to the missing-tag error', () => {
+    const calls: string[] = [];
+    const missingTagError = getMissingReleaseTagErrorMessage('v0.2.8');
+
+    expect(() =>
+      runExistingInstallUpgradeWorkflow({
+        releaseTag: 'v0.2.8',
+        runCommand: (command) => {
+          calls.push(command);
+          if (command === 'git rev-parse -q --verify refs/tags/v0.2.8') {
+            throw new Error('tag missing');
+          }
+        },
+      })
+    ).toThrow(missingTagError);
+
+    expect(calls).toEqual([
+      'git fetch --tags origin',
+      'git rev-parse -q --verify refs/tags/v0.2.8',
+    ]);
   });
 });
 

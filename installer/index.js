@@ -19,9 +19,8 @@ import { fileURLToPath } from 'url';
 import {
   buildCloneCommand,
   buildRemoteTagCheckCommand,
-  buildUpgradeCommands,
-  getMissingReleaseTagErrorMessage,
   getReleaseTag,
+  runExistingInstallUpgradeWorkflow,
   runFreshInstallWorkflow,
 } from './lib/release-target.js';
 
@@ -151,16 +150,12 @@ async function install(installDir) {
   console.log('─'.repeat(50));
   if (fs.existsSync(path.join(installDir, '.git'))) {
     console.log(`\n[1/3] Checking out release ${RELEASE_TAG}...\n`);
-    for (const command of buildUpgradeCommands(RELEASE_TAG)) {
-      try {
+    runExistingInstallUpgradeWorkflow({
+      releaseTag: RELEASE_TAG,
+      runCommand: (command) => {
         exec(command, { cwd: installDir });
-      } catch (error) {
-        if (command === `git rev-parse -q --verify refs/tags/${RELEASE_TAG}`) {
-          throw new Error(getMissingReleaseTagErrorMessage(RELEASE_TAG));
-        }
-        throw error;
-      }
-    }
+      },
+    });
   } else {
     console.log(`\n[1/3] Cloning release ${RELEASE_TAG}...\n`);
     const installDirExists = fs.existsSync(installDir);

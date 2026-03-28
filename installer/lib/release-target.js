@@ -33,13 +33,33 @@ export async function runFreshInstallWorkflow({
   await cloneRelease();
 }
 
+function buildUpgradeCommandPlan(releaseTag) {
+  return {
+    fetchTags: 'git fetch --tags origin',
+    verifyReleaseTag: `git rev-parse -q --verify refs/tags/${releaseTag}`,
+    checkoutRelease: `git checkout --force ${releaseTag}`,
+    resetRelease: `git reset --hard ${releaseTag}`,
+  };
+}
+
 export function buildUpgradeCommands(releaseTag) {
-  return [
-    'git fetch --tags origin',
-    `git rev-parse -q --verify refs/tags/${releaseTag}`,
-    `git checkout --force ${releaseTag}`,
-    `git reset --hard ${releaseTag}`,
-  ];
+  const plan = buildUpgradeCommandPlan(releaseTag);
+  return [plan.fetchTags, plan.verifyReleaseTag, plan.checkoutRelease, plan.resetRelease];
+}
+
+export function runExistingInstallUpgradeWorkflow({ releaseTag, runCommand }) {
+  const plan = buildUpgradeCommandPlan(releaseTag);
+
+  runCommand(plan.fetchTags);
+
+  try {
+    runCommand(plan.verifyReleaseTag);
+  } catch {
+    throw new Error(getMissingReleaseTagErrorMessage(releaseTag));
+  }
+
+  runCommand(plan.checkoutRelease);
+  runCommand(plan.resetRelease);
 }
 
 export function buildSetupCommand() {

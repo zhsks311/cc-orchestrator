@@ -157,7 +157,7 @@ async function main() {
   console.log('\n' + '═'.repeat(60));
   console.log('Starting update...\n');
 
-  console.log(`[1/4] Checking out latest release (${latestReleaseTag})...`);
+  console.log(`[1/3] Checking out latest release (${latestReleaseTag})...`);
   try {
     for (const command of buildUpgradeCommands(latestReleaseTag)) {
       exec(command, { stdio: 'inherit' });
@@ -168,7 +168,7 @@ async function main() {
     process.exit(1);
   }
 
-  console.log('[2/4] Updating dependencies (npm install)...');
+  console.log('[2/3] Updating dependencies (npm install)...');
   try {
     execSync('npm install', { cwd: rootDir, stdio: 'inherit' });
     console.log('      ✓ Done');
@@ -177,7 +177,7 @@ async function main() {
     process.exit(1);
   }
 
-  console.log(`[3/4] Running setup (${buildSetupCommand()})...`);
+  console.log(`[3/3] Running setup (${buildSetupCommand()})...`);
   try {
     execSync(buildSetupCommand(), { cwd: rootDir, stdio: 'inherit' });
     console.log('      ✓ Done');
@@ -186,7 +186,7 @@ async function main() {
     process.exit(1);
   }
 
-  console.log('[4/4] Refreshing version info...');
+  console.log('Refreshing version info...');
   const newVersion = getCurrentVersion();
   console.log(`      ✓ Current version: v${newVersion}`);
 
